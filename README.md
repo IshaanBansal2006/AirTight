@@ -40,7 +40,7 @@ blueprint run.
 Lanes communicate through `contracts/` only. Each lane works on its own branch and merges
 to `main` when `uv run pytest tests/contracts` passes.
 
-Run the hello blueprint to confirm the entry point is discovered:
+Run the site blueprint to confirm the entry point is discovered:
 
 ```bash
 uv run dimos run airtight.airtight-site
