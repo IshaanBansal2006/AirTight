@@ -155,7 +155,7 @@ def _as_record(item: Any, now: float) -> dict[str, Any]:
     if not isinstance(rec.get("age"), (int, float)):
         stamp = rec.get("last_seen", rec.get("last_seen_t", rec.get("t")))
         try:
-            rec["age"] = now - float(stamp)
+            rec["age"] = now - float(stamp) if stamp is not None else 0.0
         except (TypeError, ValueError):
             rec["age"] = 0.0
     return rec

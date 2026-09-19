@@ -81,7 +81,7 @@ class WalkModule(Module):
         return _xy_of(pose)
 
     def _drive_xy(self, x: float, y: float) -> str:
-        return self.walk_to(x, y)
+        return str(self.walk_to(x, y))
 
     def _sync_brain_pose(self, xy: tuple[float, float] | None) -> None:
         if xy is None:
