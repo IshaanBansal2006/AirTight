@@ -16,6 +16,7 @@ from dimos.msgs.geometry_msgs.Twist import Twist
 from dimos.msgs.geometry_msgs.Vector3 import Vector3
 from dimos.msgs.sensor_msgs.Image import Image  # noqa: TC002
 
+from airtight.dimos_lane.modules.fleet_memory import format_recall, load_fleet_memory, remember_item
 from airtight.dimos_lane.modules.orchestrator import Orchestrator, north_gate_xy
 
 DEFAULT_SNAPSHOT = "data/go2_intruder.jpg"
@@ -54,6 +55,7 @@ class WalkModule(Module):
         self.brain = Orchestrator()
         self.brain.backend.bind_move_to(self._drive_xy)
         self.brain.backend.bind_pose_reader(lambda: self._try_xy(timeout=0.4))
+        self.memory = load_fleet_memory()
 
     def _unconnected(self, port: Any) -> bool:
         return (
@@ -79,7 +81,7 @@ class WalkModule(Module):
         return _xy_of(pose)
 
     def _drive_xy(self, x: float, y: float) -> str:
-        return self.walk_to(x, y)
+        return str(self.walk_to(x, y))
 
     def _sync_brain_pose(self, xy: tuple[float, float] | None) -> None:
         if xy is None:
@@ -162,15 +164,34 @@ class WalkModule(Module):
         dest.write_bytes(frame.to_jpeg_bytes(quality=85))
         return f"wrote {dest} {int(frame.width)}x{int(frame.height)}"
 
+    def _note_memory(self, claim: str | None = None) -> None:
+        memory = getattr(self, "memory", None)
+        brain = getattr(self, "brain", None)
+        if memory is None or brain is None:
+            return
+        for did, pos in brain.fleet.snapshot().items():
+            remember_item(memory, kind="coverage", x=float(pos[0]), y=float(pos[1]), key=did)
+        if claim:
+            remember_item(memory, kind="claim", key="last_dispatch", value=claim)
+
     @skill
     def dispatch_verify(self, x: float, y: float) -> str:
         """Create a verify task at (x, y), auction it, send the winner."""
-        return self.brain.dispatch_verify(x, y)
+        result = self.brain.dispatch_verify(x, y)
+        self._note_memory(self.brain.last_dispatch)
+        return result
 
     @skill
     def fleet_status(self) -> str:
         """Summarize agent poses, last dispatch and pending approvals."""
+        self._note_memory()
         return self.brain.fleet_status()
+
+    @skill
+    def recall(self, query: str = "*", kind: str = "coverage") -> str:
+        """Return fleet-memory entries for `kind`, each with age in seconds."""
+        self._note_memory()
+        return format_recall(self.memory, query, kind)
 
     @skill
     def site_status(self) -> str:
@@ -188,4 +209,6 @@ class WalkModule(Module):
     def check_north_gate(self) -> str:
         """Convenience for the demo prompt 'check the north gate'."""
         gx, gy = north_gate_xy()
-        return self.brain.dispatch_verify(gx, gy)
+        result = self.brain.dispatch_verify(gx, gy)
+        self._note_memory(self.brain.last_dispatch)
+        return result
