@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import inspect
 from collections.abc import Callable, Sequence
 from concurrent.futures import ProcessPoolExecutor
+from functools import partial
 from pathlib import Path
 
 import numpy as np
@@ -48,6 +50,17 @@ def summarize(
     )
 
 
+def light(episode_fn: EpisodeFn) -> EpisodeFn:
+    """Ask the runner for header-plus-outcome logs when it supports `full_log`; searches run thousands of episodes."""
+    try:
+        params = inspect.signature(episode_fn).parameters
+    except (TypeError, ValueError):
+        return episode_fn
+    if "full_log" in params and not isinstance(episode_fn, partial):
+        return partial(episode_fn, full_log=False)
+    return episode_fn
+
+
 def _run_job(
     args: tuple[EpisodeFn, Site, FleetConfig, Tactic, SensorCurves, int, Path],
 ) -> tuple[str, int, EpisodeResult]:
@@ -67,7 +80,8 @@ def evaluate(
     workers: int = 1,
 ) -> list[TacticScore]:
     """Run every tactic on every seed, in a process pool when workers > 1, and score each tactic."""
-    jobs = [(episode_fn, site, fleet, t, curves, s, log_dir) for t in tactics for s in seeds]
+    fn = light(episode_fn)
+    jobs = [(fn, site, fleet, t, curves, s, log_dir) for t in tactics for s in seeds]
     if workers <= 1:
         outcomes = [_run_job(j) for j in jobs]
     else:
@@ -77,3 +91,19 @@ def evaluate(
     for tid, _, res in outcomes:
         by_id[tid].append(res)
     return [summarize(t, by_id[t.id], site.response_time_s, margin_weight) for t in tactics]
+
+
+def write_replay_logs(
+    tactics: Sequence[Tactic],
+    site: Site,
+    fleet: FleetConfig,
+    curves: SensorCurves,
+    seeds: Sequence[int],
+    episode_fn: EpisodeFn,
+    replay_dir: Path,
+) -> list[Path]:
+    """Full logs for a handful of tactics, one per seed, for lane A's replay and the failure clips."""
+    replay_dir.mkdir(parents=True, exist_ok=True)
+    return [
+        episode_fn(site, fleet, t, curves, s, replay_dir).log_path for t in tactics for s in seeds
+    ]

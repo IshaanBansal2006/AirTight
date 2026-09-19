@@ -11,7 +11,7 @@ from airtight.contracts import FleetConfig, SensorCurves, Site, Tactic, TacticFa
 from airtight.redteam.config import RedTeamConfig
 from airtight.redteam.coverage import CoverageMap, GeometryCoverage
 from airtight.redteam.families import FAMILIES, perturb, sample_tactic
-from airtight.redteam.objective import EpisodeFn, TacticScore, evaluate
+from airtight.redteam.objective import EpisodeFn, TacticScore, evaluate, write_replay_logs
 from airtight.redteam.validate import validate
 
 if TYPE_CHECKING:
@@ -131,8 +131,9 @@ def search_all(
     master_seed: int = 0,
     workers: int = 1,
     seed_tactics: Sequence[Tactic] = (),
+    replay_seeds: int = 3,
 ) -> dict[TacticFamily, SearchResult]:
-    """One search per family with its own derived RNG; writes top_<family>.json and summary.json."""
+    """One search per family with its own derived RNG; writes top_<family>.json, summary.json and replay logs."""
     cfg = cfg or RedTeamConfig()
     out_dir.mkdir(parents=True, exist_ok=True)
     results: dict[TacticFamily, SearchResult] = {}
@@ -143,6 +144,16 @@ def search_all(
         )
         (out_dir / f"top_{family}.json").write_text(res.model_dump_json(indent=2))
         results[family] = res
+    if replay_seeds > 0:
+        write_replay_logs(
+            [r.tactics[0] for r in results.values()],
+            site,
+            fleet,
+            curves,
+            list(seeds)[:replay_seeds],
+            episode_fn,
+            out_dir / "replays",
+        )
     summary = {
         fam: {
             "best_tactic_id": r.tactics[0].id,

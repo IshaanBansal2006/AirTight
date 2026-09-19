@@ -24,6 +24,22 @@ def _example(name: str) -> Path:
     return Path(str(EXAMPLES.joinpath(name)))
 
 
+def _add_engine_arg(p: argparse.ArgumentParser) -> None:
+    p.add_argument(
+        "--engine",
+        default=None,
+        help="episode engine: stub or v0 (sets AIRTIGHT_ENGINE for this run and its workers)",
+    )
+
+
+def _select_engine(args: argparse.Namespace) -> str:
+    import os
+
+    if getattr(args, "engine", None):
+        os.environ["AIRTIGHT_ENGINE"] = args.engine
+    return os.environ.get("AIRTIGHT_ENGINE", "stub")
+
+
 def _add_scene_args(p: argparse.ArgumentParser) -> None:
     p.add_argument("--site", type=Path, default=_example("site.json"))
     p.add_argument("--fleet", type=Path, default=_example("fleet_config.json"))
@@ -76,6 +92,7 @@ def cmd_coverage(args: argparse.Namespace) -> int:
 
 
 def cmd_search(args: argparse.Namespace) -> int:
+    engine = _select_engine(args)
     from airtight.sim.runner import run_episode
 
     site, fleet, curves, cfg = _load_scene(args)
@@ -106,7 +123,7 @@ def cmd_search(args: argparse.Namespace) -> int:
         print(
             f"{fam:16s} best={s.adversary_score:.3f} miss={s.miss_rate:.2f} margin={s.mean_margin_s:+.0f}s origin={t.origin} entry={t.entry_id} phase={t.phase:.2f} episodes={r.n_episodes}"
         )
-    print(f"written to {args.out}")
+    print(f"engine={engine}; written to {args.out}; replay logs in {args.out / 'replays'}")
     return 0
 
 
@@ -180,6 +197,7 @@ def _client_from(args: argparse.Namespace, cfg: RedTeamConfig):  # type: ignore[
 
 
 def cmd_difficulty(args: argparse.Namespace) -> int:
+    engine = _select_engine(args)
     from airtight.redteam.difficulty import check_difficulty
     from airtight.sim.runner import run_episode
 
@@ -200,7 +218,7 @@ def cmd_difficulty(args: argparse.Namespace) -> int:
         print(
             f"{r.family:16s} mean Pd={r.mean_pd:.2f} worst Pd={r.worst_pd:.2f} over {r.n_tactics} random tactics"
         )
-    print(rep.verdict)
+    print(f"{rep.verdict} (engine={engine})")
     if args.out:
         args.out.parent.mkdir(parents=True, exist_ok=True)
         args.out.write_text(rep.model_dump_json(indent=2))
@@ -208,6 +226,7 @@ def cmd_difficulty(args: argparse.Namespace) -> int:
 
 
 def cmd_campaign(args: argparse.Namespace) -> int:
+    engine = _select_engine(args)
     from airtight.redteam.campaign import run_campaign
     from airtight.redteam.llm import BudgetExceededError
     from airtight.sim.runner import run_episode
@@ -242,7 +261,7 @@ def cmd_campaign(args: argparse.Namespace) -> int:
             f"{f.family:16s} search-only={f.search_only_best:.3f} with-llm={f.with_llm_best:.3f} llm in elites={f.llm_tactic_in_elites} llm is best={f.llm_tactic_is_best}"
         )
     print(
-        f"{result.proposals_accepted} accepted, {result.proposals_rejected} rejected, ${result.llm_spent_usd:.4f} spent, {result.n_episodes} episodes; written to {args.out}"
+        f"engine={engine}; {result.proposals_accepted} accepted, {result.proposals_rejected} rejected, ${result.llm_spent_usd:.4f} spent, {result.n_episodes} episodes; written to {args.out}"
     )
     return 0
 
@@ -287,6 +306,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     r = sub.add_parser("search", help="find the worst tactics per family against an episode runner")
     _add_scene_args(r)
+    _add_engine_arg(r)
     r.add_argument("--families", nargs="+", choices=FAMILIES, default=list(FAMILIES))
     r.add_argument("--seeds", type=Path, default=REPO_ROOT / "data" / "seeds.json")
     r.add_argument("--out", type=Path, default=REPO_ROOT / "data" / "tactics")
@@ -329,6 +349,7 @@ def build_parser() -> argparse.ArgumentParser:
         "difficulty", help="random tactics against the baseline: is mean Pd in the 0.6 to 0.9 band?"
     )
     _add_scene_args(d)
+    _add_engine_arg(d)
     d.add_argument("--seeds", type=Path, default=REPO_ROOT / "data" / "seeds.json")
     d.add_argument("--n-seeds", type=int, default=None)
     d.add_argument("--n-per-family", type=int, default=30)
@@ -342,6 +363,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="search, propose against the results, search again with proposals injected, compare",
     )
     _add_scene_args(cp)
+    _add_engine_arg(cp)
     cp.add_argument("--families", nargs="+", choices=FAMILIES, default=list(FAMILIES))
     cp.add_argument("--seeds", type=Path, default=REPO_ROOT / "data" / "seeds.json")
     cp.add_argument("--n-seeds", type=int, default=None)
