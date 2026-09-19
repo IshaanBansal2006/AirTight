@@ -1,0 +1,5 @@
+# Sibling checkout consumed as an editable path dependency. dimOS has no release
+# tags, so the team pins by commit here and scripts/check_pins.sh enforces it.
+[dimos]
+path = "../dimos"
+commit = "2282a4a52"

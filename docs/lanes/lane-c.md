@@ -1,0 +1,84 @@
+# Lane C, step by step (Ishaan)
+
+You own `src/airtight/redteam/`, `src/airtight/memory/`, `pitch/`. You also lead the syncs. Everything below that is an algorithm you write yourself; the scaffolding around it (loaders, CLI, caching, logging, plotting) can be requested from Claude at any point.
+
+## Hour 0: team lead duties before touching lane C
+
+1. Everyone: clone dimos next to this repo, `uv sync --extra dev`, `./scripts/check_pins.sh`, `uv run pytest`.
+2. Set a real `OPENAI_API_KEY` and unset or fix `OPENAI_BASE_URL` in the shell that runs the agentic blueprint and your proposer.
+3. Walk the team through `docs/plan.md` sections 1 and 2 and `src/airtight/contracts/`. Freeze contracts. Anything missing is added now, not at hour 6.
+4. Branch: `git checkout -b lane-c`.
+
+## C0 (0–1): two more example tactics
+
+Add `decoy` and `blind_spot` examples beside `contracts/examples/tactic.json` and extend `tests/contracts/test_examples.py` to load them. Decoy needs `decoy: {position, lead_time_s}`; blind_spot has several waypoints through low-coverage cells. Ask yourself: what does a waypoint list mean when the fleet is not where the tactic expected it to be? (Answer decides whether tactics are open-loop paths or closed-loop policies. Ward et al. use closed-loop; you are choosing open-loop for the 24 hours and should say so on the conditions slide.)
+
+## C1 (1–3): tactic families and the validator
+
+Files: `redteam/families.py`, `redteam/validate.py`, `tests/redteam/test_validate.py`.
+
+Signatures to fill:
+
+```python
+def sample_tactic(family: TacticFamily, site: Site, fleet: FleetConfig, rng: np.random.Generator) -> Tactic
+def validate(tactic: Tactic, site: Site, speed_cap_mps: float) -> list[str]   # empty list means valid
+```
+
+Parameters per family: charging_window (entry, phase, speed); decoy (decoy position, lead time, entry, phase); blind_spot (waypoints through low-coverage cells, phase). The validator checks: the entry point lies on the perimeter, the path stays inside bounds, speed under the cap, phase in [0,1), last waypoint is the asset.
+
+Questions the design hinges on: is "low-coverage cell" computed from a steady-state snapshot (needs B3) or from geometry (fixed sensor FOVs and dock positions only)? Geometry-only lets you run before hour 7. Point-in-polygon for the perimeter: write it yourself (ray casting), it is a 15-line whiteboard question.
+
+## C2 (3–6): search against the stub
+
+Files: `redteam/search.py`, `redteam/cli.py` (Claude can scaffold the CLI and the process pool).
+
+Objective: miss rate over the first 20 seeds of `data/seeds.json`. Loop: 200 random samples per family, keep the 10 worst for the defender, refine each by perturbation (phase ±0.05, speed ±10%, waypoint jitter 3 m, decoy lead ±20 s) for a fixed budget, output the top set per family as `data/tactics/top_<family>.json`.
+
+Decide and record: random search with elites versus CMA-ES versus the Ward et al. learned adversary. For 24 hours with a stub that costs microseconds and a real sim that costs seconds, what does each buy you? Note the budget: total episodes = families × (200 + refinements) × 20 seeds. Keep the stub run under a minute so the loop is exercised, then set the real-sim budget from B's measured episode time at hour 8.
+
+Sync at hour 5: report which family the stub finds hardest. It is random on the stub, so this is a plumbing check, not a result.
+
+## C4a (6–8): LLM proposer on the stub
+
+Files: `redteam/proposer.py`, `redteam/primitives.py`, `data/llm_cache/` (gitignored).
+
+Input: a short site digest (entry points, asset, docks, fixed sensors), a patrol summary (agent types, charge cycle length, synchronized or staggered), a per-family results table from C2. Output: tactic instances built from primitives (`enter(entry_id)`, `wait(s)`, `move(x, y, speed)`, `drop_decoy(x, y, lead)`, `sprint(x, y)`), compiled to `Tactic`, schema-validated, invalid ones discarded, survivors handed to the search as extra seeds. Cache by SHA of the prompt. Log tokens and dollars per call to `data/llm_calls.jsonl`.
+
+Decide: structured output (JSON schema mode) versus free text plus parser. Decide: one call proposing N tactics versus N calls. The token chart in C6 depends on this, so log from the first call.
+
+## C3 (8–10): rerun on the real sim
+
+Rerun C2 with B's real `run_episode`. Check difficulty with B: baseline Pd in 0.6–0.9 so the fix has room to show. If the adversary always or never wins, B adjusts sensor range or site size now, not later. After this step, scenario parameters are fixed; write the numbers into `docs/decisions/003-scenario-parameters.md`.
+
+Done when: the charging-window search converges on the synchronized-charging dip. If it does not, that is finding F2 and the hour-12 sync decides.
+
+## C4b (10–11): proposer on the real sim
+
+Same loop as C4a against the real sim. Done when at least one LLM-proposed tactic survives search into a top set. Record its id; the slide shows it beside the search-only best.
+
+## C5 (11–14): fleet memory
+
+Files: `memory/store.py`, `tests/memory/test_properties.py` (hypothesis is in the dev extras).
+
+Implement the `FleetMemory` protocol in `memory/interface.py`. Three entry kinds with three merge rules: coverage cells merge by max, claims merge by newest timestamp, evidence is a deduplicated set whose score is a sum. Property tests: merge is commutative, associative and idempotent; `merge(delta(v))` on a copy reproduces the source for any interleaving; `delta` respects the byte budget newest-first.
+
+This is a CRDT: cells are a max-register, claims a last-writer-wins register, evidence a grow-only set with a summed field. Know why each rule is order-independent before you write it; it is the question you would be asked. Then plug the store into the `swarm/edge` fusion interface through the sim (B9) and give A the object to wrap.
+
+Gate H14: property tests pass or the link-cut beat is dropped (F3).
+
+## C6 (14–15): token accounting
+
+Run the naive planner (LLM plans every episode) on 20 episodes; compare cost per scored configuration with propose-then-search. One chart from `data/llm_calls.jsonl`.
+
+## C7 (15–16): comms tactic
+
+`comms_cut` family: cut the base link at a chosen time after entry. Valid against B9's comms modes.
+
+## C8 (16–20): charts, deck, video
+
+`pitch/make_charts.py` reads `report.json` only: ROC per configuration, cost versus detection with intervals, vulnerability map (worst tactic path over the site), before-and-after with the re-attack number beside it. Eight slides. Demo script matching the plan's opening paragraph. Assemble with A's clips. Every number on a slide comes from the script.
+
+## What to ask Claude for, and what not to
+
+Ask for: CLIs, process pools, caches, JSONL loggers, the chart script, the deck skeleton, test scaffolds, loaders, the dimOS wrapper for memory, and reviews of what you wrote.
+Do not ask for: `sample_tactic`, `validate`, the search loop, the proposer's prompt-to-primitives logic, the memory merge rules, or the stagger optimizer. The implementation override is not granted for airtight.
