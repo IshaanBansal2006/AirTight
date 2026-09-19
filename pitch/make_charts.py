@@ -96,18 +96,21 @@ def chart_cost_vs_detection(r: Report, p: Palette, out: Path, numbers: dict) -> 
             0 < (ox - x) / xspan < 0.3 and abs(oy - y) < 0.1 for ox, oy in pts
         )
         dy = 6.0
+        row_conflict = False
         for px, py in placed:
             same_column = abs(px - x) / xspan < 0.12 and abs(py - y) < 0.06
             same_row = 0 < (x - px) / xspan < 0.4 and abs(py - y) < 0.05
+            row_conflict = row_conflict or same_row
             if same_column or same_row:
                 dy -= 11.0
+        below = crowded_right and row_conflict
         placed.append((x, y))
         ax.annotate(
             c.config_name + (" (baseline)" if base else ""),
             (x, y),
-            xytext=(-6 if crowded_right else 6, dy),
+            xytext=(0, -14) if below else (-6 if crowded_right else 6, dy),
             textcoords="offset points",
-            ha="right" if crowded_right else "left",
+            ha="center" if below else ("right" if crowded_right else "left"),
             fontsize=7,
             color=p.ink_secondary,
         )
