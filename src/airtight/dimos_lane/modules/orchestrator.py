@@ -17,6 +17,12 @@ from airtight.dimos_lane.site_io import load_example_site
 NORTH_GATE = "north_gate"
 
 
+def north_gate_xy() -> tuple[float, float]:
+    site = load_example_site()
+    gate = site.entry(NORTH_GATE)
+    return gate.position.x, gate.position.y
+
+
 class Orchestrator:
     def __init__(self) -> None:
         self.allocator = Allocator()
@@ -24,12 +30,20 @@ class Orchestrator:
         self.fleet = SimFleet()
         self.backend = DimosBackend()
         self.last_dispatch: str | None = None
+        self.dispatch_count = 0
+
+    def _auction_drones(self) -> list[Any]:
+        drones = self.fleet.drones()
+        if not self.backend.has_live_go2:
+            return drones
+        live = [d for d in drones if d.drone_id == DimosBackend.GO2_ID]
+        return live or drones
 
     def dispatch_verify(self, x: float, y: float) -> str:
         task = verify_task(
-            "verify-north" if (x, y) == _north_gate_xy() else f"verify-{x:.0f}-{y:.0f}", x, y
+            "verify-north" if (x, y) == north_gate_xy() else f"verify-{x:.0f}-{y:.0f}", x, y
         )
-        assignment = self.allocator.allocate([task], self.fleet.drones())
+        assignment = self.allocator.allocate([task], self._auction_drones())
         winner = self.allocator.winner_for(task.task_id)
         if winner is None:
             return "no capable agent for verify"
@@ -39,24 +53,22 @@ class Orchestrator:
             rationale=f"dispatch {winner} to ({x:.1f},{y:.1f})",
         )
         self.last_dispatch = winner
+        self.dispatch_count += 1
         assigned = {did: [t.task_id for t in path] for did, path in assignment.items() if path}
         return f"task={task.task_id} winner={winner} auction={assigned} proposal={proposal}"
 
     def fleet_status(self) -> str:
         site = load_example_site()
+        live = self.backend.pose(DimosBackend.GO2_ID)
+        self.fleet.set_pose(DimosBackend.GO2_ID, float(live[0]), float(live[1]), float(live[2]))
         poses = self.fleet.snapshot()
         agents = ", ".join(f"{did}=({p[0]:.0f},{p[1]:.0f})" for did, p in poses.items())
         pending = self.gate.pending_ids()
         return (
             f"site {site.name}; agents [{agents}]; "
-            f"last_dispatch={self.last_dispatch}; pending={pending or 'none'}"
+            f"last_dispatch={self.last_dispatch}; dispatches={self.dispatch_count}; "
+            f"pending={pending or 'none'}"
         )
-
-
-def _north_gate_xy() -> tuple[float, float]:
-    site = load_example_site()
-    gate = site.entry(NORTH_GATE)
-    return gate.position.x, gate.position.y
 
 
 class OrchestratorModule(Module):
@@ -87,5 +99,5 @@ class OrchestratorModule(Module):
     @skill
     def check_north_gate(self) -> str:
         """Convenience for the demo prompt 'check the north gate'."""
-        x, y = _north_gate_xy()
+        x, y = north_gate_xy()
         return self.inner.dispatch_verify(x, y)

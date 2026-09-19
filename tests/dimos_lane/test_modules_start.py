@@ -80,6 +80,16 @@ def test_dimos_backend_goto_and_step() -> None:
     assert float(moved[0] - start[0]) != 0.0 or float(moved[1] - start[1]) != 0.0
 
 
+def test_dimos_backend_pose_reader() -> None:
+    backend = DimosBackend()
+    dock = backend.pose("go2_1")
+    assert abs(float(dock[0]) - 10.0) < 1e-6
+    backend.bind_pose_reader(lambda: (11.5, 70.25))
+    live = backend.pose("go2_1")
+    assert abs(float(live[0]) - 11.5) < 1e-9
+    assert abs(float(live[1]) - 70.25) < 1e-9
+
+
 def test_orchestrator_check_north_gate() -> None:
     orch = Orchestrator()
     site = load_example_site()
@@ -87,4 +97,19 @@ def test_orchestrator_check_north_gate() -> None:
     result = orch.dispatch_verify(gate.position.x, gate.position.y)
     assert "winner=" in result
     assert orch.last_dispatch in {"go2_1", "guard_1"}
-    assert "example-yard" in orch.fleet_status()
+    status = orch.fleet_status()
+    assert "example-yard" in status
+    assert "dispatches=1" in status
+
+
+def test_orchestrator_live_hook_prefers_go2() -> None:
+    calls: list[tuple[float, float]] = []
+    orch = Orchestrator()
+    orch.backend.bind_move_to(lambda x, y: calls.append((x, y)) or "walked")
+    site = load_example_site()
+    gate = site.entry(NORTH_GATE)
+    result = orch.dispatch_verify(gate.position.x, gate.position.y)
+    assert orch.last_dispatch == "go2_1"
+    assert "verify-north" in result
+    assert calls == [(gate.position.x, gate.position.y)]
+    assert orch.dispatch_count == 1
