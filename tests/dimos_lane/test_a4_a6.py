@@ -12,7 +12,8 @@ from airtight.dimos_lane.calibration.capture import (
 )
 from airtight.dimos_lane.calibration.fit import curves_from_looks
 from airtight.dimos_lane.openai_env import ensure_openai_key
-from airtight.dimos_lane.simulator import A6_LLM_TURN, A6_MODEL as SIM_A6_MODEL
+from airtight.dimos_lane.simulator import A6_LLM_TURN
+from airtight.dimos_lane.simulator import A6_MODEL as SIM_A6_MODEL
 
 
 def test_run_live_sweep_covers_bins_and_bearings(tmp_path) -> None:  # type: ignore[no-untyped-def]
@@ -27,7 +28,9 @@ def test_run_live_sweep_covers_bins_and_bearings(tmp_path) -> None:  # type: ign
     def place(x: float, y: float) -> None:
         placed.append((x, y))
 
-    def detect(image: object, query: str = "person", detector_name: str = "owlv2") -> tuple[bool, int, str]:
+    def detect(
+        image: object, query: str = "person", detector_name: str = "owlv2"
+    ) -> tuple[bool, int, str]:
         return query == "person", int(query == "person"), "fake-owl"
 
     looks = run_live_sweep(
@@ -60,7 +63,9 @@ def test_run_live_sweep_pd_falls_with_range(tmp_path) -> None:  # type: ignore[n
         # planned person poses: range is recovered from x relative to dock
         last_range["m"] = ((x - 10.0) ** 2 + (y - 70.0) ** 2) ** 0.5
 
-    def detect(image: object, query: str = "person", detector_name: str = "owlv2") -> tuple[bool, int, str]:
+    def detect(
+        image: object, query: str = "person", detector_name: str = "owlv2"
+    ) -> tuple[bool, int, str]:
         if query != "person":
             return False, 0, "fake-owl"
         hit = last_range["m"] <= 8.0

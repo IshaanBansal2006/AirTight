@@ -167,7 +167,9 @@ def coarsen(grid: NDArray[np.int8], factor: int = 4) -> NDArray[np.int8]:
     return np.array(grid[::factor, ::factor], dtype=np.int8)
 
 
-def site_to_occupancy(site: Site, *, benign: tuple[YardBlob, ...] | None = None) -> NDArray[np.int8]:
+def site_to_occupancy(
+    site: Site, *, benign: tuple[YardBlob, ...] | None = None
+) -> NDArray[np.int8]:
     """Free yard, occupied perimeter / asset / offset docks / two benign blobs."""
     grid = np.full(_grid_shape(site), FREE, dtype=np.int8)
     for a, b in perimeter_edges(site):
