@@ -80,33 +80,29 @@ def chart_cost_vs_detection(r: Report, p: Palette, out: Path, numbers: dict) -> 
         linewidth=1.2,
         zorder=1,
     )
-    for c in r.configs:
+    placed: list[tuple[float, float]] = []
+    pts = [(c.cost_per_hour, c.pd_at_operating_point) for c in r.configs]
+    xspan = (max(x for x, _ in pts) - min(x for x, _ in pts)) or 1.0
+    for c in sorted(r.configs, key=lambda c: (c.cost_per_hour, -c.pd_at_operating_point)):
         base = c.config_name == r.baseline_config
         color = p.series[1] if base else p.series[0]
         lo, hi = c.pd_at_operating_point_ci
-        ax.plot(
-            [c.cost_per_hour, c.cost_per_hour],
-            [lo, hi],
-            color=color,
-            linewidth=1.2,
-            alpha=0.7,
-            zorder=2,
-        )
-        ax.scatter(
-            [c.cost_per_hour],
-            [c.pd_at_operating_point],
-            s=64,
-            color=color,
-            edgecolor=p.surface,
-            linewidth=1.5,
-            zorder=3,
-        )
+        x, y = c.cost_per_hour, c.pd_at_operating_point
+        ax.plot([x, x], [lo, hi], color=color, linewidth=1.2, alpha=0.7, zorder=2)
+        ax.scatter([x], [y], s=64, color=color, edgecolor=p.surface, linewidth=1.5, zorder=3)
+        crowded_right = any(0 < (ox - x) / xspan < 0.3 and abs(oy - y) < 0.1 for ox, oy in pts)
+        dy = 6.0
+        for px, py in placed:
+            if abs(px - x) / xspan < 0.12 and abs(py - y) < 0.06:
+                dy -= 11.0
+        placed.append((x, y))
         ax.annotate(
             c.config_name + (" (baseline)" if base else ""),
-            (c.cost_per_hour, c.pd_at_operating_point),
-            xytext=(6, 6),
+            (x, y),
+            xytext=(-6 if crowded_right else 6, dy),
             textcoords="offset points",
-            fontsize=8,
+            ha="right" if crowded_right else "left",
+            fontsize=7,
             color=p.ink_secondary,
         )
     ax.set_xlabel("Fleet cost, USD per hour")
@@ -386,12 +382,13 @@ def chart_before_after(r: Report, fixed: str | None, p: Palette, out: Path, numb
                 fontsize=8,
                 color=p.ink,
             )
-        improved = (a > b) if higher_is_better else (a < b)
-        ax.set_title(
-            f"{name}\n{'better' if improved else 'worse'}",
-            fontsize=8,
-            color=p.good if improved else p.critical,
-        )
+        if a == b:
+            verdict, color = ("not measured yet" if a == 0 else "unchanged"), p.muted
+        elif (a > b) if higher_is_better else (a < b):
+            verdict, color = "better", p.good
+        else:
+            verdict, color = "worse", p.critical
+        ax.set_title(f"{name}\n{verdict}", fontsize=8, color=color)
         ax.set_xticks([0, 1], [base.config_name, after.config_name], fontsize=7)
         ax.set_xlim(-0.4, 1.4)
         ax.margins(y=0.3)
