@@ -152,19 +152,38 @@ def test_paired_deltas(swept: tuple[SweepResult, Path]) -> None:
         assert all(p.ci[0] <= p.ci[1] for p in config.paired_vs_baseline)
 
 
-def test_conditions_say_what_the_number_depends_on(swept: tuple[SweepResult, Path]) -> None:
+def test_conditions_are_short_and_the_long_form_is_in_the_sidecar(
+    swept: tuple[SweepResult, Path],
+) -> None:
     result, _ = swept
-    c = build_report(result, n_boot=50, generated_at=WHEN)[0].conditions
+    report, detail = build_report(result, n_boot=50, generated_at=WHEN)
+    c = report.conditions
     assert c.far_per_hour_operating_point == 1.0 and c.n_seeds == len(SEEDS)
+    for text in (c.adversary_knowledge, c.sensor_calibration, c.detection_model_note):
+        assert len(text) <= 100 and "\n" not in text  # fits under lane C's chart axis
     assert "within 15 s" in c.adversary_knowledge and "random draws" in c.adversary_knowledge
-    assert (
-        "stub curve" in c.sensor_calibration
-        and result.inputs.curves.content_hash() in c.sensor_calibration
-    )
+    assert "stub curve" in c.sensor_calibration
+    assert result.inputs.curves.content_hash() in c.sensor_calibration
     assert "truth association" in c.detection_model_note and "no clutter" in c.detection_model_note
-    assert all(item in c.detection_model_note for item in ENGINE_IGNORES)
     assert c.seed_list_hash == report_module.seed_list_hash(SEEDS) and len(c.seed_list_hash) == 12
     assert report_module.seed_list_hash(SEEDS[:-1]) != c.seed_list_hash
+
+    long = detail.conditions_detail
+    assert set(long) >= {"adversary_knowledge", "sensor_calibration", "detection_model_note"}
+    assert all(item in long["detection_model_note"] for item in ENGINE_IGNORES)
+    assert result.inputs.curves.source in long["sensor_calibration"]
+    assert "open-loop" in long["adversary_knowledge"]
+
+
+def test_tactic_files_are_contract_tactics(swept: tuple[SweepResult, Path]) -> None:
+    from airtight.contracts import Tactic
+
+    result, tmp = swept
+    out = report_module.write_tactics(result, tmp / "report_tactics")
+    files = sorted(p.name for p in out.glob("*.json"))
+    assert files == sorted(f"{t.id}.json" for t in result.inputs.tactics)
+    loaded = [Tactic.model_validate_json((out / f).read_text()) for f in files]
+    assert sorted(loaded, key=lambda t: t.id) == sorted(result.inputs.tactics, key=lambda t: t.id)
 
 
 def test_baseline_must_name_a_configuration(swept: tuple[SweepResult, Path]) -> None:

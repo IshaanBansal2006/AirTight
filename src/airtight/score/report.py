@@ -70,6 +70,7 @@ class ReportDetail(BaseModel):
     n_seeds: int
     n_quiet_seeds: int
     n_boot: int
+    conditions_detail: dict[str, str]  # the long form of the contract's short condition strings
     configs: dict[str, ConfigDetail]
 
 
@@ -114,26 +115,48 @@ def paired_deltas(
 
 
 def conditions(result: SweepResult) -> Conditions:
+    """One short sentence each: lane C's charts print these under an axis. The long versions are
+    in the sidecar, see conditions_detail."""
     curves = result.inputs.curves
     jitter = official_params().phase_jitter_s
     return Conditions(
         far_per_hour_operating_point=FAR_TARGET,
-        adversary_knowledge=(
-            f"the adversary knows the patrol policy and the charge schedule to within {jitter:g} s, "
-            "and does not know the patrol's random draws"
-        ),
-        sensor_calibration=(
-            "stub curve until lane A's calibrated curve arrives; "
-            f"source: {curves.source}; curve hash {curves.content_hash()}"
-        ),
-        detection_model_note=(
-            "reduced-order detection (a per-look draw from detection probability by range) with "
-            "truth association, no clutter, 2D footprints. The engine still ignores: "
-            + "; ".join(ENGINE_IGNORES)
-        ),
+        adversary_knowledge=f"knows the patrol policy and charge schedule to within {jitter:g} s, not the patrol's random draws",
+        sensor_calibration=f"stub curve {curves.content_hash()} until lane A's calibrated curve arrives",
+        detection_model_note="reduced-order detection, truth association, no clutter, 2D footprints",
         seed_list_hash=seed_list_hash(result.seeds),
         n_seeds=len(result.seeds),
     )
+
+
+def conditions_detail(result: SweepResult) -> dict[str, str]:
+    """The long form of each condition, for the sidecar."""
+    curves = result.inputs.curves
+    jitter = official_params().phase_jitter_s
+    return {
+        "adversary_knowledge": (
+            f"The adversary knows the patrol policy and the charge schedule to within {jitter:g} s: "
+            "the intruder enters at phase x reference cycle plus a uniform jitter of that size. It "
+            "does not know the patrol's random draws. Tactics are open-loop: the intruder follows "
+            "its path whatever the fleet does."
+        ),
+        "sensor_calibration": (
+            "Stub curve until lane A's calibrated curve arrives. "
+            f"Source: {curves.source}. Curve hash {curves.content_hash()}."
+        ),
+        "detection_model_note": (
+            "Reduced-order detection: a per-look draw from detection probability by range, with "
+            "truth association (every look is credited to the right object), no clutter, and 2D "
+            "footprints (a disc or a wedge with a hard range limit). The engine still ignores: "
+            + "; ".join(ENGINE_IGNORES)
+            + "."
+        ),
+        "operating_point": (
+            "Per configuration: the lowest threshold whose false alarm rate, measured on quiet "
+            "nights, is at most the target. No interpolation. Detection is the mean over tactics. "
+            "Intervals resample whole seeds and whole quiet nights."
+        ),
+    }
 
 
 def build_report(
@@ -213,6 +236,7 @@ def build_report(
         n_seeds=len(result.seeds),
         n_quiet_seeds=len(result.quiet_seeds),
         n_boot=n_boot,
+        conditions_detail=conditions_detail(result),
         configs=details,
     )
     return report, detail
@@ -224,6 +248,15 @@ def write_report(report: Report, detail: ReportDetail, out_dir: Path) -> tuple[P
     report_path.write_text(report.model_dump_json(indent=2) + "\n")
     detail_path.write_text(detail.model_dump_json(indent=2) + "\n")
     return report_path, detail_path
+
+
+def write_tactics(result: SweepResult, out_dir: Path) -> Path:
+    """Every tactic the sweep used, one contract Tactic file each, named <tactic id>.json, so
+    other lanes can draw or rerun them."""
+    out_dir.mkdir(parents=True, exist_ok=True)
+    for tactic in result.inputs.tactics:
+        (out_dir / f"{tactic.id}.json").write_text(tactic.model_dump_json(indent=2) + "\n")
+    return out_dir
 
 
 def format_report(report: Report, detail: ReportDetail) -> str:
@@ -274,6 +307,7 @@ def main(argv: list[str] | None = None) -> int:
     report, detail = build_report(result)
     paths = write_report(report, detail, args.out)
     print(f"report built in {time.perf_counter() - start:.1f} s: {paths[0]} and {paths[1]}")
+    print(f"tactic files: {write_tactics(result, args.out / 'report_tactics')}")
     print(format_report(report, detail))
     if args.replays:
         from airtight.score.replays import export_failures
