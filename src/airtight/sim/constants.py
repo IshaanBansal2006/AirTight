@@ -22,4 +22,13 @@ ASSUMED_PFA = 0.02  # per-look false-alarm probability assumed by the likelihood
 DECOY_DURATION_S = 60.0  # the contract's Decoy has a lead time but no duration, so the sim owns it
 BENIGN_HORIZON_S = 900.0  # benign traffic is always drawn over [0, this], whatever the tactic
 TIME_EPS = 1e-9  # tolerance when comparing times on the episode clock
+# What the engine still leaves out. The report's conditions quote this list, so keep it true.
+ENGINE_IGNORES = (
+    "comms mode and comms events",
+    "verify tasks and any reaction to a decoy",
+    "battery log events",
+    "dock capacity (every agent has its own pad)",
+    "the charge threshold reserve (an agent docks as its endurance runs out)",
+    "occlusion and altitude",
+)
 DEFAULT_CELL_SIZE_M = 5.0  # patrol grid cell edge; Site has no cell size, so the sim owns it

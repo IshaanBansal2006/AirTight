@@ -121,6 +121,7 @@ def test_score_imports_only_what_sim_allows() -> None:
             "uncovered_intervals",
             "uncovered_s_per_hour",
         },
+        "airtight.sim.runner": {"run_episode", "ENGINE_ENV"},
     }
     whole_modules = {"airtight.sim.constants", "airtight.sim.scenarios"}
     score_dir = Path(__file__).parents[2] / "src" / "airtight" / "score"
