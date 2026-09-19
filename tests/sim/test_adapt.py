@@ -67,6 +67,17 @@ def test_t_cdp_is_t_reach_minus_response_time_when_positive(site: Site) -> None:
     assert adapt.t_cdp(quick, tactic) == adapt.t_reach(quick, tactic) - 5.0
 
 
+def test_bounds_are_plain_floats(site: Site) -> None:
+    assert adapt.bounds(site) == (0.0, 0.0, 120.0, 80.0)
+    assert all(type(v) is float for v in adapt.bounds(site))
+
+
+def test_perimeter_is_an_ordered_float_array(site: Site) -> None:
+    perimeter = adapt.perimeter(site)
+    assert perimeter.dtype == np.float64
+    assert perimeter.tolist() == [[5.0, 5.0], [115.0, 5.0], [115.0, 75.0], [5.0, 75.0]]
+
+
 def test_assets_is_the_single_contract_asset(site: Site) -> None:
     assert adapt.assets(site).tolist() == [[site.asset.x, site.asset.y]]
 
@@ -75,7 +86,7 @@ def test_start_positions_distinct_for_four_agents_sharing_two_docks(
     site: Site, fleet: FleetConfig
 ) -> None:
     assert len(fleet.agents) == 4 and len(site.docks) == 2
-    starts = [adapt.start_position(site, fleet, a) for a in fleet.agents]
+    starts = [adapt.start_position(site, fleet, a) for a in adapt.agent_ids(fleet)]
     for i in range(4):
         dock = site.docks[i % 2].position
         assert math.isclose(
@@ -87,14 +98,13 @@ def test_start_positions_distinct_for_four_agents_sharing_two_docks(
 
 def test_start_position_falls_back_to_perimeter_centroid(site: Site, fleet: FleetConfig) -> None:
     no_docks = site.model_copy(update={"docks": []})
-    start = adapt.start_position(no_docks, fleet, fleet.agents[0])
+    start = adapt.start_position(no_docks, fleet, "drone_1")
     assert start.tolist() == [60.0 + adapt.START_OFFSET_M, 40.0]
 
 
 def test_start_position_rejects_agent_outside_fleet(site: Site, fleet: FleetConfig) -> None:
-    stranger = fleet.agents[0].model_copy(update={"id": "stranger"})
     with pytest.raises(ValueError, match="stranger"):
-        adapt.start_position(site, fleet, stranger)
+        adapt.start_position(site, fleet, "stranger")
 
 
 def test_benign_speed_known_and_default() -> None:
@@ -118,8 +128,37 @@ def test_sensor_range_and_look_rate() -> None:
 def test_everything_is_deterministic(site: Site, fleet: FleetConfig) -> None:
     tactic = _load("tactic.json", Tactic)
     assert np.array_equal(adapt.intruder_path(site, tactic), adapt.intruder_path(site, tactic))
-    for agent in fleet.agents:
+    for agent_id in adapt.agent_ids(fleet):
         assert np.array_equal(
-            adapt.start_position(site, fleet, agent), adapt.start_position(site, fleet, agent)
+            adapt.start_position(site, fleet, agent_id),
+            adapt.start_position(site, fleet, agent_id),
         )
     assert adapt.t_cdp(site, tactic) == adapt.t_cdp(site, tactic)
+
+
+def test_agent_accessors_follow_fleet_order(fleet: FleetConfig) -> None:
+    assert adapt.agent_ids(fleet) == ["drone_1", "drone_2", "go2_1", "guard_1"]
+    assert adapt.agent_speed_mps(fleet, "drone_1") == 8.0
+    assert adapt.agent_speed_mps(fleet, "go2_1") == 1.2
+    assert adapt.agent_sensor_type(fleet, "guard_1") == "human_eye"
+    with pytest.raises(ValueError, match="stranger"):
+        adapt.agent_speed_mps(fleet, "stranger")
+
+
+def test_footprint_radius_is_the_last_bin_with_positive_pd() -> None:
+    curves = _load("sensor_curve.json", SensorCurves)
+    assert adapt.sensor_footprint_radius_m(curves, "drone_camera") == 40.0
+    drone = curves.curves["drone_camera"]
+    fading = drone.model_copy(update={"pd_per_look": [0.95, 0.9, 0.8, 0.6, 0.0, 0.0]})
+    blind = drone.model_copy(update={"pd_per_look": [0.0] * 6})
+    patched = curves.model_copy(update={"curves": {"drone_camera": fading, "blind": blind}})
+    assert adapt.sensor_footprint_radius_m(patched, "drone_camera") == 20.0
+    assert adapt.sensor_max_range_m(patched, "drone_camera") == 40.0  # distinct on purpose
+    with pytest.raises(ValueError, match="blind"):
+        adapt.sensor_footprint_radius_m(patched, "blind")
+
+
+def test_sensor_fov_comes_from_the_contract() -> None:
+    curves = _load("sensor_curve.json", SensorCurves)
+    assert adapt.sensor_fov_deg(curves, "drone_camera") == 70.0
+    assert adapt.sensor_fov_deg(curves, "human_eye") == 120.0
