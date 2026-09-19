@@ -51,8 +51,11 @@ def test_yard_night_is_what_the_team_agreed() -> None:
     site, curves = scenarios.load_site(), scenarios.load_sensor_curves()
     assert scenarios.scenario_names() == ["yard_night"]
     assert adapt.bounds(site) == (0.0, 0.0, 300.0, 200.0) and adapt.response_time_s(site) == 25.0
-    assert scenarios.names("fleet") == ["1drone", "2drones", "4drones"]
-    assert [len(scenarios.load_fleet(n).agents) for n in scenarios.names("fleet")] == [1, 2, 4]
+    assert scenarios.names("fleet") == ["1drone", "2drones", "2drones_staggered", "4drones"]
+    assert [len(scenarios.load_fleet(n).agents) for n in scenarios.names("fleet")] == [1, 2, 2, 4]
+    staggered = scenarios.load_fleet("2drones_staggered")
+    assert staggered.agents == scenarios.load_fleet("2drones").agents  # only the offsets differ
+    assert staggered.charge_policy.stagger_offsets_s == {"d1": 1800.0}  # half the 3600 s cycle
     speeds = {n: scenarios.load_tactic(n).speed_mps for n in scenarios.names("tactic")}
     assert speeds == {"walk": 1.4, "jog": 2.5, "sprint": scenarios.SPRINT_SPEED_MPS}
     assert adapt.sensor_fov_deg(curves, "drone_cam") == 360.0

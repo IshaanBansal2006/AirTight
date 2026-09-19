@@ -313,3 +313,165 @@ def test_weight_mode_changes_the_patrol_and_bad_mode_is_rejected(
     assert by_mode["asset"] != by_mode["uniform"] and by_mode["asset"] != by_mode["band"]
     with pytest.raises(ValueError, match="spiral"):
         run(1000, EpisodeParams(weight_mode="spiral"))
+
+
+def test_benign_world_is_identical_for_tactics_with_different_t_end(
+    yard_site: Site, yard_curve: SensorCurves, fleet_of: FleetOf, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from airtight.sim import scenarios
+    from airtight.sim.constants import BENIGN_HORIZON_S
+
+    spawned: list[list[tuple[str, str, float]]] = []
+    windows: list[tuple[float, float]] = []
+    real = episode_module.spawn_benign
+
+    def spy(site: Any, t0: float, t1: float, seed: int) -> Any:
+        objects = real(site, t0, t1, seed)
+        windows.append((t0, t1))
+        spawned.append([(o.object_id, o.kind, o.t_start) for o in objects])
+        return objects
+
+    monkeypatch.setattr(episode_module, "spawn_benign", spy)
+    busy = yard_site.model_copy(
+        update={
+            "benign_routes": [
+                r.model_copy(update={"arrival_rate_per_hour": 120.0})
+                for r in yard_site.benign_routes
+            ]
+        }
+    )
+    ends = []
+    for name, n in (("walk", 1), ("sprint", 4)):  # different tactic AND different fleet
+        ends.append(
+            simulate(busy, fleet_of(n), scenarios.load_tactic(name), yard_curve, 1000).t_end
+        )
+    assert ends[0] != ends[1]
+    assert windows == [(0.0, BENIGN_HORIZON_S)] * 2
+    assert len(spawned[0]) > 10 and spawned[0] == spawned[1]  # same ids, same start times
+
+
+def test_task_time_never_lowers_the_intruder_peak_on_the_same_seed(
+    yard_site: Site, yard_curve: SensorCurves, fleet_of: FleetOf
+) -> None:
+    """By construction in this engine, not by luck.
+
+    The patrol never reacts to looks, the benign world is drawn over a fixed window so it does
+    not change with t_end, and each observer-object pair has its own look stream, so the
+    intruder's score series with task_time_s = 60 is the series with 0, continued. A later
+    t_cdp therefore takes the peak over a longer prefix of the same series.
+
+    This stops being by construction once verify tasks exist: agents will then react to
+    scores, so a longer episode can change where they are. It becomes a statistical test then.
+    """
+    from airtight.sim import scenarios
+
+    what_if = EpisodeParams(task_time_s=60.0)
+    rose = 0
+    for tactic_name in ("walk", "jog", "sprint"):
+        tactic = scenarios.load_tactic(tactic_name)
+        for n in (1, 4):
+            for seed in range(1000, 1010):
+                base = simulate(yard_site, fleet_of(n), tactic, yard_curve, seed)
+                late = simulate(yard_site, fleet_of(n), tactic, yard_curve, seed, what_if)
+                assert late.intruder_peak >= base.intruder_peak
+                if base.intruder_t_alarm_ref is not None:  # the shared prefix is identical
+                    assert late.intruder_t_alarm_ref == base.intruder_t_alarm_ref
+                assert set(base.benign_peaks) <= set(late.benign_peaks)
+                rose += late.intruder_peak > base.intruder_peak
+    assert rose > 0  # and it does help somewhere
+
+
+def test_episode_longer_than_the_benign_window_is_rejected(
+    yard_site: Site, yard_curve: SensorCurves, yard_tactic: Tactic, fleet_of: FleetOf
+) -> None:
+    run = partial(simulate, yard_site, fleet_of(1), yard_tactic, yard_curve, 1000)
+    assert run(benign_window_s=62.0).t_end == 62.0  # exactly at the edge is allowed
+    with pytest.raises(ValueError, match="benign window"):
+        run(benign_window_s=61.9)
+    with pytest.raises(ValueError, match="benign window"):
+        run(EpisodeParams(task_time_s=900.0))
+
+
+def test_battery_is_off_by_default_and_the_jitter_draw_changes_nothing(
+    yard_site: Site, yard_curve: SensorCurves, yard_tactic: Tactic, fleet_of: FleetOf
+) -> None:
+    assert EpisodeParams().battery is False and EpisodeParams().phase_jitter_s == 15.0
+    run = partial(simulate, yard_site, fleet_of(2), yard_tactic, yard_curve, 1000)
+    assert run() == run(EpisodeParams(battery=False, phase_jitter_s=0.0))
+    other_phase = yard_tactic.model_copy(update={"phase": 0.9})
+    assert run() == simulate(yard_site, fleet_of(2), other_phase, yard_curve, 1000)
+
+
+def test_phase_inside_the_charging_window_means_nobody_is_looking(
+    yard_site: Site, yard_curve: SensorCurves, yard_tactic: Tactic, fleet_of: FleetOf
+) -> None:
+    # yard_night drones: 1500 s on duty, 2100 s charging, cycle 3600 s. Phase 0.45 is 1620 s in,
+    # and the fleet is synchronized, so every drone is on its pad for the whole episode.
+    on = EpisodeParams(battery=True)
+    for seed in range(1000, 1006):
+        scores = simulate(yard_site, fleet_of(4), yard_tactic, yard_curve, seed, on)
+        assert scores.intruder_peak == NEVER_SEEN and scores.n_looks == 0
+
+
+def test_phase_changes_the_outcome_only_for_a_fleet_that_charges(
+    yard_site: Site, yard_curve: SensorCurves, yard_tactic: Tactic, fleet_of: FleetOf
+) -> None:
+    on = EpisodeParams(battery=True)
+    up = yard_tactic.model_copy(update={"phase": 0.1})
+    down = yard_tactic.model_copy(update={"phase": 0.6})
+    seeds = range(1000, 1012)
+    looks_up = [simulate(yard_site, fleet_of(4), up, yard_curve, s, on).n_looks for s in seeds]
+    looks_down = [simulate(yard_site, fleet_of(4), down, yard_curve, s, on).n_looks for s in seeds]
+    assert sum(looks_up) > 0 and sum(looks_down) == 0
+    assert simulate(yard_site, fleet_of(4), up, yard_curve, 1000, on) == simulate(
+        yard_site, fleet_of(4), up, yard_curve, 1000, on
+    )
+
+    tireless = fleet_of(2).model_copy(
+        update={"agents": [a.model_copy(update={"charge_time_s": 0.0}) for a in fleet_of(2).agents]}
+    )
+    for tactic in (up, down):
+        assert simulate(yard_site, tireless, tactic, yard_curve, 1000, on) == simulate(
+            yard_site, tireless, tactic, yard_curve, 1000
+        )
+
+
+def test_staggering_keeps_a_drone_up_inside_the_synchronized_window(
+    yard_site: Site, yard_curve: SensorCurves, yard_tactic: Tactic
+) -> None:
+    from airtight.sim import scenarios
+
+    on = EpisodeParams(battery=True)
+    dip = yard_tactic.model_copy(update={"phase": 0.6})  # 2160 s: sync fleet is charging
+    seeds = range(1000, 1020)
+    sync = [
+        simulate(yard_site, scenarios.load_fleet("2drones"), dip, yard_curve, s, on) for s in seeds
+    ]
+    stag = [
+        simulate(yard_site, scenarios.load_fleet("2drones_staggered"), dip, yard_curve, s, on)
+        for s in seeds
+    ]
+    assert sum(r.n_looks for r in sync) == 0
+    assert sum(r.n_looks for r in stag) > 0 and sum(map(timely_at_ref, stag)) > 0
+
+
+def test_run_episode_v0_turns_the_battery_on(
+    yard_site: Site,
+    yard_curve: SensorCurves,
+    yard_tactic: Tactic,
+    fleet_of: FleetOf,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv(ENGINE_ENV, "v0")
+    docked = [
+        run_episode(yard_site, fleet_of(4), yard_tactic, yard_curve, s, tmp_path, full_log=False)
+        for s in range(1000, 1010)
+    ]
+    assert not any(r.timely_detected for r in docked)  # phase 0.45: the whole fleet is charging
+    up = yard_tactic.model_copy(update={"phase": 0.1, "id": "jog-up"})
+    flying = [
+        run_episode(yard_site, fleet_of(4), up, yard_curve, s, tmp_path, full_log=False)
+        for s in range(1000, 1010)
+    ]
+    assert any(r.timely_detected for r in flying)

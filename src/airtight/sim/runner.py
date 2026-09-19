@@ -60,7 +60,7 @@ def _run_v0(
     log_dir: Path,
     full_log: bool,
 ) -> EpisodeResult:
-    """The real engine. The verdict is the threshold-free scores read at TAU_REF."""
+    """The real engine, battery and phase on. The verdict is the scores read at TAU_REF."""
     header = EpisodeHeader(
         site_hash=site.content_hash(),
         fleet_hash=fleet.content_hash(),
@@ -70,12 +70,13 @@ def _run_v0(
         sim_version=SIM_VERSION_V0,
     )
     events: list[BaseModel]
+    params = EpisodeParams(battery=True)
     if full_log:
-        recorder = LogRecorder(dt=EpisodeParams().dt)
-        scores = simulate(site, fleet, tactic, sensor_curves, seed, recorder=recorder)
+        recorder = LogRecorder(dt=params.dt)
+        scores = simulate(site, fleet, tactic, sensor_curves, seed, params, recorder)
         events = recorder.events
     else:
-        scores = simulate(site, fleet, tactic, sensor_curves, seed)
+        scores = simulate(site, fleet, tactic, sensor_curves, seed, params)
         events = [outcome_event(scores)]
     outcome = events[-1]
     assert isinstance(outcome, OutcomeEvent)

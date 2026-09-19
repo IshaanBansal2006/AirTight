@@ -45,6 +45,12 @@ class BenignRouteSpec(NamedTuple):
     speed_mps: float
 
 
+class EnergySpec(NamedTuple):
+    endurance_s: float  # operating time from full charge to the charge threshold
+    charge_time_s: float  # dock time from the threshold back to full
+    offset_s: float  # how far into its cycle the agent already is at absolute time 0
+
+
 class FixedSensorSpec(NamedTuple):
     sensor_id: str
     position: Array  # (2,)
@@ -139,6 +145,46 @@ def agent_speed_mps(fleet: FleetConfig, agent_id: str) -> float:
 
 def agent_sensor_type(fleet: FleetConfig, agent_id: str) -> str:
     return _agent(fleet, agent_id).sensor_type
+
+
+NO_CHARGE_REFERENCE_CYCLE_S = 3600.0
+
+
+def agent_energy(fleet: FleetConfig, agent_id: str) -> EnergySpec | None:
+    """The agent's charge cycle, or None if it never charges.
+
+    The contract has no "never charges" field: endurance_s is required. The team's convention
+    is charge_time_s == 0 (the contract says "0 for guards"). The offset is the contract's
+    ChargePolicy.stagger_offsets_s, "initial phase offset", 0.0 when the agent is not listed.
+    """
+    agent = _agent(fleet, agent_id)
+    if agent.charge_time_s <= 0:
+        return None
+    return EnergySpec(
+        endurance_s=float(agent.endurance_s),
+        charge_time_s=float(agent.charge_time_s),
+        offset_s=float(fleet.charge_policy.stagger_offsets_s.get(agent_id, 0.0)),
+    )
+
+
+def reference_cycle_s(fleet: FleetConfig) -> float:
+    """What Tactic.phase is a fraction of: "the fleet's charge cycle".
+
+    Lane C defined it first (redteam/families.py charge_cycle_s) and that definition wins: the
+    mean of endurance_s + charge_time_s over agents that charge, or 3600 s if none do. For a
+    mixed fleet this is not the period of any one agent; it only turns a phase into a time.
+    """
+    cycles = [
+        spec.endurance_s + spec.charge_time_s
+        for spec in (agent_energy(fleet, a) for a in agent_ids(fleet))
+        if spec is not None
+    ]
+    return float(np.mean(cycles)) if cycles else NO_CHARGE_REFERENCE_CYCLE_S
+
+
+def tactic_phase(tactic: Tactic) -> float:
+    """Fraction in [0, 1) of reference_cycle_s at which the intruder enters."""
+    return float(tactic.phase)
 
 
 def start_position(site: Site, fleet: FleetConfig, agent_id: str) -> Array:

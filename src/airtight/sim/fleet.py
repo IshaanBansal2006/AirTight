@@ -49,6 +49,15 @@ class AgentState:
     active: bool = True
     last_retarget_t: float = -math.inf
     sensor_type: str = ""  # key into the sensor curves; adapt raises a clear KeyError on ""
+    mode: str = "patrol"  # patrol, returning or charging; see battery.py. active is False
+    # exactly when charging, so a returning agent still senses.
+    home: Array | None = None  # its own pad; None for agents built without one
+
+    @property
+    def patrolling(self) -> bool:
+        """Takes patrol targets and counts as a Voronoi peer. A returning agent does neither:
+        it still sees, but its neighbours must already be covering its area."""
+        return self.active and self.mode == "patrol"
 
 
 def make_agents(site: Site, fleet: FleetConfig, sensor_curves: SensorCurves) -> list[AgentState]:
@@ -67,6 +76,7 @@ def make_agents(site: Site, fleet: FleetConfig, sensor_curves: SensorCurves) -> 
                 footprint_radius_m=adapt.sensor_footprint_radius_m(sensor_curves, sensor_type),
                 fov_deg=adapt.sensor_fov_deg(sensor_curves, sensor_type),
                 sensor_type=sensor_type,
+                home=pos.copy(),
             )
         )
     return agents
@@ -124,7 +134,7 @@ class PatrolController:
             self.last_seen[seen] = t
 
     def retarget(self, agents: list[AgentState], t: float) -> None:
-        active = sorted((a for a in agents if a.active), key=lambda a: a.index)
+        active = sorted((a for a in agents if a.patrolling), key=lambda a: a.index)
         for agent in active:
             to_target = float(np.linalg.norm(agent.target - agent.pos))
             arrived = to_target <= agent.footprint_radius_m / 2.0
