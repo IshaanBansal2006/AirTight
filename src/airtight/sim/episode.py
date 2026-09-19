@@ -64,15 +64,17 @@ from airtight.sim.sensing import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping, Sequence
+    from collections.abc import Callable, Mapping, Sequence
 
     import numpy.typing as npt
 
     from airtight.contracts import FleetConfig, SensorCurves, Site, Tactic
     from airtight.sim.actors import SimObject
+    from airtight.sim.fleet import AgentState
     from airtight.sim.sensing import Look, Observer
 
     Array = npt.NDArray[np.float64]
+    Probe = Callable[[float, Sequence[AgentState], PatrolController], None]
 
 
 @dataclass(frozen=True)
@@ -108,6 +110,16 @@ class EpisodeScores:
     t_cdp: float
     t_end: float
     n_looks: int
+
+
+@dataclass(frozen=True)
+class QuietScores:
+    """One quiet night: benign traffic only. Threshold-free, like EpisodeScores."""
+
+    seed: int
+    benign_peaks: dict[str, float]  # every benign object that was ever looked at
+    sim_hours: float
+    duration_s: float
 
 
 class Recorder(Protocol):
@@ -155,19 +167,41 @@ def check_setup(
         raise ValueError("episode setup is invalid:\n  - " + "\n  - ".join(problems))
 
 
-def simulate(
+def official_params() -> EpisodeParams:
+    """The parameters run_episode uses: the one source of truth for official numbers.
+
+    The sweep calls this too, so a sweep can never disagree with run_episode. simulate's own
+    default keeps the battery off so the part 1 tables keep their meaning.
+    """
+    return EpisodeParams(battery=True)
+
+
+def _start_jitter_s(seed: int, params: EpisodeParams) -> float:
+    """Uniform on [-phase_jitter_s, +phase_jitter_s] from the reserved intruder stream."""
+    rng = np.random.default_rng([seed, INTRUDER_STREAM])
+    return float(rng.uniform(-params.phase_jitter_s, params.phase_jitter_s))
+
+
+def _run_loop(
     site: Site,
     fleet: FleetConfig,
-    tactic: Tactic,
     sensor_curves: SensorCurves,
     seed: int,
-    params: EpisodeParams = EpisodeParams(),  # noqa: B008  frozen, so a shared default is safe
+    params: EpisodeParams,
+    objects: Sequence[SimObject],
+    t_end: float,
+    t0_abs: float,
     recorder: Recorder | None = None,
-    benign_window_s: float = BENIGN_HORIZON_S,
-) -> EpisodeScores:
-    check_setup(site, fleet, sensor_curves, params)
-    dt = params.dt
+    probe: Probe | None = None,
+) -> tuple[ScoreBook, int]:
+    """The one loop behind simulate, simulate_quiet and coverage_profile.
 
+    Runs from the start of warm-up to t_end and returns the score book and the number of looks.
+    t0_abs is the absolute time of t = 0, for the battery clocks. probe, if given, is called
+    once per step for t >= 0 with (t, agents, controller), after the looks and before anyone
+    moves.
+    """
+    dt = params.dt
     grid = Grid(*adapt.bounds(site), params.cell_size_m)
     weight = patrol_weight(
         grid,
@@ -181,18 +215,6 @@ def simulate(
     )
     agents = make_agents(site, fleet, sensor_curves)
     observers: list[Observer] = [*agents, *make_fixed_observers(site, sensor_curves)]
-
-    intruder = Intruder(site, tactic)
-    decoy = make_decoy(tactic)
-    t_cdp = max(intruder.t_reach + params.task_time_s - adapt.response_time_s(site), 0.0)
-    t_end = intruder.t_reach + params.task_time_s + params.tail_s
-    if t_end > benign_window_s + TIME_EPS:
-        raise ValueError(
-            f"the episode ends at t_end = {t_end:.1f} s, after the benign window of "
-            f"{benign_window_s:.1f} s; raise benign_window_s or shorten the tactic"
-        )
-    benign = spawn_benign(site, 0.0, benign_window_s, seed)
-    objects: list[SimObject] = [intruder, *([decoy] if decoy is not None else []), *benign]
 
     n_warm = math.ceil(params.warmup_s / dt - TIME_EPS)
     n_run = math.floor(t_end / dt + TIME_EPS)
@@ -210,9 +232,6 @@ def simulate(
         dt,
     )
     rngs = LookRngs(seed)
-    jitter_rng = np.random.default_rng([seed, INTRUDER_STREAM])
-    jitter = float(jitter_rng.uniform(-params.phase_jitter_s, params.phase_jitter_s))
-    t0_abs = adapt.tactic_phase(tactic) * adapt.reference_cycle_s(fleet) + jitter
     clocks = make_clocks(fleet) if params.battery else {}
     book = ScoreBook()
     n_looks = 0
@@ -231,7 +250,42 @@ def simulate(
                 poses.update({o.object_id: o.position(t) for o in objects if o.alive(t)})
                 recorder.on_poses(t, poses)
                 recorder.on_looks(t, looks)
+            if probe is not None:
+                probe(t, agents, controller)
         step_agents(agents, dt)
+    return book, n_looks
+
+
+def simulate(
+    site: Site,
+    fleet: FleetConfig,
+    tactic: Tactic,
+    sensor_curves: SensorCurves,
+    seed: int,
+    params: EpisodeParams = EpisodeParams(),  # noqa: B008  frozen, so a shared default is safe
+    recorder: Recorder | None = None,
+    benign_window_s: float = BENIGN_HORIZON_S,
+) -> EpisodeScores:
+    check_setup(site, fleet, sensor_curves, params)
+
+    intruder = Intruder(site, tactic)
+    decoy = make_decoy(tactic)
+    t_cdp = max(intruder.t_reach + params.task_time_s - adapt.response_time_s(site), 0.0)
+    t_end = intruder.t_reach + params.task_time_s + params.tail_s
+    if t_end > benign_window_s + TIME_EPS:
+        raise ValueError(
+            f"the episode ends at t_end = {t_end:.1f} s, after the benign window of "
+            f"{benign_window_s:.1f} s; raise benign_window_s or shorten the tactic"
+        )
+    benign = spawn_benign(site, 0.0, benign_window_s, seed)
+    objects: list[SimObject] = [intruder, *([decoy] if decoy is not None else []), *benign]
+    t0_abs = adapt.tactic_phase(tactic) * adapt.reference_cycle_s(fleet) + _start_jitter_s(
+        seed, params
+    )
+
+    book, n_looks = _run_loop(
+        site, fleet, sensor_curves, seed, params, objects, t_end, t0_abs, recorder
+    )
 
     benign_ids = {b.object_id for b in benign}
     scores = EpisodeScores(
@@ -249,3 +303,36 @@ def simulate(
     if recorder is not None:
         recorder.on_finish(scores)
     return scores
+
+
+def simulate_quiet(
+    site: Site,
+    fleet: FleetConfig,
+    sensor_curves: SensorCurves,
+    seed: int,
+    duration_s: float | None = None,
+    params: EpisodeParams | None = None,
+) -> QuietScores:
+    """A quiet night: the fleet and benign traffic, no intruder and no decoy.
+
+    This is where false alarm rates come from. An intrusion window is about a minute, far too
+    little benign exposure to pin a rate of one per hour. duration_s defaults to the fleet's
+    reference cycle, so one run samples every charge phase. Benign traffic is drawn over the
+    whole duration. The run starts at phase 0 with the usual jitter draw. params defaults to
+    official_params().
+    """
+    params = official_params() if params is None else params
+    duration = adapt.reference_cycle_s(fleet) if duration_s is None else float(duration_s)
+    if not duration > 0:
+        raise ValueError(f"duration_s must be positive, got {duration_s}")
+    check_setup(site, fleet, sensor_curves, params)
+    benign = spawn_benign(site, 0.0, duration, seed)
+    book, _ = _run_loop(
+        site, fleet, sensor_curves, seed, params, benign, duration, _start_jitter_s(seed, params)
+    )
+    return QuietScores(
+        seed=seed,
+        benign_peaks={oid: book.peak(oid) for oid in book.object_ids()},
+        sim_hours=duration / 3600.0,
+        duration_s=duration,
+    )
