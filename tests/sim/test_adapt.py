@@ -6,7 +6,7 @@ from importlib import resources
 import numpy as np
 import pytest
 
-from airtight.contracts import FleetConfig, SensorCurves, Site, Tactic
+from airtight.contracts import XY, Decoy, FleetConfig, SensorCurves, Site, Tactic
 from airtight.sim import adapt
 from airtight.sim.runner import _path_length_m
 
@@ -162,3 +162,25 @@ def test_sensor_fov_comes_from_the_contract() -> None:
     curves = _load("sensor_curve.json", SensorCurves)
     assert adapt.sensor_fov_deg(curves, "drone_camera") == 70.0
     assert adapt.sensor_fov_deg(curves, "human_eye") == 120.0
+
+
+def test_benign_routes_are_plain_records_with_class_speeds(site: Site) -> None:
+    routes = adapt.benign_routes(site)
+    assert [r.route_id for r in routes] == ["delivery", "staff_walk"]
+    delivery, walk = routes
+    assert (delivery.cls, delivery.arrivals_per_hour, delivery.speed_mps) == ("vehicle", 4.0, 5.0)
+    assert (walk.cls, walk.arrivals_per_hour, walk.speed_mps) == ("person", 10.0, 1.4)
+    assert delivery.points.dtype == np.float64
+    assert delivery.points.tolist() == [[20.0, 5.0], [20.0, 30.0], [20.0, 5.0]]
+    assert adapt.benign_routes(site.model_copy(update={"benign_routes": []})) == []
+
+
+def test_decoy_spec_is_on_the_episode_clock() -> None:
+    tactic = _load("tactic.json", Tactic)
+    assert adapt.decoy_spec(tactic) is None
+    lure = tactic.model_copy(update={"decoy": Decoy(position=XY(x=100, y=60), lead_time_s=40)})
+    spec = adapt.decoy_spec(lure)
+    assert spec is not None
+    assert spec.position.tolist() == [100.0, 60.0]
+    assert (spec.t_on, spec.t_off) == (-40.0, 20.0)
+    assert adapt.intruder_speed_mps(tactic) == 1.6

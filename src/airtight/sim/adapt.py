@@ -11,10 +11,11 @@ negative t on the same clock and is never logged.
 from __future__ import annotations
 
 import math
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, NamedTuple
 
 import numpy as np
 
+from airtight.sim.constants import DECOY_DURATION_S
 from airtight.sim.geometry import polyline_length
 
 if TYPE_CHECKING:
@@ -34,6 +35,20 @@ if TYPE_CHECKING:
 START_OFFSET_M = 2.0
 BENIGN_SPEED_MPS = {"person": 1.4, "vehicle": 5.0, "animal": 2.0, "debris": 0.5}
 DEFAULT_BENIGN_SPEED_MPS = 1.4
+
+
+class BenignRouteSpec(NamedTuple):
+    route_id: str
+    cls: str
+    points: Array  # (n, 2)
+    arrivals_per_hour: float
+    speed_mps: float
+
+
+class DecoySpec(NamedTuple):
+    position: Array  # (2,)
+    t_on: float  # episode clock; negative when the decoy leads the intruder
+    t_off: float
 
 
 def bounds(site: Site) -> tuple[float, float, float, float]:
@@ -70,6 +85,23 @@ def t_reach(site: Site, tactic: Tactic) -> float:
 def t_cdp(site: Site, tactic: Tactic) -> float:
     """Critical detection point: t_reach minus the response time, clamped at 0 as in the stub."""
     return max(0.0, t_reach(site, tactic) - site.response_time_s)
+
+
+def intruder_speed_mps(tactic: Tactic) -> float:
+    return float(tactic.speed_mps)
+
+
+def decoy_spec(tactic: Tactic) -> DecoySpec | None:
+    """The tactic's decoy on the episode clock, or None.
+
+    It switches on lead_time_s before the intruder enters, so t_on = -lead_time_s. The contract
+    has no duration; it stays on for DECOY_DURATION_S.
+    """
+    if tactic.decoy is None:
+        return None
+    position = np.array([tactic.decoy.position.x, tactic.decoy.position.y], dtype=np.float64)
+    t_on = -float(tactic.decoy.lead_time_s)
+    return DecoySpec(position=position, t_on=t_on, t_off=t_on + DECOY_DURATION_S)
 
 
 def agent_ids(fleet: FleetConfig) -> list[str]:
@@ -113,6 +145,20 @@ def benign_speed(benign_class: str) -> float:
     (walking pace) rather than raising. If the contract ever closes the set, make this a KeyError.
     """
     return BENIGN_SPEED_MPS.get(benign_class, DEFAULT_BENIGN_SPEED_MPS)
+
+
+def benign_routes(site: Site) -> list[BenignRouteSpec]:
+    """Benign routes in site order. The contract has no per-route speed, so it comes from cls."""
+    return [
+        BenignRouteSpec(
+            route_id=route.id,
+            cls=route.cls,
+            points=np.array([[p.x, p.y] for p in route.waypoints], dtype=np.float64),
+            arrivals_per_hour=float(route.arrival_rate_per_hour),
+            speed_mps=benign_speed(route.cls),
+        )
+        for route in site.benign_routes
+    ]
 
 
 def sensor_max_range_m(sensor_curves: SensorCurves, sensor_type: str) -> float:
