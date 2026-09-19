@@ -69,6 +69,13 @@ def perimeter(site: Site) -> Array:
     return np.array([[p.x, p.y] for p in site.perimeter], dtype=np.float64)
 
 
+def docks(site: Site) -> Array:
+    """Dock positions in site order, shape (n, 2); (0, 2) when the site has none."""
+    return np.array([[d.position.x, d.position.y] for d in site.docks], dtype=np.float64).reshape(
+        -1, 2
+    )
+
+
 def assets(site: Site) -> Array:
     """Asset positions, shape (n, 2). The contract has one asset today."""
     return np.array([[site.asset.x, site.asset.y]], dtype=np.float64)
@@ -92,6 +99,16 @@ def t_reach(site: Site, tactic: Tactic) -> float:
 def t_cdp(site: Site, tactic: Tactic) -> float:
     """Critical detection point: t_reach minus the response time, clamped at 0 as in the stub."""
     return max(0.0, t_reach(site, tactic) - site.response_time_s)
+
+
+def response_time_s(site: Site) -> float:
+    return float(site.response_time_s)
+
+
+def critical_radius_m(site: Site, v_ref_mps: float) -> float:
+    """r_c = v_ref * response_time_s: the ring round an asset inside which a detection of an
+    intruder moving at v_ref is already too late for the response to arrive."""
+    return v_ref_mps * float(site.response_time_s)
 
 
 def intruder_speed_mps(tactic: Tactic) -> float:

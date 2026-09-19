@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     BoolArray = npt.NDArray[np.bool_]
 
 _EPS = 1e-9
+WEIGHT_MODES = ("asset", "uniform", "band")
 
 
 @dataclass(frozen=True)
@@ -110,17 +111,33 @@ def patrol_weight(
     base: float = 0.3,
     scale_m: float = 25.0,
     asset_gain: float = 1.0,
+    mode: str = "asset",
+    r_c: float = 0.0,
 ) -> Array:
-    """inside * (base + asset_gain * sum over assets of exp(-distance / scale_m)).
+    """Where the patrol should spend its time. Zero outside the fence in every mode.
 
-    asset_gain = 0 gives a uniform weight inside the fence.
+    "asset":   inside * (base + asset_gain * sum over assets of exp(-distance / scale_m)).
+               asset_gain = 0 gives a uniform weight inside the fence.
+    "uniform": inside * base.
+    "band":    inside * (base + asset_gain where the distance to the nearest asset is >= r_c).
+               r_c is the critical ring: a detection inside it is already too late, so the
+               band mode spends the extra weight outside it. Inside the ring only base.
     """
+    if mode not in WEIGHT_MODES:
+        raise ValueError(f"unknown weight mode {mode!r}; choose one of {WEIGHT_MODES}")
     centers = grid.cell_centers()
-    pull = np.zeros(grid.shape, dtype=np.float64)
-    for ax, ay in np.asarray(asset_positions, dtype=np.float64).reshape(-1, 2):
-        distance = np.hypot(centers[..., 0] - ax, centers[..., 1] - ay)
-        pull += np.exp(-distance / scale_m)
-    weight: Array = inside * (base + asset_gain * pull)
+    assets = np.asarray(asset_positions, dtype=np.float64).reshape(-1, 2)
+    extra: Array = np.zeros(grid.shape, dtype=np.float64)
+    if mode == "asset":
+        for ax, ay in assets:
+            distance = np.hypot(centers[..., 0] - ax, centers[..., 1] - ay)
+            extra += asset_gain * np.exp(-distance / scale_m)
+    elif mode == "band":
+        nearest = np.full(grid.shape, np.inf, dtype=np.float64)
+        for ax, ay in assets:
+            nearest = np.minimum(nearest, np.hypot(centers[..., 0] - ax, centers[..., 1] - ay))
+        extra = asset_gain * (nearest >= r_c).astype(np.float64)
+    weight: Array = inside * (base + extra)
     return weight
 
 

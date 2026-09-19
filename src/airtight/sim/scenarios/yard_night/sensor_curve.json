@@ -1,0 +1,78 @@
+{
+  "source": "hand-written yard_night scenario curve; drone camera is a 360 degree ground disc because the sim is 2D",
+  "curves": {
+    "drone_cam": {
+      "sensor_type": "drone_cam",
+      "range_bins_m": [
+        5.0,
+        10.0,
+        15.0,
+        20.0,
+        30.0
+      ],
+      "pd_per_look": [
+        0.7,
+        0.6,
+        0.5,
+        0.4,
+        0.3
+      ],
+      "pfa_per_look_by_class": {
+        "animal": 0.08,
+        "debris": 0.03
+      },
+      "fov_deg": 360.0,
+      "look_rate_hz": 2.0
+    },
+    "ground_cam": {
+      "sensor_type": "ground_cam",
+      "range_bins_m": [
+        5.0,
+        10.0,
+        15.0,
+        20.0,
+        30.0,
+        40.0
+      ],
+      "pd_per_look": [
+        0.9,
+        0.8,
+        0.65,
+        0.5,
+        0.35,
+        0.2
+      ],
+      "pfa_per_look_by_class": {
+        "animal": 0.08,
+        "debris": 0.03
+      },
+      "fov_deg": 70.0,
+      "look_rate_hz": 2.0
+    },
+    "fixed_cam": {
+      "sensor_type": "fixed_cam",
+      "range_bins_m": [
+        5.0,
+        10.0,
+        15.0,
+        20.0,
+        30.0,
+        40.0
+      ],
+      "pd_per_look": [
+        0.9,
+        0.8,
+        0.65,
+        0.5,
+        0.35,
+        0.2
+      ],
+      "pfa_per_look_by_class": {
+        "animal": 0.08,
+        "debris": 0.03
+      },
+      "fov_deg": 60.0,
+      "look_rate_hz": 2.0
+    }
+  }
+}

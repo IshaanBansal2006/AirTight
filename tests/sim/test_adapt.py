@@ -201,3 +201,23 @@ def test_true_fp_per_look_is_the_contract_scalar() -> None:
     assert adapt.true_fp_per_look(curves, "human_eye", "vehicle") == 0.002
     with pytest.raises(KeyError, match="unicorn"):
         adapt.true_fp_per_look(curves, "drone_camera", "unicorn")
+
+
+def test_response_time_critical_radius_and_docks(site: Site) -> None:
+    assert adapt.response_time_s(site) == 90.0
+    assert adapt.critical_radius_m(site, 2.5) == 225.0
+    assert adapt.docks(site).tolist() == [[10.0, 70.0], [110.0, 10.0]]
+    assert adapt.docks(site.model_copy(update={"docks": []})).shape == (0, 2)
+
+
+def test_fixed_sensors_convert_heading_to_radians(site: Site) -> None:
+    (cam,) = adapt.fixed_sensors(site)
+    assert (cam.sensor_id, cam.sensor_type) == ("cam_north", "fixed_camera")
+    assert cam.position.tolist() == [60.0, 72.0]
+    assert cam.heading_rad == pytest.approx(math.pi / 2)
+
+
+def test_has_curve_and_fp_classes() -> None:
+    curves = _load("sensor_curve.json", SensorCurves)
+    assert adapt.has_curve(curves, "drone_camera") and not adapt.has_curve(curves, "sonar")
+    assert adapt.fp_classes(curves, "drone_camera") == {"person", "vehicle"}

@@ -10,6 +10,13 @@ then the agents move. Looks therefore use positions at time t, before anyone mov
 The result is threshold-free. The alarm threshold is applied offline, so EpisodeScores carries
 peaks, not a verdict.
 
+task_time_s is a lane-local what-if. The contract's asset has no task time, so the intruder
+wins the moment it arrives and t_cdp = t_reach - response_time_s. With task_time_s > 0 the
+intruder must also stay on the asset that long, so inside simulate only
+t_cdp = max(t_reach + task_time_s - response_time_s, 0) and the episode runs that much longer.
+It exists to show the team what a task-time field on the asset would do. run_episode never sets
+it, so the contract result is unchanged, and it goes away the day the contract has the field.
+
 v0 ignores: endurance and charging, the tactic's phase, comms mode and comms events, tasks, and
 any reaction to the decoy (it is scored like an intruder, nobody is sent to it).
 """
@@ -58,6 +65,9 @@ class EpisodeParams:
     weight_base: float = 0.3
     weight_scale_m: float = 25.0
     asset_gain: float = 1.0
+    weight_mode: str = "asset"  # one of geometry.WEIGHT_MODES
+    v_ref_mps: float = 2.5  # the intruder speed the defender plans against; sets the band ring
+    task_time_s: float = 0.0  # WHAT-IF only, see the module docstring; run_episode never sets it
 
 
 @dataclass(frozen=True)
@@ -141,13 +151,16 @@ def simulate(
         base=params.weight_base,
         scale_m=params.weight_scale_m,
         asset_gain=params.asset_gain,
+        mode=params.weight_mode,
+        r_c=adapt.critical_radius_m(site, params.v_ref_mps),
     )
     agents = make_agents(site, fleet, sensor_curves)
     observers: list[Observer] = [*agents, *make_fixed_observers(site, sensor_curves)]
 
     intruder = Intruder(site, tactic)
     decoy = make_decoy(tactic)
-    t_end = intruder.t_reach + params.tail_s
+    t_cdp = max(intruder.t_reach + params.task_time_s - adapt.response_time_s(site), 0.0)
+    t_end = intruder.t_reach + params.task_time_s + params.tail_s
     benign = spawn_benign(site, 0.0, t_end, seed)
     objects: list[SimObject] = [intruder, *([decoy] if decoy is not None else []), *benign]
 
@@ -187,13 +200,13 @@ def simulate(
     benign_ids = {b.object_id for b in benign}
     scores = EpisodeScores(
         seed=seed,
-        intruder_peak=book.peak(intruder.object_id, t_max=intruder.t_cdp),
+        intruder_peak=book.peak(intruder.object_id, t_max=t_cdp),
         intruder_t_alarm_ref=book.first_crossing(intruder.object_id, TAU_REF),
         benign_peaks={oid: book.peak(oid) for oid in book.object_ids() if oid in benign_ids},
         decoy_peak=book.peak(decoy.object_id) if decoy is not None else None,
         sim_hours=t_end / 3600.0,
         t_reach=intruder.t_reach,
-        t_cdp=intruder.t_cdp,
+        t_cdp=t_cdp,
         t_end=t_end,
         n_looks=n_looks,
     )

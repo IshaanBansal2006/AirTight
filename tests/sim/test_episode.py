@@ -250,3 +250,66 @@ def test_two_drone_episode_takes_under_a_second(
     start = time.perf_counter()
     simulate(yard_site, fleet_of(2), yard_tactic, yard_curve, 1000)
     assert time.perf_counter() - start < 1.0
+
+
+def test_task_time_default_reproduces_todays_numbers_exactly(
+    yard_site: Site, yard_curve: SensorCurves, yard_tactic: Tactic, fleet_of: FleetOf
+) -> None:
+    from airtight.sim import adapt
+
+    assert EpisodeParams().task_time_s == 0.0
+    for seed in (1000, 1001, 1002):
+        default = simulate(yard_site, fleet_of(2), yard_tactic, yard_curve, seed)
+        explicit = simulate(
+            yard_site, fleet_of(2), yard_tactic, yard_curve, seed, EpisodeParams(task_time_s=0.0)
+        )
+        assert default == explicit
+        assert default.t_cdp == adapt.t_cdp(yard_site, yard_tactic)  # the contract's definition
+        assert default.t_end == default.t_reach + EpisodeParams().tail_s
+
+
+def test_task_time_moves_the_cdp_and_never_lowers_the_timely_fraction(
+    yard_site: Site, yard_curve: SensorCurves, fleet_of: FleetOf
+) -> None:
+    from airtight.sim import scenarios
+
+    seeds = range(1000, 1016)
+    what_if = EpisodeParams(task_time_s=60.0)
+    for tactic_name in ("jog", "sprint"):
+        tactic = scenarios.load_tactic(tactic_name)
+        base = [simulate(yard_site, fleet_of(2), tactic, yard_curve, s) for s in seeds]
+        late = [simulate(yard_site, fleet_of(2), tactic, yard_curve, s, what_if) for s in seeds]
+        for a, b in zip(base, late, strict=True):
+            assert b.t_reach == a.t_reach
+            assert b.t_cdp == max(a.t_reach + 60.0 - 25.0, 0.0) and b.t_end == a.t_end + 60.0
+        assert sum(map(timely_at_ref, late)) >= sum(map(timely_at_ref, base))
+    # the sprint cannot be caught in time without a task time, and can be with one
+    assert sum(map(timely_at_ref, base)) == 0 and sum(map(timely_at_ref, late)) > 0
+
+
+def test_run_episode_never_uses_the_task_time_what_if(
+    yard_site: Site,
+    yard_curve: SensorCurves,
+    yard_tactic: Tactic,
+    fleet_of: FleetOf,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from airtight.sim import adapt
+
+    monkeypatch.setenv(ENGINE_ENV, "v0")
+    result = run_episode(yard_site, fleet_of(2), yard_tactic, yard_curve, 1000, tmp_path)
+    assert result.t_cdp == adapt.t_cdp(yard_site, yard_tactic)
+
+
+def test_weight_mode_changes_the_patrol_and_bad_mode_is_rejected(
+    yard_site: Site, yard_curve: SensorCurves, yard_tactic: Tactic, fleet_of: FleetOf
+) -> None:
+    run = partial(simulate, yard_site, fleet_of(2), yard_tactic, yard_curve)
+    by_mode = {
+        m: [run(s, EpisodeParams(weight_mode=m)).n_looks for s in range(1000, 1006)]
+        for m in ("asset", "uniform", "band")
+    }
+    assert by_mode["asset"] != by_mode["uniform"] and by_mode["asset"] != by_mode["band"]
+    with pytest.raises(ValueError, match="spiral"):
+        run(1000, EpisodeParams(weight_mode="spiral"))

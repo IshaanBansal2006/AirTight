@@ -220,3 +220,35 @@ def test_in_wedge_ahead_behind_edges_and_shapes() -> None:
     assert geometry.in_wedge(origin, np.pi, 90.0, wrap).all()
     grid = Grid(0.0, 0.0, 40.0, 20.0, 5.0)
     assert geometry.in_wedge(origin, 0.0, 90.0, grid.cell_centers()).shape == grid.shape
+
+
+def test_patrol_weight_modes() -> None:
+    grid = Grid(0.0, 0.0, 60.0, 40.0, 5.0)
+    inside = inside_mask(grid, RECT)
+    asset = np.array([[41.0, 16.0]])
+    default = patrol_weight(grid, inside, asset)
+    assert np.array_equal(patrol_weight(grid, inside, asset, mode="asset"), default)
+
+    uniform = patrol_weight(grid, inside, asset, mode="uniform")
+    assert np.all(uniform[inside] == 0.3) and np.all(uniform[~inside] == 0.0)
+
+    band = patrol_weight(grid, inside, asset, mode="band", r_c=10.0)
+    distance = np.hypot(*(grid.cell_centers() - asset[0]).transpose(2, 0, 1))
+    assert np.all(band[inside & (distance >= 10.0)] == 1.3)  # base plus the gain, outside the ring
+    assert np.all(band[inside & (distance < 10.0)] == 0.3)  # only base inside the ring
+    assert np.all(band[~inside] == 0.0)
+    assert (inside & (distance < 10.0)).any() and (inside & (distance >= 10.0)).any()
+
+    everywhere = patrol_weight(grid, inside, asset, mode="band", r_c=0.0)
+    assert np.all(everywhere[inside] == 1.3)
+    with pytest.raises(ValueError, match="spiral"):
+        patrol_weight(grid, inside, asset, mode="spiral")
+
+
+def test_band_mode_uses_the_nearest_asset() -> None:
+    grid = Grid(0.0, 0.0, 60.0, 40.0, 5.0)
+    inside = np.ones(grid.shape, dtype=np.bool_)
+    two = np.array([[12.5, 12.5], [47.5, 27.5]])
+    band = patrol_weight(grid, inside, two, mode="band", r_c=8.0)
+    assert band[grid.cell_of(12.5, 12.5)] == 0.3 and band[grid.cell_of(47.5, 27.5)] == 0.3
+    assert band[grid.cell_of(30.0, 20.0)] == 1.3
