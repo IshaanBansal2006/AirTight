@@ -6,16 +6,17 @@ so `DIMOS_MUJOCO_ROOM_FROM_OCCUPANCY` loads the yard at 1:1 metres.
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
-from numpy.typing import NDArray
-
-from airtight.contracts.site import XY, Site
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from dimos.simulation.dimsim.scene_client import SceneClient
+    from numpy.typing import NDArray
+
+    from airtight.contracts.site import XY, Site
 
 OCCUPANCY_RESOLUTION_M = 0.05
 WALL_THICKNESS_M = 0.4

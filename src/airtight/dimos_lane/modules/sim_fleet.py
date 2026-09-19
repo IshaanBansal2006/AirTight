@@ -2,12 +2,17 @@
 
 from __future__ import annotations
 
-from airtight.contracts.fleet import FleetConfig
-from airtight.dimos_lane.modules.allocator import drone_state_for
-from airtight.dimos_lane.site_io import load_example_fleet, load_example_site
-from airtight.swarm.autonomy.world_state import DroneState
+from typing import TYPE_CHECKING
+
 from dimos.agents.annotation import skill
 from dimos.core.module import Module
+
+from airtight.dimos_lane.modules.allocator import drone_state_for
+from airtight.dimos_lane.site_io import load_example_fleet, load_example_site
+
+if TYPE_CHECKING:
+    from airtight.contracts.fleet import FleetConfig
+    from airtight.swarm.autonomy.world_state import DroneState
 
 
 def _default_pose(agent_id: str, agent_type: str) -> list[float]:

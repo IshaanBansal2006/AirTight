@@ -24,7 +24,9 @@ class Orchestrator:
         self.last_dispatch: str | None = None
 
     def dispatch_verify(self, x: float, y: float) -> str:
-        task = verify_task("verify-north" if (x, y) == _north_gate_xy() else f"verify-{x:.0f}-{y:.0f}", x, y)
+        task = verify_task(
+            "verify-north" if (x, y) == _north_gate_xy() else f"verify-{x:.0f}-{y:.0f}", x, y
+        )
         assignment = self.allocator.allocate([task], self.fleet.drones())
         winner = self.allocator.winner_for(task.task_id)
         if winner is None:

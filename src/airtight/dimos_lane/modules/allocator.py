@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+from dimos.agents.annotation import skill
+from dimos.core.module import Module
+
 from airtight.swarm.autonomy.allocator import CBBAAllocator
 from airtight.swarm.autonomy.decomposer import Task
 from airtight.swarm.autonomy.world_state import DroneState
-from dimos.agents.annotation import skill
-from dimos.core.module import Module
 
 VERIFY_CAPABILITY = "verify_ground"
 

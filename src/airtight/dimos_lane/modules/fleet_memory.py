@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import json
 import time
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from airtight.memory.interface import FleetMemory
 from dimos.agents.annotation import skill
 from dimos.core.module import Module
+
+if TYPE_CHECKING:
+    from airtight.memory.interface import FleetMemory
 
 
 def _cell(x: float, y: float, res: float = 2.0) -> tuple[int, int]:
@@ -95,9 +97,7 @@ class LocalFleetMemory:
                 for k, (ts, val) in self._claims.items()
             ]
         if kind == "evidence":
-            return [
-                {"key": k, "score": s, "age": 0.0} for k, s in sorted(self._evidence.items())
-            ]
+            return [{"key": k, "score": s, "age": 0.0} for k, s in sorted(self._evidence.items())]
         return []
 
     @property
@@ -112,6 +112,9 @@ def load_fleet_memory() -> FleetMemory:
     """Prefer a concrete class shipped by lane C; otherwise the local replica."""
     import airtight.memory as mem
 
+    store = getattr(mem, "FleetMemoryStore", None)
+    if isinstance(store, type):
+        return store()  # type: ignore[no-any-return]
     for name in dir(mem):
         if name.startswith("_") or name in {"FleetMemory"}:
             continue
@@ -121,7 +124,9 @@ def load_fleet_memory() -> FleetMemory:
                 inst = candidate()
             except Exception:
                 continue
-            if all(hasattr(inst, attr) for attr in ("observe", "delta", "merge", "query", "version")):
+            if all(
+                hasattr(inst, attr) for attr in ("observe", "delta", "merge", "query", "version")
+            ):
                 return inst  # type: ignore[no-any-return]
     return LocalFleetMemory()
 
@@ -140,7 +145,12 @@ class FleetMemoryModule(Module):
             parts = [p.strip() for p in query.split(",")]
             if len(parts) == 4:
                 region = (float(parts[0]), float(parts[1]), float(parts[2]), float(parts[3]))
-        items = self.inner.query(kind, region)
+        records = getattr(self.inner, "records", None)
+        items = (
+            records(kind, region, now=time.time())
+            if callable(records)
+            else self.inner.query(kind, region)
+        )
         if not items:
             return f"kind={kind} empty"
         rendered = []

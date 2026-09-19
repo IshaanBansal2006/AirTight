@@ -1,8 +1,8 @@
 """Lane A CLI: yard, calibrate, replay, sim-choice.
 
-  python -m airtight.dimos_lane yard --out data/yard_occupancy.npy
-  python -m airtight.dimos_lane calibrate --out data/sensor_curve.json
-  python -m airtight.dimos_lane replay --example --pitch pitch
+python -m airtight.dimos_lane yard --out data/yard_occupancy.npy
+python -m airtight.dimos_lane calibrate --out data/sensor_curve.json
+python -m airtight.dimos_lane replay --example --pitch pitch
 """
 
 from __future__ import annotations
@@ -54,7 +54,9 @@ def _cmd_replay(args: argparse.Namespace) -> int:
     from airtight.dimos_lane.replay import plan_replay
 
     if args.example:
-        example = Path(str(resources.files("airtight.contracts.examples").joinpath("episode.jsonl")))
+        example = Path(
+            str(resources.files("airtight.contracts.examples").joinpath("episode.jsonl"))
+        )
         miss, catch = write_demo_clips(example, Path(args.pitch))
         print(f"miss={miss}")
         print(f"catch={catch}")

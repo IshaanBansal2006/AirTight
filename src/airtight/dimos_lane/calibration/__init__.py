@@ -5,10 +5,12 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import asdict, dataclass
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from airtight.dimos_lane.site_io import load_example_site
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 RANGE_BINS_M = [2.0, 4.0, 6.0, 8.0, 12.0, 16.0, 20.0, 30.0]
 BEARINGS_DEG = [-30.0, 0.0, 30.0]

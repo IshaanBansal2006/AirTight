@@ -6,8 +6,7 @@ The live path needs a running `unitree-go2-agentic` sim. Offline, call
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from airtight.dimos_lane.calibration import (
     BEARINGS_DEG,
@@ -18,6 +17,9 @@ from airtight.dimos_lane.calibration import (
     image_bytes_hash,
     pose_for_look,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def detect_image(

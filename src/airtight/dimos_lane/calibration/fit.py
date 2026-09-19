@@ -4,11 +4,14 @@ from __future__ import annotations
 
 import math
 from collections import defaultdict
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from airtight.contracts.sensor_curve import SensorCurve, SensorCurves
 from airtight.dimos_lane.calibration import RANGE_BINS_M, LookRecord, read_looks
 from airtight.dimos_lane.site_io import load_stub_sensor_curves
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 DRONE_RANGE_STRETCH = 1.2
 EPS = 1e-3

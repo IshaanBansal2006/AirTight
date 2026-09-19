@@ -5,10 +5,11 @@ from __future__ import annotations
 import time
 import uuid
 
-from airtight.swarm.hol.gate import ApprovalGate
-from airtight.swarm.schemas import EngagementProposal
 from dimos.agents.annotation import skill
 from dimos.core.module import Module
+
+from airtight.swarm.hol.gate import ApprovalGate
+from airtight.swarm.schemas import EngagementProposal
 
 
 class Gate:
@@ -42,7 +43,9 @@ class Gate:
     def decide(
         self, proposal_id: str, approve: bool, operator: str, *, now: float | None = None
     ) -> bool:
-        return self._gate.decide(proposal_id, approve, operator, now if now is not None else time.time())
+        return self._gate.decide(
+            proposal_id, approve, operator, now if now is not None else time.time()
+        )
 
     def pending_ids(self, *, now: float | None = None) -> list[str]:
         self._gate.tick(now if now is not None else time.time())

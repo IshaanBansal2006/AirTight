@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from airtight.contracts.episode import (
     AlarmEvent,
@@ -11,9 +11,13 @@ from airtight.contracts.episode import (
     PositionEvent,
     read_episode_log,
 )
-from airtight.contracts.site import XY
 from airtight.dimos_lane.modules.orchestrator import Orchestrator
 from airtight.dimos_lane.person import interpolate_path
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from airtight.contracts.site import XY
 
 
 @dataclass

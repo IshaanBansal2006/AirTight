@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 import numpy as np
-from numpy.typing import NDArray
-
 from dimos.agents.annotation import skill
 from dimos.core.module import Module
+
+if TYPE_CHECKING:
+    from numpy.typing import NDArray
 
 MoveTo = Callable[[float, float], str]
 

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from airtight.contracts.episode import (
     OutcomeEvent,
@@ -11,9 +11,13 @@ from airtight.contracts.episode import (
     read_episode_log,
     write_episode_log,
 )
-from airtight.contracts.site import XY, Site
 from airtight.dimos_lane.replay import ReplayPlan, plan_replay
 from airtight.dimos_lane.site_io import load_example_site
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from airtight.contracts.site import XY, Site
 
 SVG_W = 960
 SVG_H = 640
@@ -34,7 +38,9 @@ def render_html(plan: ReplayPlan, site: Site) -> str:
     perimeter = _poly(site, site.perimeter + [site.perimeter[0]])
     asset = _scale(site, site.asset.x, site.asset.y)
     frames: list[dict[str, object]] = []
-    times = sorted({t for t, _ in plan.intruder} | {t for pts in plan.markers.values() for t, _ in pts})
+    times = sorted(
+        {t for t, _ in plan.intruder} | {t for pts in plan.markers.values() for t, _ in pts}
+    )
     if not times:
         times = [0.0]
     for t in times:

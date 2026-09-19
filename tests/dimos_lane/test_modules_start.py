@@ -5,7 +5,12 @@ from airtight.dimos_lane.modules.dimos_backend import DimosBackend, DimosBackend
 from airtight.dimos_lane.modules.fleet_memory import FleetMemoryModule
 from airtight.dimos_lane.modules.gate import Gate, GateModule
 from airtight.dimos_lane.modules.orchestrator import NORTH_GATE, Orchestrator
-from airtight.dimos_lane.modules.sim_fleet import SimFleet, SimFleetModule, default_drones, topic_for
+from airtight.dimos_lane.modules.sim_fleet import (
+    SimFleet,
+    SimFleetModule,
+    default_drones,
+    topic_for,
+)
 from airtight.dimos_lane.site_io import load_example_site
 
 
