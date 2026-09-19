@@ -1,0 +1,17 @@
+{
+  "baseline": "d2_go2_guard_sync",
+  "configs": [
+    "d1_go2_guard_sync",
+    "d1_go2_guard_stagger",
+    "d2_go2_guard_sync",
+    "d2_go2_guard_stagger",
+    "d3_go2_guard_sync",
+    "d3_go2_guard_stagger",
+    "d4_go2_guard_sync",
+    "d4_go2_guard_stagger",
+    "d2_nogo2_guard_stagger",
+    "d2_go2_noguard_stagger",
+    "d2_nogo2_noguard_stagger",
+    "d0_go2_guard_sync"
+  ]
+}

@@ -16,6 +16,7 @@ git clone https://github.com/dimensionalOS/dimos.git && git -C dimos checkout 22
 git clone <this repo> AirTight && cd AirTight
 uv sync --extra dev
 ./scripts/check_pins.sh
+./scripts/dimos_patch.sh apply
 uv run pytest
 ```
 

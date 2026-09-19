@@ -27,6 +27,8 @@ def _text(name: str) -> str:
         ("site.json", Site),
         ("fleet_config.json", FleetConfig),
         ("tactic.json", Tactic),
+        ("tactic_decoy.json", Tactic),
+        ("tactic_blind_spot.json", Tactic),
         ("sensor_curve.json", SensorCurves),
         ("report.json", Report),
     ],
@@ -47,9 +49,9 @@ def test_example_episode_log_round_trips(tmp_path: Path) -> None:
 def test_examples_cross_reference() -> None:
     site = Site.model_validate_json(_text("site.json"))
     fleet = FleetConfig.model_validate_json(_text("fleet_config.json"))
-    tactic = Tactic.model_validate_json(_text("tactic.json"))
     curves = SensorCurves.model_validate_json(_text("sensor_curve.json"))
-    assert site.entry(tactic.entry_id)
+    for name in ("tactic.json", "tactic_decoy.json", "tactic_blind_spot.json"):
+        assert site.entry(Tactic.model_validate_json(_text(name)).entry_id)
     assert {a.sensor_type for a in fleet.agents} <= set(curves.curves)
     assert {s.sensor_type for s in site.fixed_sensors} <= set(curves.curves)
     assert {r.cls for r in site.benign_routes} <= set.intersection(

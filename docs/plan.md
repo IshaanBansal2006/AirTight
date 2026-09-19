@@ -14,6 +14,14 @@ The demo, in order: the red team finds the charging-window attack, the replay ru
 - dimOS already ships a scripted person body in the MuJoCo process (`dimos/simulation/mujoco/person_on_track.py`), a `look_out_for` detection skill and `navigate_with_text`. Check each before building A3, A4 and A6.
 - All three hour-1 stubs are shipped in this scaffold: the stub sensor curve, the stub `run_episode`, and one hand-written tactic. Lane C adds the other two tactic examples in C0.
 
+## 0b. Machines and unblock notes (added 2026-09-19)
+
+- **Machines.** Lane A records on its own GPU machine and nothing else runs there while recording. Lane B's sweep runs on Ishaan's 20-core WSL box with `--workers 16`. Lane C's search and proposer run anywhere; the proposer's ledger and cache live in `data/` on whichever box calls it.
+- **Lane A live run.** The `unitree-go2-agentic` blueprint ran here with the default transport and `source scripts/dimos_env.sh`; the LCM transport needs multicast on the loopback (`sudo ip link set lo multicast on; sudo ip route add 224.0.0.0/4 dev lo`). Try the default transport first.
+- **Scenario.** The demo site and the twelve fleet configurations are in `scenarios/logistics_yard/` (decisions 008 and 009). Every lane runs against those files, not the packaged examples, from hour 10.
+- **Lane B's agent adapter.** Options and the lead's default are in `docs/lanes/lane-b-agent-adapter.md`.
+- **dimOS may be edited.** Save every change as a patch with `scripts/dimos_patch.sh save <name>` (see `patches/dimos/README.md`); candidates so far: a headless mode for the MuJoCo child (`viewer.launch_passive` is mandatory today), the MCP client's default model name, and the intruder body controller.
+
 ## 1. Lanes
 
 One rule: you only edit directories you own. Lanes talk through `contracts/` and nothing else. Nobody imports another lane's internals.
