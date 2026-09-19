@@ -77,8 +77,16 @@ def _cmd_calibrate(args: argparse.Namespace) -> int:
 
     root = Path(args.data)
     cache = Path(args.cache) if args.cache else looks_path(root)
-    if args.synthetic or not cache.exists():
-        n = len(record_synthetic_sweep(cache, seed=args.seed, frames_per_cell=args.frames))
+    if args.live:
+        from airtight.dimos_lane.calibration.capture import run_live_from_mcp
+
+        frames = args.frames if args.frames is not None else (3 if args.live else 30)
+        snapshot_dir = Path(args.snapshots) if args.snapshots else root / "calib_frames"
+        n = len(run_live_from_mcp(cache, snapshot_dir, frames_per_cell=frames))
+        print(f"wrote {n} live looks -> {cache}")
+    elif args.synthetic or not cache.exists():
+        frames = args.frames if args.frames is not None else 30
+        n = len(record_synthetic_sweep(cache, seed=args.seed, frames_per_cell=frames))
         print(f"wrote {n} looks -> {cache}")
     curves = fit_cache(cache, Path(args.out))
     print(f"wrote {args.out} hash={curves.content_hash()}")
@@ -128,8 +136,10 @@ def main(argv: list[str] | None = None) -> int:
     cal.add_argument("--cache", default=None)
     cal.add_argument("--out", default="data/sensor_curve.json")
     cal.add_argument("--synthetic", action="store_true")
+    cal.add_argument("--live", action="store_true", help="OWLv2 + MCP snapshots + /person_pose")
+    cal.add_argument("--snapshots", default=None, help="directory for live JPEG frames")
     cal.add_argument("--seed", type=int, default=0)
-    cal.add_argument("--frames", type=int, default=30)
+    cal.add_argument("--frames", type=int, default=None)
     cal.set_defaults(func=_cmd_calibrate)
 
     rep = sub.add_parser("replay", help="plan a replay or write pitch clips")

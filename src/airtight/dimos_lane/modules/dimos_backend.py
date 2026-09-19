@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from numpy.typing import NDArray
 
 MoveTo = Callable[[float, float], str]
+PoseReader = Callable[[], tuple[float, float] | None]
 
 
 class DimosBackend:
@@ -29,12 +30,17 @@ class DimosBackend:
         from airtight.dimos_lane.modules.sim_fleet import default_drones
 
         self._move_to = move_to
+        self._pose_reader: PoseReader | None = None
         self._poses: dict[str, NDArray[np.float64]] = {
             d.drone_id: np.asarray(d.position, dtype=np.float64) for d in default_drones()
         }
         self._speeds: dict[str, float] = {d.drone_id: d.speed for d in default_drones()}
         self._targets: dict[str, NDArray[np.float64]] = {}
         self.gotos: list[tuple[str, list[float]]] = []
+
+    @property
+    def has_live_go2(self) -> bool:
+        return self._move_to is not None
 
     def goto(self, drone_id: str, waypoint: np.ndarray) -> None:
         target = np.asarray(waypoint, dtype=np.float64).reshape(-1)
@@ -51,6 +57,11 @@ class DimosBackend:
             self._move_to(float(target[0]), float(target[1]))
 
     def pose(self, drone_id: str) -> np.ndarray:
+        if drone_id == self.GO2_ID and self._pose_reader is not None:
+            xy = self._pose_reader()
+            if xy is not None:
+                z = float(self._poses.get(drone_id, np.zeros(3))[2])
+                self._poses[drone_id] = np.array([xy[0], xy[1], z], dtype=np.float64)
         if drone_id not in self._poses:
             self._poses[drone_id] = np.zeros(3, dtype=np.float64)
         return self._poses[drone_id].copy()
@@ -70,6 +81,9 @@ class DimosBackend:
 
     def bind_move_to(self, move_to: MoveTo | None) -> None:
         self._move_to = move_to
+
+    def bind_pose_reader(self, reader: PoseReader | None) -> None:
+        self._pose_reader = reader
 
     def set_pose(self, drone_id: str, xyz: list[float]) -> None:
         self._poses[drone_id] = np.asarray(xyz, dtype=np.float64)
