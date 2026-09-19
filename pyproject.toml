@@ -24,6 +24,7 @@ dev = [
 
 [project.scripts]
 airtight-redteam = "airtight.redteam.cli:main"
+airtight-sweep = "airtight.score.cli:main"
 
 [project.entry-points."dimos.blueprints"]
 airtight-site = "airtight.dimos_lane.blueprint:airtight_site"

@@ -1,0 +1,112 @@
+from __future__ import annotations
+
+import argparse
+import logging
+import os
+import sys
+from pathlib import Path
+
+from airtight.contracts import FleetConfig, SensorCurves, Site
+from airtight.redteam.search import load_seeds
+from airtight.score.sweep import build_report, load_top_tactics, run_config, seed_list_hash
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
+SCEN = REPO_ROOT / "scenarios" / "logistics_yard"
+
+
+def main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser(
+        prog="airtight-sweep",
+        description="Run every fleet configuration against the top tactics and write report.json.",
+    )
+    ap.add_argument("--site", type=Path, default=SCEN / "site.json")
+    ap.add_argument("--curves", type=Path, default=SCEN / "sensor_curve.json")
+    ap.add_argument("--fleets-dir", type=Path, default=SCEN / "fleets")
+    ap.add_argument("--sweep", type=Path, default=SCEN / "fleets" / "sweep.json")
+    ap.add_argument("--tactics-dir", type=Path, default=REPO_ROOT / "data" / "v0" / "tactics")
+    ap.add_argument("--per-family", type=int, default=2, help="top tactics per family to sweep")
+    ap.add_argument("--seeds", type=Path, default=REPO_ROOT / "data" / "seeds.json")
+    ap.add_argument("--n-seeds", type=int, default=200)
+    ap.add_argument(
+        "--far", type=float, default=1.0, help="operating point, false alarms per benign hour"
+    )
+    ap.add_argument("--engine", default=None)
+    ap.add_argument("--workers", type=int, default=os.cpu_count() or 1)
+    ap.add_argument("--log-dir", type=Path, default=REPO_ROOT / "data" / "sweep_logs")
+    ap.add_argument(
+        "--keep-logs",
+        action="store_true",
+        help="keep every episode log (large); default prunes after summarising",
+    )
+    ap.add_argument("--only", nargs="*", default=None, help="subset of config names")
+    ap.add_argument("--out", type=Path, default=REPO_ROOT / "data" / "report.json")
+    ap.add_argument(
+        "--sensor-calibration", default="hand-written stub curve with a 360-degree drone disc"
+    )
+    ap.add_argument("-v", "--verbose", action="store_true")
+    args = ap.parse_args(argv)
+    logging.basicConfig(
+        level=logging.INFO if args.verbose else logging.WARNING,
+        format="%(levelname)s %(name)s: %(message)s",
+    )
+    if args.engine:
+        os.environ["AIRTIGHT_ENGINE"] = args.engine
+    engine = os.environ.get("AIRTIGHT_ENGINE", "stub")
+    from airtight.sim.runner import run_episode
+
+    site = Site.model_validate_json(args.site.read_text())
+    curves = SensorCurves.model_validate_json(args.curves.read_text())
+    import json
+
+    sweep = json.loads(args.sweep.read_text())
+    names = [n for n in sweep["configs"] if not args.only or n in args.only]
+    if sweep["baseline"] not in names:
+        names.insert(0, sweep["baseline"])
+    tactics = load_top_tactics(args.tactics_dir, args.per_family)
+    seeds = load_seeds(args.seeds, args.n_seeds)
+    per_config = {}
+    for name in names:
+        fleet = FleetConfig.model_validate_json((args.fleets_dir / f"{name}.json").read_text())
+        summaries = run_config(
+            site,
+            fleet,
+            tactics,
+            curves,
+            seeds,
+            run_episode,
+            args.log_dir,
+            args.workers,
+            prune_logs=not args.keep_logs,
+        )
+        per_config[name] = (fleet, summaries)
+        print(
+            f"{name:28s} {len(summaries):5d} episodes  timely@ref={sum(s.timely_at_ref for s in summaries) / len(summaries):.2f}",
+            file=sys.stderr,
+        )
+    report = build_report(
+        site,
+        per_config,
+        sweep["baseline"],
+        args.far,
+        seeds,
+        seed_list_hash(seeds),
+        {
+            "adversary_knowledge": "open-loop adversary with full knowledge of the patrol policy and charge schedule; search plus LLM proposals",
+            "sensor_calibration": args.sensor_calibration,
+            "detection_model_note": f"reduced-order per-look Bernoulli model, truth association, engine {engine}",
+        },
+    )
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    args.out.write_text(report.model_dump_json(indent=2))
+    for c in report.configs:
+        print(
+            f"{c.config_name:28s} pd@op={c.pd_at_operating_point:.2f} [{c.pd_at_operating_point_ci[0]:.2f},{c.pd_at_operating_point_ci[1]:.2f}]  worst={c.worst_tactic_pd:.2f} ({c.worst_tactic_id})  cost=${c.cost_per_hour:.0f}/h  decisions/h={c.human_decisions_per_hour:.2f}"
+        )
+    print(
+        f"engine={engine}; {len(tactics)} tactics x {len(seeds)} seeds x {len(names)} configs; report written to {args.out}"
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
