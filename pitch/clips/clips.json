@@ -1,0 +1,12 @@
+{
+  "tactic_id": "charging_window-439068210",
+  "family": "charging_window",
+  "entry": "rear_fence_gap",
+  "phase": 0.9952998033878611,
+  "seed": 63663,
+  "baseline": "d2_go2_guard_sync",
+  "fixed": "d3_go2_guard_stagger",
+  "miss_t_alarm": null,
+  "catch_t_alarm": 24.0,
+  "t_cdp": 33.7411958262623
+}
