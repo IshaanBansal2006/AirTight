@@ -35,3 +35,15 @@ baseline fleet, 10 random tactics per family, 10 seeds:
 | 45 s | 0.39 |
 
 25 s is chosen over 20 s to leave room for part 2 of the engine (battery and phase) to lower detection at the charging window without falling out of band.
+
+## Amendment 2, 2026-09-19: the sprint problem
+
+The first full search on v0 found, in every family, a 2.5 m/s sprint from the main gate: 60 m in 24 s
+against a 25 s response time leaves a deadline of zero, so no fleet could ever be timely and the
+worst case was 100 percent miss for every configuration. Two knobs lane C owns fix it: intruder
+speed cap 2.0 m/s (a brisk jog; a running intruder is a stated exclusion) and response time 20 s.
+Measured on v0 with the baseline fleet: random tactics 0.91 mean detection, searched worst case
+0.80 miss (charging window and blind spot), 0.40 miss (decoy). The searched worst case, not the
+random mean, is what the sweep scores, so 0.91 slightly above the band is accepted. The proper fix
+is an adversary task time at the asset (decision 010 revisit); lane B has the parameter, and it is
+requested for part 2.
