@@ -2,6 +2,34 @@
 
 You own `src/airtight/redteam/`, `src/airtight/memory/`, `pitch/`. You also lead the syncs. Everything below that is an algorithm you write yourself; the scaffolding around it (loaders, CLI, caching, logging, plotting) can be requested from Claude at any point.
 
+## Status (2026-09-19, branch `lane-c`)
+
+Built and tested on the stub simulator, with the design recorded in decisions 004 to 007:
+
+| Step | State | Where |
+|---|---|---|
+| C0 | done | `contracts/examples/tactic_decoy.json`, `tactic_blind_spot.json` |
+| C1 | done | `redteam/families.py`, `redteam/validate.py`, `redteam/geometry.py`, `redteam/coverage.py` |
+| C2 | done on the stub | `redteam/search.py`, `redteam/objective.py`; `airtight-redteam search` |
+| C4a | done, one live call verified ($0.00015) | `redteam/proposer.py`, `primitives.py`, `llm.py`; `airtight-redteam propose` |
+| C3, C4b | waiting on lane B's real `run_episode` (hour 8) | rerun `search` and `propose --prior` unchanged |
+| C5 | done, property tests pass | `memory/store.py`, `memory/items.py`; `tests/memory/` |
+| C6 | pipeline done; numbers from the ledger | `redteam/accounting.py`; `airtight-redteam ledger`; `pitch/make_token_chart.py` |
+| C7 | done as the `comms_cut` family | `redteam/families.py` |
+| C8 | chart pipeline done; deck and video pending the frozen report | `pitch/make_charts.py`, `deck_outline.md`, `demo_script.md` |
+
+Commands that matter:
+
+```bash
+uv run airtight-redteam search --workers 8                 # data/tactics/top_<family>.json + summary.json
+uv run airtight-redteam propose --mock --prior data/tactics # free; --mock off makes one real call under the cap
+uv run airtight-redteam search --inject data/tactics/llm_proposals.json
+uv run airtight-redteam ledger
+uv run python pitch/make_charts.py && uv run python pitch/make_token_chart.py
+```
+
+At hour 8, the only change is that `run_episode` stops being the stub; nothing in lane C imports anything but that function and the contracts.
+
 ## Hour 0: team lead duties before touching lane C
 
 1. Everyone: clone dimos next to this repo, `uv sync --extra dev`, `./scripts/check_pins.sh`, `uv run pytest`.

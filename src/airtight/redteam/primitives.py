@@ -92,4 +92,4 @@ def compile_program(prog: Program, site: Site, fleet: FleetConfig, cfg: RedTeamC
 
 
 def _dist(a: XY, b: XY) -> float:
-    return ((a.x - b.x) ** 2 + (a.y - b.y) ** 2) ** 0.5
+    return float(((a.x - b.x) ** 2 + (a.y - b.y) ** 2) ** 0.5)

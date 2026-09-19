@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import textwrap
 from importlib import resources
 from pathlib import Path
 
@@ -16,6 +17,7 @@ from palette import DARK, FAMILY_ORDER, LIGHT, Palette
 
 from airtight.contracts import ConfigResult, Report, SensorCurves, Site, Tactic
 from airtight.redteam.coverage import GeometryCoverage
+from airtight.redteam.geometry import point_in_polygon
 from airtight.redteam.search import SearchResult
 
 EXAMPLES = resources.files("airtight.contracts.examples")
@@ -49,12 +51,13 @@ def style(p: Palette) -> None:
     )
 
 
-def conditions_line(r: Report) -> str:
+def conditions_line(r: Report, width: int = 150) -> str:
     c = r.conditions
-    return (
+    text = (
         f"Operating point {c.far_per_hour_operating_point:g} false alarm/h · {c.n_seeds} seeds · "
         f"adversary: {c.adversary_knowledge} · sensor: {c.sensor_calibration} · {c.detection_model_note}"
     )
+    return "\n".join(textwrap.wrap(text, width))
 
 
 def _frontier(cfgs: list[ConfigResult]) -> list[ConfigResult]:
@@ -111,7 +114,7 @@ def chart_cost_vs_detection(r: Report, p: Palette, out: Path, numbers: dict) -> 
     ax.set_ylim(0, 1.02)
     ax.set_title("Detection versus cost, worst-case tactic per configuration")
     fig.text(0.01, 0.01, conditions_line(r), fontsize=7, color=p.muted)
-    fig.tight_layout(rect=(0, 0.04, 1, 1))
+    fig.tight_layout(rect=(0, 0.07, 1, 1))
     fig.savefig(out / "cost_vs_detection.png")
     plt.close(fig)
     numbers["cost_vs_detection"] = {
@@ -161,7 +164,7 @@ def chart_roc(r: Report, p: Palette, out: Path, numbers: dict) -> None:
     ax.set_title("Detection against false-alarm rate")
     ax.legend(loc="lower right", fontsize=8)
     fig.text(0.01, 0.01, conditions_line(r), fontsize=7, color=p.muted)
-    fig.tight_layout(rect=(0, 0.04, 1, 1))
+    fig.tight_layout(rect=(0, 0.07, 1, 1))
     fig.savefig(out / "roc.png")
     plt.close(fig)
     numbers["roc_configs"] = [c.config_name for c in picks]
@@ -198,7 +201,7 @@ def chart_vulnerability_map(
     for iy in range(cm.ny):
         for ix in range(cm.nx):
             s = cm.scores[iy][ix]
-            if s > 0:
+            if s > 0 and point_in_polygon(cm.center(ix, iy), site.perimeter):
                 step = min(len(p.sequential) - 1, int(round(s / top * (len(p.sequential) - 1))))
                 ax.add_patch(
                     plt.Rectangle(
@@ -335,7 +338,7 @@ def chart_before_after(r: Report, fixed: str | None, p: Palette, out: Path, numb
     )
     metrics = [
         (
-            "Timely detection at operating point",
+            "Timely detection\nat operating point",
             base.pd_at_operating_point,
             after.pd_at_operating_point,
             base.pd_at_operating_point_ci,
@@ -343,7 +346,7 @@ def chart_before_after(r: Report, fixed: str | None, p: Palette, out: Path, numb
             True,
         ),
         (
-            "Detection against the worst tactic (re-attacked)",
+            "Detection against the\nre-attacking worst tactic",
             base.worst_tactic_pd,
             after.worst_tactic_pd,
             None,
@@ -351,7 +354,7 @@ def chart_before_after(r: Report, fixed: str | None, p: Palette, out: Path, numb
             True,
         ),
         (
-            "Human decisions per hour",
+            "Human decisions\nper hour",
             base.human_decisions_per_hour,
             after.human_decisions_per_hour,
             None,
@@ -359,7 +362,7 @@ def chart_before_after(r: Report, fixed: str | None, p: Palette, out: Path, numb
             False,
         ),
         (
-            "Coverage gap, seconds per hour",
+            "Coverage gap,\nseconds per hour",
             base.coverage_gap_s_per_hour,
             after.coverage_gap_s_per_hour,
             None,
@@ -399,8 +402,8 @@ def chart_before_after(r: Report, fixed: str | None, p: Palette, out: Path, numb
         fontsize=11,
         fontweight="bold",
     )
-    fig.text(0.01, 0.01, conditions_line(r), fontsize=7, color=p.muted)
-    fig.tight_layout(rect=(0, 0.05, 1, 0.92))
+    fig.text(0.01, 0.01, conditions_line(r, 200), fontsize=7, color=p.muted)
+    fig.tight_layout(rect=(0, 0.06, 1, 0.92))
     fig.savefig(out / "before_after.png")
     plt.close(fig)
     numbers["before_after"] = {

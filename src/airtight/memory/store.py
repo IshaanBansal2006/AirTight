@@ -74,7 +74,7 @@ class FleetMemoryStore:
         ]
 
     def evidence_score(self, object_id: str) -> float:
-        return sum(it.score for it in self.query("evidence") if it.object_id == object_id)
+        return float(sum(it.score for it in self.query("evidence") if it.object_id == object_id))
 
     def evidence_scores(self) -> dict[str, float]:
         totals: dict[str, float] = defaultdict(float)
