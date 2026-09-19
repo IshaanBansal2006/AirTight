@@ -17,7 +17,8 @@ Built and tested on the stub simulator, with the design recorded in decisions 00
 | C5 | done, property tests pass | `memory/store.py`, `memory/items.py`; `tests/memory/` |
 | C6 | pipeline done; numbers from the ledger | `redteam/accounting.py`; `airtight-redteam ledger`; `pitch/make_token_chart.py` |
 | C7 | done as the `comms_cut` family | `redteam/families.py` |
-| C8 | charts and deck builder done; final deck and video pending the frozen report and lane A's clips | `pitch/make_charts.py`, `make_token_chart.py`, `build_deck.py`, `deck_outline.md`, `demo_script.md` |
+| C8 | charts, deck and write-up draft built from the real 200-seed report (`pitch/report.json`); video pending lane A's clips, MP4 fallback exists | `pitch/make_charts.py`, `make_token_chart.py`, `build_deck.py`, `render_deck.sh`, `render_replay.py`, `writeup.md` |
+| B5-B7, B10 (taken by C) | done: offline scorer, `airtight-sweep`, 12 configs x 8 tactics x 200 seeds, paired deltas | `src/airtight/score/`, `data/v2/report.json` |
 
 Commands that matter:
 
