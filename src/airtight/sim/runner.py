@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -14,14 +15,81 @@ from airtight.contracts import (
     Tactic,
     write_episode_log,
 )
+from airtight.sim.episode import EpisodeParams, simulate
+from airtight.sim.recorder import LogRecorder, outcome_event
 
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from pydantic import BaseModel
+
 SIM_VERSION = "stub-0"
+SIM_VERSION_V0 = "v0"
+ENGINE_ENV = "AIRTIGHT_ENGINE"
+ENGINES = ("stub", "v0")
 
 
 def run_episode(
+    site: Site,
+    fleet: FleetConfig,
+    tactic: Tactic,
+    sensor_curves: SensorCurves,
+    seed: int,
+    log_dir: Path,
+    full_log: bool = True,
+) -> EpisodeResult:
+    """The one function other lanes call. AIRTIGHT_ENGINE picks "stub" (the default) or "v0".
+
+    full_log = False writes the smallest log the contract accepts, the header and the outcome,
+    for searches that run thousands of episodes. The stub's log is already that small.
+    """
+    engine = os.environ.get(ENGINE_ENV, "stub")
+    if engine == "stub":
+        return _run_stub(site, fleet, tactic, sensor_curves, seed, log_dir)
+    if engine == "v0":
+        return _run_v0(site, fleet, tactic, sensor_curves, seed, log_dir, full_log)
+    raise ValueError(f"{ENGINE_ENV}={engine!r} is not a valid engine; choose one of {ENGINES}")
+
+
+def _run_v0(
+    site: Site,
+    fleet: FleetConfig,
+    tactic: Tactic,
+    sensor_curves: SensorCurves,
+    seed: int,
+    log_dir: Path,
+    full_log: bool,
+) -> EpisodeResult:
+    """The real engine. The verdict is the threshold-free scores read at TAU_REF."""
+    header = EpisodeHeader(
+        site_hash=site.content_hash(),
+        fleet_hash=fleet.content_hash(),
+        sensor_curve_hash=sensor_curves.content_hash(),
+        tactic=tactic,
+        seed=seed,
+        sim_version=SIM_VERSION_V0,
+    )
+    events: list[BaseModel]
+    if full_log:
+        recorder = LogRecorder(dt=EpisodeParams().dt)
+        scores = simulate(site, fleet, tactic, sensor_curves, seed, recorder=recorder)
+        events = recorder.events
+    else:
+        scores = simulate(site, fleet, tactic, sensor_curves, seed)
+        events = [outcome_event(scores)]
+    outcome = events[-1]
+    assert isinstance(outcome, OutcomeEvent)
+    log_path = log_dir / f"{fleet.name}__{tactic.id}__{seed}.jsonl"
+    write_episode_log(log_path, header, events)
+    return EpisodeResult(
+        timely_detected=outcome.timely_detected,
+        t_alarm=outcome.t_alarm,
+        t_cdp=outcome.t_cdp,
+        log_path=log_path,
+    )
+
+
+def _run_stub(
     site: Site,
     fleet: FleetConfig,
     tactic: Tactic,
