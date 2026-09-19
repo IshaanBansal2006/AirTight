@@ -48,7 +48,7 @@ def build(
             if cw
             else f"# What the adversary found\n\n*Run the search to populate this slide.*{watermark}"
         ),
-        f"# The score\n\n![height:440px]({charts_rel}/cost_vs_detection.png)\n\n<small>{conditions}</small>{watermark}",
+        f"# The score\n\n![height:470px]({charts_rel}/cost_vs_detection.png){watermark}",
         (
             f"# The fix and the re-attack\n\n![height:400px]({charts_rel}/before_after.png)\n\n{ba['baseline']} to {ba['fixed']}: detection {_fmt(ba['pd'][0])} to {_fmt(ba['pd'][1])}; against the re-attacking worst tactic {_fmt(ba['worst_tactic_pd'][0])} to {_fmt(ba['worst_tactic_pd'][1])}.\n\n*Replay clip B: the catch.*{clip_line(clips, 'catch')}{watermark}"
             if ba

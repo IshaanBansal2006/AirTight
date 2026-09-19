@@ -54,9 +54,7 @@ Clip A, seed 63663: d2_go2_guard_sync never raised a timely alarm against `charg
 
 # The score
 
-![height:440px](charts/cost_vs_detection.png)
-
-<small>Operating point 1 false alarm/h · 200 seeds · adversary: open-loop adversary with full knowledge of the patrol policy and charge schedule; search plus LLM proposals · sensor: hand-written stub curve with a 360-degree drone disc · reduced-order per-look Bernoulli model, truth association, engine v0</small>
+![height:470px](charts/cost_vs_detection.png)
 
 ---
 
