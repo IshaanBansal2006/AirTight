@@ -45,6 +45,13 @@ class BenignRouteSpec(NamedTuple):
     speed_mps: float
 
 
+class FixedSensorSpec(NamedTuple):
+    sensor_id: str
+    position: Array  # (2,)
+    heading_rad: float  # the contract stores degrees
+    sensor_type: str
+
+
 class DecoySpec(NamedTuple):
     position: Array  # (2,)
     t_on: float  # episode clock; negative when the decoy leads the intruder
@@ -137,6 +144,19 @@ def start_position(site: Site, fleet: FleetConfig, agent_id: str) -> Array:
     return base + offset
 
 
+def fixed_sensors(site: Site) -> list[FixedSensorSpec]:
+    """The site's fixed sensors in site order, heading converted from degrees to radians."""
+    return [
+        FixedSensorSpec(
+            sensor_id=s.id,
+            position=np.array([s.position.x, s.position.y], dtype=np.float64),
+            heading_rad=math.radians(s.heading_deg),
+            sensor_type=s.sensor_type,
+        )
+        for s in site.fixed_sensors
+    ]
+
+
 def benign_speed(benign_class: str) -> float:
     """BenignRoute has no speed field, so speed comes from the class.
 
@@ -159,6 +179,15 @@ def benign_routes(site: Site) -> list[BenignRouteSpec]:
         )
         for route in site.benign_routes
     ]
+
+
+def has_curve(sensor_curves: SensorCurves, sensor_type: str) -> bool:
+    return sensor_type in sensor_curves.curves
+
+
+def fp_classes(sensor_curves: SensorCurves, sensor_type: str) -> set[str]:
+    """Benign classes this sensor has a true false-positive rate for."""
+    return set(_curve(sensor_curves, sensor_type).pfa_per_look_by_class)
 
 
 def sensor_max_range_m(sensor_curves: SensorCurves, sensor_type: str) -> float:

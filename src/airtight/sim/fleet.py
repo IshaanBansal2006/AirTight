@@ -22,10 +22,13 @@ from airtight.sim import adapt
 from airtight.sim.geometry import in_wedge, voronoi_mask
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     import numpy.typing as npt
 
     from airtight.contracts import FleetConfig, SensorCurves, Site
     from airtight.sim.geometry import Grid
+    from airtight.sim.sensing import Observer
 
     Array = npt.NDArray[np.float64]
 
@@ -108,8 +111,9 @@ class PatrolController:
         stale: Array = np.where(self.weight > 0, np.maximum(t - self.last_seen, 0.0), 0.0)
         return stale
 
-    def mark_seen(self, agents: list[AgentState], t: float) -> None:
-        for agent in agents:
+    def mark_seen(self, observers: Sequence[Observer], t: float) -> None:
+        """Any active observer marks cells seen, fixed sensors included. Only agents retarget."""
+        for agent in observers:
             if not agent.active:
                 continue
             distance = np.hypot(

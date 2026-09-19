@@ -20,12 +20,13 @@ from __future__ import annotations
 
 import math
 import zlib
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, NamedTuple, Protocol
 
 import numpy as np
 
 from airtight.sim import adapt
-from airtight.sim.constants import ASSUMED_PFA, NEVER_SEEN, SCORE_FLOOR, TAU_REF
+from airtight.sim.constants import ASSUMED_PFA, NEVER_SEEN, SCORE_FLOOR, TAU_REF, TIME_EPS
 from airtight.sim.geometry import in_wedge
 
 if TYPE_CHECKING:
@@ -33,7 +34,7 @@ if TYPE_CHECKING:
 
     import numpy.typing as npt
 
-    from airtight.contracts import SensorCurves
+    from airtight.contracts import SensorCurves, Site
     from airtight.sim.actors import SimObject
 
     Array = npt.NDArray[np.float64]
@@ -41,7 +42,6 @@ if TYPE_CHECKING:
 SENSOR_STREAM_BASE = 1000
 TARGET_KINDS = frozenset({"intruder", "decoy"})
 _PD_CLIP = (0.001, 0.999)
-_TIME_EPS = 1e-9
 
 
 class Observer(Protocol):
@@ -54,6 +54,33 @@ class Observer(Protocol):
     footprint_radius_m: float
     sensor_type: str
     active: bool
+
+
+@dataclass
+class FixedObserver:
+    """A fixed sensor: an observer that never moves and is always active."""
+
+    agent_id: str
+    pos: Array
+    heading: float
+    fov_deg: float
+    footprint_radius_m: float
+    sensor_type: str
+    active: bool = True
+
+
+def make_fixed_observers(site: Site, sensor_curves: SensorCurves) -> list[FixedObserver]:
+    return [
+        FixedObserver(
+            agent_id=spec.sensor_id,
+            pos=spec.position,
+            heading=spec.heading_rad,
+            fov_deg=adapt.sensor_fov_deg(sensor_curves, spec.sensor_type),
+            footprint_radius_m=adapt.sensor_footprint_radius_m(sensor_curves, spec.sensor_type),
+            sensor_type=spec.sensor_type,
+        )
+        for spec in adapt.fixed_sensors(site)
+    ]
 
 
 class Look(NamedTuple):
@@ -122,7 +149,7 @@ class ScoreBook:
         """Highest score at or before t_max; NEVER_SEEN if never looked at by then."""
         best = NEVER_SEEN
         for t, value in self._peaks.get(object_id, []):
-            if t_max is not None and t > t_max + _TIME_EPS:
+            if t_max is not None and t > t_max + TIME_EPS:
                 break
             best = value
         return best
@@ -157,18 +184,18 @@ class LookSchedule:
         self.period_s: dict[str, float] = {}
         for agent_id, rate_hz in look_rate_hz_by_agent_id.items():
             period = 1.0 / rate_hz
-            if period < dt - _TIME_EPS:
+            if period < dt - TIME_EPS:
                 raise ValueError(
                     f"{agent_id!r} looks every {period:.4f} s, shorter than the sim step {dt} s"
                 )
             self.period_s[agent_id] = period
 
     def due(self, agent_id: str, t: float) -> bool:
-        if t < -_TIME_EPS:
+        if t < -TIME_EPS:
             return False
         period = self.period_s[agent_id]
-        looks_by_now = math.floor((t + _TIME_EPS) / period)
-        looks_by_last_step = math.floor((t - self.dt + _TIME_EPS) / period)
+        looks_by_now = math.floor((t + TIME_EPS) / period)
+        looks_by_last_step = math.floor((t - self.dt + TIME_EPS) / period)
         return looks_by_now > looks_by_last_step
 
 
