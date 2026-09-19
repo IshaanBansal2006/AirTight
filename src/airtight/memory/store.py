@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import threading
 from collections import defaultdict
 from typing import Any
 
@@ -30,6 +31,7 @@ class FleetMemoryStore:
         self._items: dict[Key, CoverageCell | Claim | Evidence] = {}
         self._stamps: dict[Key, int] = {}
         self._version = 0
+        self._lock = threading.RLock()
 
     @property
     def version(self) -> int:
@@ -39,8 +41,9 @@ class FleetMemoryStore:
         return len(self._items)
 
     def observe(self, item: CoverageCell | Claim | Evidence | dict[str, Any]) -> None:
-        """Accepts the typed items or the dict shapes lane A's module emits."""
-        self._apply(self.coerce(item) if isinstance(item, dict) else item)
+        """Accepts the typed items or the dict shapes lane A's module emits. Safe to call from any thread."""
+        with self._lock:
+            self._apply(self.coerce(item) if isinstance(item, dict) else item)
 
     def coerce(self, raw: dict[str, Any]) -> CoverageCell | Claim | Evidence:
         """Dict to item. Coverage dicts carry x/y in metres and are binned to this store's cell size."""
@@ -88,12 +91,17 @@ class FleetMemoryStore:
         return out
 
     def merge(self, delta: bytes) -> None:
-        for line in delta.decode().splitlines():
-            if line.strip():
-                self._apply(item_adapter.validate_json(line))
+        with self._lock:
+            for line in delta.decode().splitlines():
+                if line.strip():
+                    self._apply(item_adapter.validate_json(line))
 
     def delta(self, since_version: int, byte_budget: int) -> bytes:
         """Entries changed after since_version, newest first, as JSONL cut to fit the budget."""
+        with self._lock:
+            return self._delta_locked(since_version, byte_budget)
+
+    def _delta_locked(self, since_version: int, byte_budget: int) -> bytes:
         changed = sorted(
             ((stamp, key) for key, stamp in self._stamps.items() if stamp > since_version),
             key=lambda p: (-p[0], p[1]),
@@ -109,7 +117,8 @@ class FleetMemoryStore:
         return b"".join(lines)
 
     def query(self, kind: str, region: Region | None = None) -> list[Any]:
-        out = [it for (k, _), it in self._items.items() if k == kind]
+        with self._lock:
+            out = [it for (k, _), it in self._items.items() if k == kind]
         if region is None:
             return out
         xmin, ymin, xmax, ymax = region
