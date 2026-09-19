@@ -11,7 +11,7 @@ from airtight.contracts.episode import (
     read_episode_log,
     write_episode_log,
 )
-from airtight.dimos_lane.replay import ReplayPlan, plan_replay
+from airtight.dimos_lane.replay import ReplayPlan, densify_intruder, plan_replay
 from airtight.dimos_lane.site_io import load_example_site
 
 if TYPE_CHECKING:
@@ -166,9 +166,9 @@ def miss_log_from_catch(src: Path, dest: Path) -> Path:
 
 def write_demo_clips(example_log: Path, pitch_dir: Path) -> tuple[Path, Path]:
     site = load_example_site()
-    catch_plan = plan_replay(example_log)
+    catch_plan = densify_intruder(plan_replay(example_log))
     miss_log = miss_log_from_catch(example_log, pitch_dir / "logs" / "miss.jsonl")
-    miss_plan = plan_replay(miss_log)
+    miss_plan = densify_intruder(plan_replay(miss_log))
     catch_html = write_clip(catch_plan, pitch_dir / "clips" / "catch.html", site)
     miss_html = write_clip(miss_plan, pitch_dir / "clips" / "miss.html", site)
     return miss_html, catch_html
