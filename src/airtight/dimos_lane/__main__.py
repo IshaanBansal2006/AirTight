@@ -3,6 +3,8 @@
 python -m airtight.dimos_lane yard --out data/yard_occupancy.npy
 python -m airtight.dimos_lane calibrate --out data/sensor_curve.json
 python -m airtight.dimos_lane replay --example --pitch pitch
+python -m airtight.dimos_lane replay --example --rrd data/replay --speed 0
+python -m airtight.dimos_lane replay --log path/to/episode.jsonl --live --speed 1
 """
 
 from __future__ import annotations
@@ -96,8 +98,14 @@ def _cmd_calibrate(args: argparse.Namespace) -> int:
 
 def _cmd_replay(args: argparse.Namespace) -> int:
     from airtight.dimos_lane.clips import write_demo_clips
-    from airtight.dimos_lane.replay import plan_replay
+    from airtight.dimos_lane.replay import (
+        dispatch_via_mcp,
+        plan_replay,
+        run_replay,
+        write_rrd,
+    )
 
+    log: Path | None = None
     if args.example:
         example = Path(
             str(resources.files("airtight.contracts.examples").joinpath("episode.jsonl"))
@@ -105,8 +113,54 @@ def _cmd_replay(args: argparse.Namespace) -> int:
         miss, catch = write_demo_clips(example, Path(args.pitch))
         print(f"miss={miss}")
         print(f"catch={catch}")
+        log = example
+        if args.rrd:
+            dest = Path(args.rrd)
+            catch_plan = plan_replay(example, dispatch=False)
+            miss_log = Path(args.pitch) / "logs" / "miss.jsonl"
+            if dest.suffix.lower() == ".rrd":
+                write_rrd(catch_plan, dest)
+                print(f"rrd={dest}")
+                if miss_log.is_file():
+                    miss_rrd = dest.with_name("miss.rrd")
+                    write_rrd(plan_replay(miss_log, dispatch=False), miss_rrd)
+                    print(f"rrd={miss_rrd}")
+            else:
+                dest.mkdir(parents=True, exist_ok=True)
+                catch_rrd = write_rrd(catch_plan, dest / "catch.rrd")
+                print(f"rrd={catch_rrd}")
+                if miss_log.is_file():
+                    miss_rrd = write_rrd(plan_replay(miss_log, dispatch=False), dest / "miss.rrd")
+                    print(f"rrd={miss_rrd}")
+        if not args.live and args.speed <= 0:
+            return 0
+    elif args.log:
+        log = Path(args.log)
+    else:
+        print("replay: pass --log PATH or --example")
+        return 2
+
+    assert log is not None
+    plan = plan_replay(log, dispatch=not (args.live or args.rrd or args.speed > 0))
+    if args.rrd and not args.example:
+        dest = Path(args.rrd)
+        if dest.suffix.lower() != ".rrd":
+            dest = dest / f"{plan.title}.rrd"
+        write_rrd(plan, dest)
+        print(f"rrd={dest}")
+    if args.live or args.speed > 0:
+        dispatch = dispatch_via_mcp if args.live else None
+        result = run_replay(
+            plan,
+            live=args.live,
+            realtime_scale=args.speed,
+            dispatch=dispatch,
+        )
+        print(
+            f"{result['title']} seed={plan.seed} timely={result['timely']} "
+            f"person={result['person']} dispatch={result['dispatch_result']}"
+        )
         return 0
-    plan = plan_replay(Path(args.log))
     print(
         f"{plan.title} seed={plan.seed} timely={plan.timely_detected} "
         f"dispatch={plan.dispatch_result}"
@@ -146,6 +200,9 @@ def main(argv: list[str] | None = None) -> int:
     rep.add_argument("--log", default=None)
     rep.add_argument("--example", action="store_true")
     rep.add_argument("--pitch", default="pitch")
+    rep.add_argument("--live", action="store_true", help="publish /person_pose and MCP dispatch_verify")
+    rep.add_argument("--rrd", default=None, help="write a Rerun .rrd (file or directory)")
+    rep.add_argument("--speed", type=float, default=0.0, help="realtime scale; 1=wall clock")
     rep.set_defaults(func=_cmd_replay)
 
     args = parser.parse_args(argv)

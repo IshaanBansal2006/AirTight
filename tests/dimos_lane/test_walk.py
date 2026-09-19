@@ -5,6 +5,7 @@ from types import SimpleNamespace
 
 from dimos.msgs.geometry_msgs.Twist import Twist  # noqa: TC002
 
+from airtight.dimos_lane.modules.orchestrator import Orchestrator
 from airtight.dimos_lane.modules.walk import WalkModule, _xy_of, displacement_m
 from airtight.dimos_lane.simulator import A1_LLM_TURN, A1_SKILL_CALL
 
@@ -52,6 +53,7 @@ def test_walk_skills_are_marked() -> None:
     assert getattr(WalkModule.fleet_status, "__skill__", False)
     assert getattr(WalkModule.check_north_gate, "__skill__", False)
     assert getattr(WalkModule.prompt_agent, "__skill__", False)
+    assert getattr(WalkModule.recall, "__skill__", False)
     assert A1_SKILL_CALL is True
     assert A1_LLM_TURN is False
 
@@ -117,3 +119,18 @@ def test_walk_to_publishes_twist_then_stop() -> None:
     assert "displacement=0.412m" in result or "displacement=0.4" in result
     assert walker.cmd_vel.msgs[0].linear.x == 0.35
     assert walker.cmd_vel.msgs[-1].is_zero()
+
+
+def test_recall_observes_fleet_and_reports_age() -> None:
+    from airtight.dimos_lane.modules.fleet_memory import LocalFleetMemory
+
+    walker = SimpleNamespace()
+    walker.brain = Orchestrator()
+    walker.memory = LocalFleetMemory()
+    walker._note_memory = lambda claim=None: WalkModule._note_memory(walker, claim)
+    text = WalkModule.recall(walker, "*", "coverage")
+    assert "age=" in text
+    WalkModule.dispatch_verify(walker, 60.0, 75.0)
+    claims = WalkModule.recall(walker, "*", "claim")
+    assert "last_dispatch" in claims
+    assert "age=" in claims
