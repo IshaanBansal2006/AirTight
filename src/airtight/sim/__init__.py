@@ -1,1 +1,1 @@
-"""Lane B: headless episode runner built on drone-swarm-autonomy."""
+"""Lane B: headless episode runner built on airtight.swarm."""

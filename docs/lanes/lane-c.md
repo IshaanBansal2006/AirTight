@@ -4,11 +4,10 @@ You own `src/airtight/redteam/`, `src/airtight/memory/`, `pitch/`. You also lead
 
 ## Hour 0: team lead duties before touching lane C
 
-1. Everyone: clone the two siblings next to this repo, `uv sync --extra dev`, `./scripts/check_pins.sh`, `uv run pytest`.
-2. Confirm HackMIT's pre-existing-code rule. README already discloses both dependencies.
-3. Set a real `OPENAI_API_KEY` and unset or fix `OPENAI_BASE_URL` in the shell that runs the agentic blueprint and your proposer.
-4. Walk the team through `docs/plan.md` sections 1 and 2 and `src/airtight/contracts/`. Freeze contracts. Anything missing is added now, not at hour 6.
-5. Branch: `git checkout -b lane-c`.
+1. Everyone: clone dimos next to this repo, `uv sync --extra dev`, `./scripts/check_pins.sh`, `uv run pytest`.
+2. Set a real `OPENAI_API_KEY` and unset or fix `OPENAI_BASE_URL` in the shell that runs the agentic blueprint and your proposer.
+3. Walk the team through `docs/plan.md` sections 1 and 2 and `src/airtight/contracts/`. Freeze contracts. Anything missing is added now, not at hour 6.
+4. Branch: `git checkout -b lane-c`.
 
 ## C0 (0–1): two more example tactics
 
@@ -63,7 +62,7 @@ Files: `memory/store.py`, `tests/memory/test_properties.py` (hypothesis is in th
 
 Implement the `FleetMemory` protocol in `memory/interface.py`. Three entry kinds with three merge rules: coverage cells merge by max, claims merge by newest timestamp, evidence is a deduplicated set whose score is a sum. Property tests: merge is commutative, associative and idempotent; `merge(delta(v))` on a copy reproduces the source for any interleaving; `delta` respects the byte budget newest-first.
 
-This is a CRDT: cells are a max-register, claims a last-writer-wins register, evidence a grow-only set with a summed field. Know why each rule is order-independent before you write it; it is the question you would be asked. Then plug the store into drone-swarm-autonomy's fusion interface through the sim (B9) and give A the object to wrap.
+This is a CRDT: cells are a max-register, claims a last-writer-wins register, evidence a grow-only set with a summed field. Know why each rule is order-independent before you write it; it is the question you would be asked. Then plug the store into the `swarm/edge` fusion interface through the sim (B9) and give A the object to wrap.
 
 Gate H14: property tests pass or the link-cut beat is dropped (F3).
 

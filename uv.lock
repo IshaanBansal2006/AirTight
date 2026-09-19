@@ -204,7 +204,6 @@ version = "0.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "dimos", extra = ["all"] },
-    { name = "drone-swarm-autonomy" },
     { name = "numpy" },
     { name = "pydantic" },
 ]
@@ -221,7 +220,6 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "dimos", extras = ["all"], editable = "../dimos" },
-    { name = "drone-swarm-autonomy", editable = "../drone-swarm-autonomy" },
     { name = "hypothesis", marker = "extra == 'dev'", specifier = ">=6.100" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.10" },
     { name = "numpy", specifier = ">=1.26" },
@@ -1578,27 +1576,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/a0/31/aa4f1f5523381539e1028354cc535d5a3307d28fd33872f2b403454d8391/drake-1.45.0-cp312-cp312-macosx_14_0_arm64.whl", hash = "sha256:b0d9bd6196dc6d3b0e660fc6351fcf236727a45ef6a7123f8dc96f85b8662ac3", size = 57314509, upload-time = "2025-09-16T19:02:10.195Z" },
     { url = "https://files.pythonhosted.org/packages/0c/c7/071b815628cd5b5baea4c069feb23a5b8b414b3eab0f4356f21321530b71/drake-1.45.0-cp312-cp312-manylinux_2_34_x86_64.whl", hash = "sha256:bbb174445374900ad09219233af9e71022a39bfdb1f5f842d7bc8e28260bec07", size = 66093415, upload-time = "2025-09-16T19:02:13.553Z" },
 ]
-
-[[package]]
-name = "drone-swarm-autonomy"
-version = "0.0.0"
-source = { editable = "../drone-swarm-autonomy" }
-dependencies = [
-    { name = "numpy" },
-    { name = "pydantic" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "ipython", marker = "extra == 'dev'" },
-    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.10" },
-    { name = "numpy", specifier = ">=1.26" },
-    { name = "pydantic", specifier = ">=2.0" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
-    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=5.0" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.6" },
-]
-provides-extras = ["dev"]
 
 [[package]]
 name = "durationpy"

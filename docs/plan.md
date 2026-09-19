@@ -28,7 +28,7 @@ One rule: you only edit directories you own. Lanes talk through `contracts/` and
 
 Git: one long-lived branch per lane (`lane-a`, `lane-b`, `lane-c`). Merge to `main` only at the sync points. A merge must pass `uv run pytest tests/contracts`. If you need something from another lane before a sync point, ask for the file; never reach into their code.
 
-Both sibling repos are pinned by commit in `pins.toml`; nothing is copied in. Confirm HackMIT's rule on pre-existing code before hour 1; the README discloses both dependencies either way.
+dimOS is pinned by commit in `pins.toml`. The swarm autonomy stack in `src/airtight/swarm/` is frozen for the 24 hours: lane B adapts it inside `sim/`, never edits it.
 
 ## 2. Contracts (frozen hour 1)
 
@@ -63,7 +63,7 @@ Calibration assumptions to state: only the Go2 camera is measured; the drone cam
 
 ## 4. Lane B: fast sim and score
 
-Build on drone-swarm-autonomy: `tests/road_harness.py` and `autonomy/training.py` drive the kinematic backend, `autonomy/allocator.py` (CBBA), `autonomy/decomposer.py` (HTN), Voronoi coverage, `edge/sensing.py` (multi-target measurement synthesizer), `hol/gate.py` (silence auto-denies). The allocator types agents as `DroneState`; adapting guards and the Go2 is B's first design call.
+Build on `src/airtight/swarm/`: `tests/swarm/road_harness.py` and `swarm/autonomy/training.py` drive the kinematic backend, `swarm/autonomy/allocator.py` (CBBA), `swarm/autonomy/decomposer.py` (HTN), Voronoi coverage, `swarm/edge/sensing.py` (multi-target measurement synthesizer), `swarm/hol/gate.py` (silence auto-denies). The allocator types agents as `DroneState`; adapting guards and the Go2 is B's first design call.
 
 | Step | Hours | Do | Done when |
 |---|---|---|---|
@@ -100,7 +100,7 @@ See `docs/lanes/lane-c.md` for the step-by-step version.
 
 | Hour | Hand-offs | Decision |
 |---|---|---|
-| 1 | Contracts and stubs merged. | Rule on pre-existing code confirmed. |
+| 1 | Contracts and stubs merged. | Keys set, every machine runs the hello blueprint. |
 | 4 | A reports the simulator choice. | Fallback F1 or not. |
 | 5 | C reports stub-search difficulty. | Early warning for the hour-10 difficulty gate. |
 | 8 | B's real `run_episode` replaces the stub. | C moves search to the real sim. |
@@ -113,7 +113,7 @@ See `docs/lanes/lane-c.md` for the step-by-step version.
 
 ## 7. Fallbacks
 
-- F1: dimOS sim won't run by hour 4. A builds modules and blueprint against dimOS replay blueprints, calibrates on recorded Go2 footage plus stills, replays come from drone-swarm-autonomy's Rerun bridge. Pitch leans on modules and skills.
+- F1: dimOS sim won't run by hour 4. A builds modules and blueprint against dimOS replay blueprints, calibrates on recorded Go2 footage plus stills, replays come from a Rerun script over the episode log. Pitch leans on modules and skills.
 - F2: the charging-window attack doesn't separate configs at hour 12. Lead with whichever tactic does (decoy next) and make the fix the matching one (a held-back agent).
 - F3: memory misses hour 14. Drop the link-cut beat; end on the rescore; memory goes on the roadmap slide.
 - F4: detector too slow or costly. Fewer range bins, 15 frames each, or a local detector. State the sample size.
