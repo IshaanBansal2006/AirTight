@@ -184,3 +184,20 @@ def test_decoy_spec_is_on_the_episode_clock() -> None:
     assert spec.position.tolist() == [100.0, 60.0]
     assert (spec.t_on, spec.t_off) == (-40.0, 20.0)
     assert adapt.intruder_speed_mps(tactic) == 1.6
+
+
+def test_pd_per_look_by_range_bin() -> None:
+    curves = _load("sensor_curve.json", SensorCurves)
+    assert adapt.pd_per_look(curves, "drone_camera", 0.0) == 0.95
+    assert adapt.pd_per_look(curves, "drone_camera", 5.0) == 0.95  # an edge closes its own bin
+    assert adapt.pd_per_look(curves, "drone_camera", 5.01) == 0.9
+    assert adapt.pd_per_look(curves, "drone_camera", 40.0) == 0.1
+    assert adapt.pd_per_look(curves, "drone_camera", 40.01) == 0.0
+
+
+def test_true_fp_per_look_is_the_contract_scalar() -> None:
+    curves = _load("sensor_curve.json", SensorCurves)
+    assert adapt.true_fp_per_look(curves, "drone_camera", "person") == 0.03
+    assert adapt.true_fp_per_look(curves, "human_eye", "vehicle") == 0.002
+    with pytest.raises(KeyError, match="unicorn"):
+        adapt.true_fp_per_look(curves, "drone_camera", "unicorn")

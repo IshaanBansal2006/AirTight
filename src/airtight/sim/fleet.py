@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from airtight.sim import adapt
-from airtight.sim.geometry import voronoi_mask
+from airtight.sim.geometry import in_wedge, voronoi_mask
 
 if TYPE_CHECKING:
     import numpy.typing as npt
@@ -45,6 +45,7 @@ class AgentState:
     fov_deg: float
     active: bool = True
     last_retarget_t: float = -math.inf
+    sensor_type: str = ""  # key into the sensor curves; adapt raises a clear KeyError on ""
 
 
 def make_agents(site: Site, fleet: FleetConfig, sensor_curves: SensorCurves) -> list[AgentState]:
@@ -62,6 +63,7 @@ def make_agents(site: Site, fleet: FleetConfig, sensor_curves: SensorCurves) -> 
                 speed_mps=adapt.agent_speed_mps(fleet, agent_id),
                 footprint_radius_m=adapt.sensor_footprint_radius_m(sensor_curves, sensor_type),
                 fov_deg=adapt.sensor_fov_deg(sensor_curves, sensor_type),
+                sensor_type=sensor_type,
             )
         )
     return agents
@@ -110,13 +112,11 @@ class PatrolController:
         for agent in agents:
             if not agent.active:
                 continue
-            dx = self._centres[..., 0] - agent.pos[0]
-            dy = self._centres[..., 1] - agent.pos[1]
-            distance = np.hypot(dx, dy)
+            distance = np.hypot(
+                self._centres[..., 0] - agent.pos[0], self._centres[..., 1] - agent.pos[1]
+            )
             seen = distance <= agent.footprint_radius_m
-            if agent.fov_deg < 360.0:
-                off_axis = np.angle(np.exp(1j * (np.arctan2(dy, dx) - agent.heading)))
-                seen &= (np.abs(off_axis) <= math.radians(agent.fov_deg) / 2.0) | (distance == 0.0)
+            seen &= in_wedge(agent.pos, agent.heading, agent.fov_deg, self._centres)
             self.last_seen[seen] = t
 
     def retarget(self, agents: list[AgentState], t: float) -> None:

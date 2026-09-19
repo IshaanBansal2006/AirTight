@@ -205,3 +205,18 @@ def test_voronoi_no_peers_is_all_true_and_own_id_cannot_be_a_peer() -> None:
 def test_geometry_imports_nothing_from_contracts_or_adapt() -> None:
     source = Path(geometry.__file__).read_text()
     assert "airtight.contracts" not in source and "airtight.sim.adapt" not in source
+
+
+def test_in_wedge_ahead_behind_edges_and_shapes() -> None:
+    origin = np.array([100.0, 100.0])
+    points = np.array([[110.0, 100.0], [90.0, 100.0], [100.0, 110.0], [107.0, 107.0]])
+    assert geometry.in_wedge(origin, 0.0, 90.0, points).tolist() == [True, False, False, True]
+    assert geometry.in_wedge(origin, np.pi / 2, 90.0, points).tolist() == [False, False, True, True]
+    assert geometry.in_wedge(origin, 0.0, 360.0, points).all()
+    assert bool(geometry.in_wedge(origin, 0.0, 10.0, origin))  # distance 0 is always inside
+    assert bool(geometry.in_wedge(origin, np.pi, 90.0, np.array([90.0, 100.0])))
+    # a wedge centred on -x must not break where the bearing wraps from +pi to -pi
+    wrap = np.array([[90.0, 101.0], [90.0, 99.0]])
+    assert geometry.in_wedge(origin, np.pi, 90.0, wrap).all()
+    grid = Grid(0.0, 0.0, 40.0, 20.0, 5.0)
+    assert geometry.in_wedge(origin, 0.0, 90.0, grid.cell_centers()).shape == grid.shape

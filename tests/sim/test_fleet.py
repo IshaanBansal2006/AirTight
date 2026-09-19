@@ -207,3 +207,15 @@ def test_make_agents_on_the_contract_example() -> None:
     for i in range(4):
         for j in range(i + 1, 4):
             assert float(np.linalg.norm(agents[i].pos - agents[j].pos)) > 1.0
+
+
+def test_make_agents_fills_sensor_type() -> None:
+    site = Site.model_validate_json(EXAMPLES.joinpath("site.json").read_text())
+    fleet = FleetConfig.model_validate_json(EXAMPLES.joinpath("fleet_config.json").read_text())
+    curves = SensorCurves.model_validate_json(EXAMPLES.joinpath("sensor_curve.json").read_text())
+    assert [a.sensor_type for a in make_agents(site, fleet, curves)] == [
+        "drone_camera",
+        "drone_camera",
+        "go2_camera",
+        "human_eye",
+    ]

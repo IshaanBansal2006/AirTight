@@ -181,6 +181,27 @@ def sensor_footprint_radius_m(sensor_curves: SensorCurves, sensor_type: str) -> 
     return float(live[-1])
 
 
+def pd_per_look(sensor_curves: SensorCurves, sensor_type: str, range_m: float) -> float:
+    """Detection probability per look in the bin holding range_m; 0.0 beyond the last bin.
+
+    Bins are upper edges, so a range exactly on an edge belongs to the bin that edge closes.
+    """
+    curve = _curve(sensor_curves, sensor_type)
+    i = int(np.searchsorted(curve.range_bins_m, range_m, side="left"))
+    return float(curve.pd_per_look[i]) if i < len(curve.range_bins_m) else 0.0
+
+
+def true_fp_per_look(sensor_curves: SensorCurves, sensor_type: str, cls: str) -> float:
+    """The TRUE per-look false-positive rate for a benign class: one scalar, not per range bin."""
+    table = _curve(sensor_curves, sensor_type).pfa_per_look_by_class
+    if cls not in table:
+        raise KeyError(
+            f"sensor {sensor_type!r} has no false-positive rate for class {cls!r}; "
+            f"known: {sorted(table)}"
+        )
+    return float(table[cls])
+
+
 def sensor_fov_deg(sensor_curves: SensorCurves, sensor_type: str) -> float:
     """The contract's SensorCurve.fov_deg, a required field in (0, 360]."""
     return float(_curve(sensor_curves, sensor_type).fov_deg)

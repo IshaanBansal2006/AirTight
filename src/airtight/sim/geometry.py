@@ -152,6 +152,22 @@ def polyline_position(points: Array, speed: float, t: float) -> tuple[Array, boo
     return xy, False
 
 
+def in_wedge(origin: Array, heading: float, fov_deg: float, points: Array) -> BoolArray:
+    """True where a point lies inside the wedge of fov_deg centred on heading, seen from origin.
+
+    points is (..., 2); the result has shape points.shape[:-1]. fov_deg >= 360 is always True,
+    and so is a point at distance 0, whose bearing is undefined. Range is not checked here.
+    """
+    pts = np.asarray(points, dtype=np.float64)
+    if fov_deg >= 360.0:
+        return np.ones(pts.shape[:-1], dtype=np.bool_)
+    dx = pts[..., 0] - origin[0]
+    dy = pts[..., 1] - origin[1]
+    off_axis = np.angle(np.exp(1j * (np.arctan2(dy, dx) - heading)))  # wrapped to [-pi, pi]
+    inside: BoolArray = (np.abs(off_axis) <= math.radians(fov_deg) / 2.0) | ((dx == 0) & (dy == 0))
+    return inside
+
+
 def voronoi_mask(
     centres: Array,
     own_xy: Array,
