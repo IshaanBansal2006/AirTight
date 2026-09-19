@@ -86,3 +86,40 @@ def test_build_deck_from_rendered_numbers(tmp_path: Path) -> None:
     assert exc.value.code == 0
     deck = (tmp_path / "deck.md").read_text()
     assert deck.count("\n---\n") >= 8 and "EXAMPLE DATA" in deck and "cost_vs_detection.png" in deck
+
+
+def test_render_replay_from_a_v0_log(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from airtight.contracts import FleetConfig, SensorCurves, Site, Tactic
+    from airtight.sim.runner import run_episode
+
+    monkeypatch.setenv("AIRTIGHT_ENGINE", "v0")
+    scen = Path(__file__).parents[1] / "scenarios" / "logistics_yard"
+    site = Site.model_validate_json((scen / "site.json").read_text())
+    curves = SensorCurves.model_validate_json((scen / "sensor_curve.json").read_text())
+    fleet = FleetConfig.model_validate_json(
+        (scen / "fleets" / "d2_go2_guard_sync.json").read_text()
+    )
+    tactic = Tactic(
+        id="walk",
+        family="charging_window",
+        entry_id="main_gate",
+        phase=0.1,
+        speed_mps=1.5,
+        waypoints=[site.asset],
+    )
+    res = run_episode(site, fleet, tactic, curves, 5, tmp_path / "logs")
+    sys.argv = [
+        "render_replay.py",
+        str(res.log_path),
+        "--site",
+        str(scen / "site.json"),
+        "--out",
+        str(tmp_path / "clip.mp4"),
+        "--fps",
+        "4",
+        "--speed",
+        "20",
+    ]
+    with pytest.raises(SystemExit) as exc:
+        runpy.run_path(str(PITCH / "render_replay.py"), run_name="__main__")
+    assert exc.value.code == 0 and (tmp_path / "clip.mp4").stat().st_size > 1000

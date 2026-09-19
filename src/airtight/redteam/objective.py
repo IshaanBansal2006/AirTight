@@ -5,6 +5,7 @@ from collections.abc import Callable, Sequence
 from concurrent.futures import ProcessPoolExecutor
 from functools import partial
 from pathlib import Path
+from typing import Any, cast
 
 import numpy as np
 from pydantic import BaseModel
@@ -57,7 +58,7 @@ def light(episode_fn: EpisodeFn) -> EpisodeFn:
     except (TypeError, ValueError):
         return episode_fn
     if "full_log" in params and not isinstance(episode_fn, partial):
-        return partial(episode_fn, full_log=False)
+        return cast("EpisodeFn", partial(cast("Any", episode_fn), full_log=False))
     return episode_fn
 
 
