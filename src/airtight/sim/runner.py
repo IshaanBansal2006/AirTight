@@ -15,7 +15,7 @@ from airtight.contracts import (
     Tactic,
     write_episode_log,
 )
-from airtight.sim.episode import EpisodeParams, simulate
+from airtight.sim.episode import official_params, simulate
 from airtight.sim.recorder import LogRecorder, outcome_event
 
 if TYPE_CHECKING:
@@ -70,7 +70,7 @@ def _run_v0(
         sim_version=SIM_VERSION_V0,
     )
     events: list[BaseModel]
-    params = EpisodeParams(battery=True)
+    params = official_params()
     if full_log:
         recorder = LogRecorder(dt=params.dt)
         scores = simulate(site, fleet, tactic, sensor_curves, seed, params, recorder)

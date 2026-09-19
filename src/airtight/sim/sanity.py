@@ -29,6 +29,12 @@ from pathlib import Path
 from typing import TYPE_CHECKING, NamedTuple
 
 from airtight.sim import scenarios
+from airtight.sim.coverage import (
+    coverage_profile,
+    uncovered_intervals,
+    uncovered_s_per_hour,
+    uncovered_s_per_hour_exact,
+)
 from airtight.sim.episode import EpisodeParams, simulate
 from airtight.sim.geometry import WEIGHT_MODES
 from airtight.sim.recorder import timely_at_ref
@@ -45,8 +51,9 @@ GATE_SECONDS_PER_EPISODE = 1.0
 WHAT_IF_TASK_TIME_S = 60.0
 WHAT_IF_MODES = ("asset", "band")
 PART1_FLEETS = ("1drone", "2drones", "4drones")
-PHASE_FLEETS = ("2drones", "2drones_staggered")
-PHASES = (0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875)
+PHASE_FLEETS = ("2drones", "2drones_staggered", "3drones_staggered")
+N_PHASES = 24  # 8 stepped over the half-cycle stagger's two 300 s gaps; 24 lands inside them
+PHASES = tuple(k / N_PHASES for k in range(N_PHASES))
 
 
 class Job(NamedTuple):
@@ -170,15 +177,46 @@ def run_phase_table(
 def format_phase_table(table: dict[str, list[tuple[float, float]]], n_seeds: int) -> str:
     lines = [
         f"TABLE 3: battery on, tactic {REFERENCE_TACTIC!r}, mode 'asset', timely fraction by phase",
-        f"{n_seeds} seeds per cell, the same seeds in every cell",
-        f"{'fleet':20s} " + " ".join(f"{p:6.3f}" for p in PHASES) + "    mean  worst",
+        f"{n_seeds} seeds per cell, the same seeds in every cell, {N_PHASES} evenly spaced phases",
     ]
+    half = N_PHASES // 2
+    for block in (PHASES[:half], PHASES[half:]):
+        lines.append("")
+        lines.append(f"{'phase':20s} " + " ".join(f"{p:5.3f}" for p in block))
+        for fleet, row in table.items():
+            values = [v for p, v in row if p in block]
+            lines.append(f"{fleet:20s} " + " ".join(f"{v:5.2f}" for v in values))
+    lines.append("")
+    lines.append(f"{'fleet':20s}   mean  worst")
     for fleet, row in table.items():
         values = [v for _, v in row]
+        lines.append(f"{fleet:20s} {sum(values) / len(values):6.2f} {min(values):6.2f}")
+    return "\n".join(lines)
+
+
+def format_coverage(scenario: str) -> str:
+    """Each phase-table fleet's uncovered intervals and its coverage gap, exact and simulated."""
+    site = scenarios.load_site(scenario)
+    curves = scenarios.load_sensor_curves(scenario)
+    lines = [
+        "COVERAGE: when nobody is on duty (exact, from the battery clocks), and the coverage gap",
+        "in seconds per hour: exact, and simulated (zero agents patrolling, so it also counts the",
+        "flight home).",
+    ]
+    for name in PHASE_FLEETS:
+        fleet = scenarios.load_fleet(name, scenario)
+        gaps = uncovered_intervals(fleet)
+        ranges = (
+            ", ".join(
+                f"phase {g.start_phase:.3f} to {g.end_phase:.3f} ({g.duration_s:.0f} s)"
+                for g in gaps
+            )
+            or "none"
+        )
+        simulated = uncovered_s_per_hour(coverage_profile(site, fleet, curves))
         lines.append(
-            f"{fleet:20s} "
-            + " ".join(f"{v:6.2f}" for v in values)
-            + f"  {sum(values) / len(values):6.2f} {min(values):6.2f}"
+            f"{name:20s} exact {uncovered_s_per_hour_exact(fleet):6.0f} s/h   "
+            f"simulated {simulated:6.0f} s/h   uncovered: {ranges}"
         )
     return "\n".join(lines)
 
@@ -259,6 +297,8 @@ def main(argv: list[str] | None = None) -> int:
     print(format_table(what_if, len(seeds), title))
     print()
     print(format_phase_table(run_phase_table(args.scenario, seeds, args.workers), len(seeds)))
+    print()
+    print(format_coverage(args.scenario))
     return 0 if all(verdict.values()) else 1
 
 

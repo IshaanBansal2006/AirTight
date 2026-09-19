@@ -10,7 +10,12 @@ Two false-alarm numbers exist and are never merged:
 
 from __future__ import annotations
 
+# Bump ENGINE_VERSION in every commit that changes simulation results. Cached sweep cells are
+# keyed by it, so a stale cache can never be mixed with new results.
+ENGINE_VERSION = "1"
+
 TAU_REF = 4.0  # reference alarm threshold on the track score until the offline sweep re-fixes it
+TAU_INVESTIGATE = 1.5  # floor of the offline threshold sweep; must stay below TAU_REF
 NEVER_SEEN = -1e9  # peak score of an object no sensor ever looked at
 SCORE_FLOOR = -5.0  # a track score is clamped below at this value
 ASSUMED_PFA = 0.02  # per-look false-alarm probability assumed by the likelihood ratio

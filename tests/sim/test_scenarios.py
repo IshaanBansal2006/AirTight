@@ -51,8 +51,30 @@ def test_yard_night_is_what_the_team_agreed() -> None:
     site, curves = scenarios.load_site(), scenarios.load_sensor_curves()
     assert scenarios.scenario_names() == ["yard_night"]
     assert adapt.bounds(site) == (0.0, 0.0, 300.0, 200.0) and adapt.response_time_s(site) == 25.0
-    assert scenarios.names("fleet") == ["1drone", "2drones", "2drones_staggered", "4drones"]
-    assert [len(scenarios.load_fleet(n).agents) for n in scenarios.names("fleet")] == [1, 2, 2, 4]
+    assert scenarios.names("fleet") == [
+        "1drone",
+        "2drones",
+        "2drones_staggered",
+        "3drones_staggered",
+        "4drones",
+    ]
+    assert [len(scenarios.load_fleet(n).agents) for n in scenarios.names("fleet")] == [
+        1,
+        2,
+        2,
+        3,
+        4,
+    ]
+    thirds = scenarios.load_fleet("3drones_staggered")
+    assert thirds.charge_policy.stagger_offsets_s == {
+        "d1": 1200.0,
+        "d2": 2400.0,
+    }  # thirds of 3600 s
+    assert {
+        a.model_copy(update={"id": "x"})
+        == scenarios.load_fleet("1drone").agents[0].model_copy(update={"id": "x"})
+        for a in thirds.agents
+    } == {True}
     staggered = scenarios.load_fleet("2drones_staggered")
     assert staggered.agents == scenarios.load_fleet("2drones").agents  # only the offsets differ
     assert staggered.charge_policy.stagger_offsets_s == {"d1": 1800.0}  # half the 3600 s cycle
