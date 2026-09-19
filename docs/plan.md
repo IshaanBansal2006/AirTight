@@ -20,6 +20,7 @@ The demo, in order: the red team finds the charging-window attack, the replay ru
 - **Lane A live run.** The `unitree-go2-agentic` blueprint ran here with the default transport and `source scripts/dimos_env.sh`; the LCM transport needs multicast on the loopback (`sudo ip link set lo multicast on; sudo ip route add 224.0.0.0/4 dev lo`). Try the default transport first.
 - **Scenario.** The demo site and the twelve fleet configurations are in `scenarios/logistics_yard/` (decisions 008 and 009). Every lane runs against those files, not the packaged examples, from hour 10.
 - **Lane B's agent adapter.** Options and the lead's default are in `docs/lanes/lane-b-agent-adapter.md`.
+- **dimOS may be edited.** Save every change as a patch with `scripts/dimos_patch.sh save <name>` (see `patches/dimos/README.md`); candidates so far: a headless mode for the MuJoCo child (`viewer.launch_passive` is mandatory today), the MCP client's default model name, and the intruder body controller.
 
 ## 1. Lanes
 
