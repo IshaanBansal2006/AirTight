@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import time
 import uuid
+from typing import Any
 
 from dimos.agents.annotation import skill
 from dimos.core.module import Module
@@ -56,8 +57,8 @@ class Gate:
 
 
 class GateModule(Module):
-    def __init__(self, config_args: dict[str, object] | None = None) -> None:
-        super().__init__(dict(config_args or {}))
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
         self.inner = Gate()
 
     @skill

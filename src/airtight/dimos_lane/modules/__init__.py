@@ -6,6 +6,7 @@ from airtight.dimos_lane.modules.fleet_memory import FleetMemoryModule, LocalFle
 from airtight.dimos_lane.modules.gate import Gate, GateModule
 from airtight.dimos_lane.modules.orchestrator import Orchestrator, OrchestratorModule
 from airtight.dimos_lane.modules.sim_fleet import SimFleet, SimFleetModule
+from airtight.dimos_lane.modules.walk import WalkModule
 
 __all__ = [
     "Allocator",
@@ -20,4 +21,5 @@ __all__ = [
     "LocalFleetMemory",
     "Orchestrator",
     "OrchestratorModule",
+    "WalkModule",
 ]
