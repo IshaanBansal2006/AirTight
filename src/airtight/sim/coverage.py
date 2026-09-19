@@ -26,7 +26,7 @@ from airtight.sim.battery import make_clocks
 from airtight.sim.episode import _run_loop, check_setup, official_params
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Collection, Sequence
 
     import numpy.typing as npt
 
@@ -78,16 +78,30 @@ def duty_intervals(fleet: FleetConfig) -> dict[str, list[tuple[float, float]]]:
     return out
 
 
-def uncovered_intervals(fleet: FleetConfig) -> list[UncoveredInterval]:
+def uncovered_intervals(
+    fleet: FleetConfig, only: Collection[str] | None = None
+) -> list[UncoveredInterval]:
     """The stretches of the reference cycle in which no agent is on duty, in time order.
+
+    only, if given, restricts the question to those agent ids: the stretches in which none of
+    THEM is on duty, still laid out over the whole fleet's reference cycle so the phases line up
+    with Tactic.phase. It answers "when are all the drones down" for a fleet that also has a
+    guard, where the unrestricted answer is "never".
 
     Intervals are not joined across the end of the cycle: a gap that runs through it appears as
     one interval ending at the cycle and one starting at 0.
     """
     span = adapt.reference_cycle_s(fleet)
     duty = duty_intervals(fleet)
-    if len(duty) < len(adapt.agent_ids(fleet)):
-        return []  # some agent never charges, so somebody is always on duty
+    considered = list(adapt.agent_ids(fleet)) if only is None else [a for a in only]
+    unknown = set(considered) - set(adapt.agent_ids(fleet))
+    if unknown:
+        raise ValueError(f"agents {sorted(unknown)} are not in fleet {adapt.agent_ids(fleet)}")
+    if not considered:
+        return []
+    if any(agent_id not in duty for agent_id in considered):
+        return []  # one of them never charges, so somebody is always on duty
+    duty = {agent_id: duty[agent_id] for agent_id in considered}
     gaps: list[UncoveredInterval] = []
     cursor = 0.0
     for lo, hi in sorted(iv for intervals in duty.values() for iv in intervals):

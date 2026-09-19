@@ -123,3 +123,17 @@ def test_episode_inside_an_uncovered_interval_never_sees_the_intruder(fleet_name
         for seed in range(1000, 1008):
             scores = simulate(site, fleet, tactic, curves, seed, params)
             assert scores.n_looks == 0 and scores.intruder_peak == NEVER_SEEN
+
+
+def test_only_restricts_the_question_but_keeps_the_fleets_phase_axis() -> None:
+    fleet = scenarios.load_fleet("2drones")
+    guard = fleet.agents[0].model_copy(update={"id": "guard", "charge_time_s": 0.0})
+    mixed = fleet.model_copy(update={"agents": [*fleet.agents, guard]})
+    assert uncovered_intervals(mixed) == []  # the guard is always up
+    (gap,) = uncovered_intervals(mixed, only=["d0", "d1"])  # but both drones are down together
+    assert (gap.start_s, gap.end_s) == (ENDURANCE, CYCLE)
+    assert uncovered_intervals(mixed, only=["d0", "guard"]) == []
+    assert uncovered_intervals(mixed, only=[]) == []
+    assert uncovered_intervals(fleet, only=["d0", "d1"]) == uncovered_intervals(fleet)
+    with pytest.raises(ValueError, match="nobody"):
+        uncovered_intervals(fleet, only=["nobody"])
