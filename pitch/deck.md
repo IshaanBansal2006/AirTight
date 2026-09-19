@@ -39,6 +39,8 @@ Charging-window attack: enter `rear_fence_gap` at phase 1.00 of the charge cycle
 
 *Replay clip A: the miss.*
 
+Clip A, seed 63663: d2_go2_guard_sync never raised a timely alarm against `charging_window-439068210` (deadline 34 s).
+
 ---
 
 # The score
@@ -56,6 +58,8 @@ Charging-window attack: enter `rear_fence_gap` at phase 1.00 of the charge cycle
 d2_go2_guard_sync to d3_go2_guard_stagger: detection 0.17 to 0.58; against the re-attacking worst tactic 0.07 to 0.45.
 
 *Replay clip B: the catch.*
+
+Clip B, same seed and tactic: d3_go2_guard_stagger alarmed at 24 s, before the 34 s deadline.
 
 ---
 

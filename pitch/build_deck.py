@@ -13,7 +13,17 @@ def _fmt(v: float, digits: int = 2) -> str:
     return f"{v:.{digits}f}"
 
 
-def build(numbers: dict, tokens: dict, charts_rel: str, example: bool) -> str:
+def clip_line(clips: dict | None, which: str) -> str:
+    if not clips:
+        return ""
+    if which == "miss":
+        return f"\n\nClip A, seed {clips['seed']}: {clips['baseline']} never raised a timely alarm against `{clips['tactic_id']}` (deadline {clips['t_cdp']:.0f} s)."
+    return f"\n\nClip B, same seed and tactic: {clips['fixed']} alarmed at {clips['catch_t_alarm']:.0f} s, before the {clips['t_cdp']:.0f} s deadline."
+
+
+def build(
+    numbers: dict, tokens: dict, charts_rel: str, example: bool, clips: dict | None = None
+) -> str:
     cond = numbers["conditions"]
     conditions = (
         f"Operating point {cond['far_per_hour_operating_point']:g} false alarm/h · {cond['n_seeds']} seeds · "
@@ -34,13 +44,13 @@ def build(numbers: dict, tokens: dict, charts_rel: str, example: bool) -> str:
         )
         + watermark,
         (
-            f"# What the adversary found\n\nCharging-window attack: enter `{cw['entry']}` at phase {cw['phase']:.2f} of the charge cycle at {cw['speed_mps']:.1f} m/s.\n\n*Replay clip A: the miss.*{watermark}"
+            f"# What the adversary found\n\nCharging-window attack: enter `{cw['entry']}` at phase {cw['phase']:.2f} of the charge cycle at {cw['speed_mps']:.1f} m/s.\n\n*Replay clip A: the miss.*{clip_line(clips, 'miss')}{watermark}"
             if cw
             else f"# What the adversary found\n\n*Run the search to populate this slide.*{watermark}"
         ),
         f"# The score\n\n![height:440px]({charts_rel}/cost_vs_detection.png)\n\n<small>{conditions}</small>{watermark}",
         (
-            f"# The fix and the re-attack\n\n![height:400px]({charts_rel}/before_after.png)\n\n{ba['baseline']} to {ba['fixed']}: detection {_fmt(ba['pd'][0])} to {_fmt(ba['pd'][1])}; against the re-attacking worst tactic {_fmt(ba['worst_tactic_pd'][0])} to {_fmt(ba['worst_tactic_pd'][1])}.\n\n*Replay clip B: the catch.*{watermark}"
+            f"# The fix and the re-attack\n\n![height:400px]({charts_rel}/before_after.png)\n\n{ba['baseline']} to {ba['fixed']}: detection {_fmt(ba['pd'][0])} to {_fmt(ba['pd'][1])}; against the re-attacking worst tactic {_fmt(ba['worst_tactic_pd'][0])} to {_fmt(ba['worst_tactic_pd'][1])}.\n\n*Replay clip B: the catch.*{clip_line(clips, 'catch')}{watermark}"
             if ba
             else f"# The fix and the re-attack\n\n*Needs a report with at least two configurations.*{watermark}"
         ),
@@ -59,6 +69,7 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--charts", type=Path, default=REPO / "pitch" / "charts")
     ap.add_argument("--out", type=Path, default=REPO / "pitch" / "deck.md")
+    ap.add_argument("--clips", type=Path, default=REPO / "pitch" / "clips" / "clips.json")
     args = ap.parse_args(argv)
     numbers_path = args.charts / "numbers.json"
     tokens_path = args.charts / "token_numbers.json"
@@ -74,7 +85,8 @@ def main(argv: list[str] | None = None) -> int:
         if args.charts.resolve().is_relative_to(args.out.resolve().parent)
         else args.charts
     )
-    args.out.write_text(build(numbers, tokens, str(rel), example))
+    clips = json.loads(args.clips.read_text()) if args.clips.exists() else None
+    args.out.write_text(build(numbers, tokens, str(rel), example, clips))
     print(
         f"deck written to {args.out}"
         + (" (EXAMPLE DATA watermark on every slide)" if example else "")
