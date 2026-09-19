@@ -21,6 +21,7 @@ build/
 dist/
 
 # environments
+.venv
 .venv/
 venv/
 .env

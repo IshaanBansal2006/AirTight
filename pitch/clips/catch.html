@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>catch seed=7 hand_charging_window_north</title>
+<style>
+body { font-family: ui-sans-serif, system-ui, sans-serif; background: #111; color: #eee; margin: 24px; }
+svg { background: #1b1f16; border: 1px solid #333; }
+.banner { font-size: 20px; margin-bottom: 8px; }
+.meta { color: #aaa; margin-bottom: 12px; }
+</style></head>
+<body>
+<div class="banner">catch seed=7 hand_charging_window_north</div>
+<div class="meta">timely_detected=True t_alarm=14.0 t_cdp=0.0 dispatch=task=verify-60-74 winner=guard_1 auction={'guard_1': ['verify-60-74']} proposal=p-de8d4ffb</div>
+<svg id="s" width="960" height="640">
+  <polygon points="40.0,600.0 920.0,600.0 920.0,40.0 40.0,40.0 40.0,600.0" fill="#24301c" stroke="#8f8" stroke-width="3"/>
+  <circle cx="480.0" cy="320.0" r="8" fill="#c33"/>
+  <circle id="intruder" r="7" fill="#fc0"/>
+</svg>
+<script>
+const data = {"frames": [{"t": 0.0, "intruder": [480.0, 40.0], "agents": {}, "alarm": false}, {"t": 0.5, "intruder": [480.0, 46.39999999999998], "agents": {}, "alarm": false}], "title": "catch seed=7 hand_charging_window_north", "timely": true};
+const svg = document.getElementById('s');
+const intr = document.getElementById('intruder');
+const agents = {};
+function dot(id, color) {
+  let el = agents[id];
+  if (!el) {
+    el = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    el.setAttribute('r', '6');
+    el.setAttribute('fill', color);
+    svg.appendChild(el);
+    agents[id] = el;
+  }
+  return el;
+}
+let i = 0;
+function tick() {
+  const f = data.frames[i];
+  intr.setAttribute('cx', f.intruder[0]);
+  intr.setAttribute('cy', f.intruder[1]);
+  intr.setAttribute('fill', f.alarm ? '#f55' : '#fc0');
+  for (const [id, xy] of Object.entries(f.agents)) {
+    const el = dot(id, id.includes('go2') ? '#6cf' : '#9af');
+    el.setAttribute('cx', xy[0]);
+    el.setAttribute('cy', xy[1]);
+  }
+  i = (i + 1) % data.frames.length;
+}
+setInterval(tick, 120);
+tick();
+</script>
+</body></html>
