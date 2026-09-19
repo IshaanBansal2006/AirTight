@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from airtight.dimos_lane.modules.fleet_memory import LocalFleetMemory
+from typing import TYPE_CHECKING
+
+from airtight.dimos_lane.modules.fleet_memory import LocalFleetMemory, load_fleet_memory
+
+if TYPE_CHECKING:
+    import pytest
 
 
 def test_merge_is_idempotent_and_order_independent() -> None:
@@ -26,6 +31,31 @@ def test_merge_is_idempotent_and_order_independent() -> None:
     assert ab.evidence_score() == ba.evidence_score() == 1.5
     claims = ab.query("claim")
     assert claims[0]["value"] == "go2_1"
+
+
+def test_load_prefers_lane_c_store(monkeypatch: pytest.MonkeyPatch) -> None:
+    class DummyStore:
+        def observe(self, item: object) -> None:
+            return None
+
+        def delta(self, since_version: int, byte_budget: int) -> bytes:
+            return b""
+
+        def merge(self, delta: bytes) -> None:
+            return None
+
+        def query(self, kind: str, region: object = None) -> list[object]:
+            return []
+
+        @property
+        def version(self) -> int:
+            return 0
+
+    import airtight.memory as mem
+
+    monkeypatch.setattr(mem, "FleetMemoryStore", DummyStore, raising=False)
+    inner = load_fleet_memory()
+    assert isinstance(inner, DummyStore)
 
 
 def test_delta_respects_byte_budget() -> None:

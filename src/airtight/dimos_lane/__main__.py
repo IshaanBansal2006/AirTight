@@ -21,16 +21,53 @@ def _cmd_sim(_: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_bakeoff(_: argparse.Namespace) -> int:
+    from airtight.dimos_lane.simulator import run_h4_bakeoff
+
+    scores = run_h4_bakeoff()
+    for name, score in scores.items():
+        print(
+            f"{name} wins={score.wins}/3 realtime={score.near_realtime} "
+            f"body={score.detector_visible_body} pose={score.pose_scriptable} "
+            f"elapsed={score.elapsed_s:.2f}s"
+        )
+        for key, value in score.details.items():
+            print(f"  {key}: {value}")
+    print(f"chosen={CHOSEN_SIMULATOR}")
+    print(CHOSEN_REASON)
+    return 0
+
+
+def _cmd_place_intruder(_: argparse.Namespace) -> int:
+    from airtight.dimos_lane.person import default_intruder_xy, mujoco_start_pos, place_intruder
+
+    xy = place_intruder()
+    print(f"intruder={xy.x:.2f},{xy.y:.2f} go2_start={mujoco_start_pos()}")
+    print(f"expected={default_intruder_xy().x:.2f},{default_intruder_xy().y:.2f}")
+    return 0
+
+
 def _cmd_yard(args: argparse.Namespace) -> int:
+    from airtight.dimos_lane.person import go2_spawn_xy, mujoco_start_pos
     from airtight.dimos_lane.site_io import load_example_site
-    from airtight.dimos_lane.yard import occupancy_counts, site_to_occupancy, write_occupancy_npy
+    from airtight.dimos_lane.yard import (
+        occupancy_counts,
+        site_to_occupancy,
+        write_mujoco_occupancy_npy,
+        write_occupancy_npy,
+    )
 
     site = load_example_site()
     path = Path(args.out)
     write_occupancy_npy(site, path)
+    mujoco_path = path.with_name(path.stem + "_mujoco.npy")
+    write_mujoco_occupancy_npy(site, mujoco_path)
     occupied, free = occupancy_counts(site_to_occupancy(site))
+    spawn = go2_spawn_xy(site)
     print(f"wrote {path} occupied={occupied} free={free} site={site.name}")
-    print("run with: DIMOS_TRANSPORT=lcm DIMOS_MUJOCO_ROOM_FROM_OCCUPANCY=" + str(path.resolve()))
+    print(f"wrote {mujoco_path} crop around {spawn.x:.1f},{spawn.y:.1f}")
+    print("run with: --mujoco-room-from-occupancy " + str(mujoco_path.resolve()))
+    print(f"mujoco_start_pos={mujoco_start_pos()}")
     return 0
 
 
@@ -76,9 +113,15 @@ def main(argv: list[str] | None = None) -> int:
     sim = sub.add_parser("sim", help="print the H4 simulator choice")
     sim.set_defaults(func=_cmd_sim)
 
+    bakeoff = sub.add_parser("bakeoff", help="run the H4 MuJoCo vs DimSim three-test bake-off")
+    bakeoff.set_defaults(func=_cmd_bakeoff)
+
     yard = sub.add_parser("yard", help="write occupancy npy from site.json")
     yard.add_argument("--out", default="data/yard_occupancy.npy")
     yard.set_defaults(func=_cmd_yard)
+
+    intruder = sub.add_parser("place-intruder", help="publish /person_pose in front of the Go2")
+    intruder.set_defaults(func=_cmd_place_intruder)
 
     cal = sub.add_parser("calibrate", help="fit data/sensor_curve.json from cached looks")
     cal.add_argument("--data", default="data")
