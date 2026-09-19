@@ -1,0 +1,16 @@
+{
+  "id": "west-sprint",
+  "family": "charging_window",
+  "entry_id": "west_fence",
+  "phase": 0.45,
+  "speed_mps": 6.0,
+  "waypoints": [
+    {
+      "x": 150.0,
+      "y": 100.0
+    }
+  ],
+  "decoy": null,
+  "comms_event": null,
+  "origin": "hand"
+}
