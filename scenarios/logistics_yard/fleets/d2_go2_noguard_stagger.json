@@ -1,0 +1,41 @@
+{
+  "name": "d2_go2_noguard_stagger",
+  "agents": [
+    {
+      "id": "drone_1",
+      "type": "drone",
+      "speed_mps": 8.0,
+      "endurance_s": 1500.0,
+      "charge_time_s": 2400.0,
+      "sensor_type": "drone_camera"
+    },
+    {
+      "id": "drone_2",
+      "type": "drone",
+      "speed_mps": 8.0,
+      "endurance_s": 1500.0,
+      "charge_time_s": 2400.0,
+      "sensor_type": "drone_camera"
+    },
+    {
+      "id": "go2_1",
+      "type": "go2",
+      "speed_mps": 1.2,
+      "endurance_s": 5400.0,
+      "charge_time_s": 3600.0,
+      "sensor_type": "go2_camera"
+    }
+  ],
+  "charge_policy": {
+    "threshold_frac": 0.2,
+    "stagger_offsets_s": {
+      "drone_1": 0.0,
+      "drone_2": 1950.0
+    }
+  },
+  "comms_mode": "central_perfect",
+  "cost_per_hour_by_type": {
+    "drone": 7.0,
+    "go2": 9.0
+  }
+}

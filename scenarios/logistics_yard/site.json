@@ -1,0 +1,27 @@
+{
+  "name": "logistics-yard",
+  "bounds": [0, 0, 200, 120],
+  "perimeter": [{"x": 5, "y": 5}, {"x": 195, "y": 5}, {"x": 195, "y": 115}, {"x": 5, "y": 115}],
+  "entry_points": [
+    {"id": "main_gate", "position": {"x": 100, "y": 115}, "kind": "vehicle_gate"},
+    {"id": "staff_gate", "position": {"x": 5, "y": 60}, "kind": "pedestrian_gate"},
+    {"id": "service_gate", "position": {"x": 150, "y": 5}, "kind": "service_gate"},
+    {"id": "rear_fence_gap", "position": {"x": 195, "y": 20}, "kind": "fence_gap"}
+  ],
+  "asset": {"x": 140, "y": 70},
+  "response_time_s": 120,
+  "docks": [
+    {"id": "drone_dock_nw", "position": {"x": 15, "y": 105}, "capacity": 2},
+    {"id": "drone_dock_se", "position": {"x": 185, "y": 15}, "capacity": 2},
+    {"id": "go2_dock", "position": {"x": 20, "y": 20}, "capacity": 1}
+  ],
+  "fixed_sensors": [
+    {"id": "cam_main_gate", "position": {"x": 100, "y": 112}, "sensor_type": "fixed_camera", "heading_deg": 270},
+    {"id": "cam_rear_corner", "position": {"x": 190, "y": 110}, "sensor_type": "fixed_camera", "heading_deg": 225}
+  ],
+  "benign_routes": [
+    {"id": "truck_delivery", "cls": "vehicle", "waypoints": [{"x": 100, "y": 115}, {"x": 100, "y": 50}, {"x": 160, "y": 50}], "arrival_rate_per_hour": 6},
+    {"id": "staff_walk", "cls": "person", "waypoints": [{"x": 5, "y": 60}, {"x": 60, "y": 60}, {"x": 120, "y": 72}], "arrival_rate_per_hour": 10},
+    {"id": "forklift_loop", "cls": "vehicle", "waypoints": [{"x": 150, "y": 50}, {"x": 120, "y": 40}, {"x": 150, "y": 50}], "arrival_rate_per_hour": 4}
+  ]
+}

@@ -30,6 +30,8 @@ uv run airtight-redteam campaign --mock --workers 8          # C3 + C4b in one g
 uv run python pitch/make_charts.py && uv run python pitch/make_token_chart.py && uv run python pitch/build_deck.py
 ```
 
+Also done on 2026-09-19 while waiting: the demo scenario and twelve fleet configs (`scenarios/logistics_yard/`, decisions 008 and 009), the cost table, the related-work paragraph (`docs/related_work.md`), the submission checklist (`docs/submission_checklist.md`), and lane B's adapter options (`docs/lanes/lane-b-agent-adapter.md`).
+
 At hour 8, the only change is that `run_episode` stops being the stub; nothing in lane C imports anything but that function and the contracts.
 
 ## Hour 0: team lead duties before touching lane C
