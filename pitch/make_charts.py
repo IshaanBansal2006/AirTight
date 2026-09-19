@@ -90,10 +90,16 @@ def chart_cost_vs_detection(r: Report, p: Palette, out: Path, numbers: dict) -> 
         x, y = c.cost_per_hour, c.pd_at_operating_point
         ax.plot([x, x], [lo, hi], color=color, linewidth=1.2, alpha=0.7, zorder=2)
         ax.scatter([x], [y], s=64, color=color, edgecolor=p.surface, linewidth=1.5, zorder=3)
-        crowded_right = any(0 < (ox - x) / xspan < 0.3 and abs(oy - y) < 0.1 for ox, oy in pts)
+        xmin_pts = min(px for px, _ in pts)
+        near_left_edge = (x - xmin_pts) / xspan < 0.15
+        crowded_right = (not near_left_edge) and any(
+            0 < (ox - x) / xspan < 0.3 and abs(oy - y) < 0.1 for ox, oy in pts
+        )
         dy = 6.0
         for px, py in placed:
-            if abs(px - x) / xspan < 0.12 and abs(py - y) < 0.06:
+            same_column = abs(px - x) / xspan < 0.12 and abs(py - y) < 0.06
+            same_row = 0 < (x - px) / xspan < 0.4 and abs(py - y) < 0.05
+            if same_column or same_row:
                 dy -= 11.0
         placed.append((x, y))
         ax.annotate(
