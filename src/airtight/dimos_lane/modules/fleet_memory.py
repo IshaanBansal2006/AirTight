@@ -132,8 +132,8 @@ def load_fleet_memory() -> FleetMemory:
 
 
 class FleetMemoryModule(Module):
-    def __init__(self, config_args: dict[str, object] | None = None) -> None:
-        super().__init__(dict(config_args or {}))
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
         self.inner = load_fleet_memory()
 
     @skill
