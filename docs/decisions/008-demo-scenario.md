@@ -47,3 +47,10 @@ Measured on v0 with the baseline fleet: random tactics 0.91 mean detection, sear
 random mean, is what the sweep scores, so 0.91 slightly above the band is accepted. The proper fix
 is an adversary task time at the asset (decision 010 revisit); lane B has the parameter, and it is
 requested for part 2.
+
+## Gate result with the part 2 engine (batteries and phase), 2026-09-19
+
+Baseline fleet, 10 random tactics per family, 10 seeds, speed cap 2.0 m/s, response time 20 s:
+charging window 0.40, decoy 0.72, blind spot 0.85, comms cut 0.76, mean 0.68, in band. The same
+gate on the staggered two-drone fleet gives 0.73. The charging-window family is now the weak one on
+synchronized charging, which is the story the demo tells. Scenario parameters are frozen here.
