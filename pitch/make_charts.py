@@ -392,7 +392,7 @@ def chart_before_after(r: Report, fixed: str | None, p: Palette, out: Path, numb
                 color=p.ink,
             )
         if a == b:
-            verdict, color = ("not measured yet" if a == 0 else "unchanged"), p.muted
+            verdict, color = "unchanged", p.muted
         elif (a > b) if higher_is_better else (a < b):
             verdict, color = "better", p.good
         else:
