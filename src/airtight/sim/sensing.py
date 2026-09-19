@@ -12,8 +12,11 @@ at. Association is by truth: every look is credited to the right object.
 
 Clutter that is not tied to an object is ignored in v0.
 
-Each observer's draws come from its own stream, default_rng([seed, 1000 + crc32(agent_id) %
-1000000]), one rng.random() per qualifying observer-object pair per look.
+Draws come from one stream per observer and object pair,
+default_rng([seed, 5, crc32(observer_id), crc32(object_id)]), one rng.random() per qualifying
+look. An object's hit sequence therefore depends only on the geometry between it and that
+observer: another object wandering into view cannot shift it, which is what paired comparisons
+need.
 """
 
 from __future__ import annotations
@@ -39,7 +42,7 @@ if TYPE_CHECKING:
 
     Array = npt.NDArray[np.float64]
 
-SENSOR_STREAM_BASE = 1000
+LOOK_STREAM = 5
 TARGET_KINDS = frozenset({"intruder", "decoy"})
 _PD_CLIP = (0.001, 0.999)
 
@@ -90,10 +93,28 @@ class Look(NamedTuple):
     score: float  # the object's score after this look
 
 
-def sensor_rng(seed: int, agent_id: str) -> np.random.Generator:
+def look_rng(seed: int, observer_id: str, object_id: str) -> np.random.Generator:
     return np.random.default_rng(
-        [seed, SENSOR_STREAM_BASE + zlib.crc32(agent_id.encode()) % 1000000]
+        [seed, LOOK_STREAM, zlib.crc32(observer_id.encode()), zlib.crc32(object_id.encode())]
     )
+
+
+class LookRngs:
+    """The episode's look generators, one per observer and object pair, created on first use."""
+
+    def __init__(self, seed: int) -> None:
+        self.seed = seed
+        self._rngs: dict[tuple[str, str], np.random.Generator] = {}
+
+    def get(self, observer_id: str, object_id: str) -> np.random.Generator:
+        key = (observer_id, object_id)
+        if key not in self._rngs:
+            self._rngs[key] = look_rng(self.seed, observer_id, object_id)
+        return self._rngs[key]
+
+    def pairs(self) -> list[tuple[str, str]]:
+        """Every pair that has been looked at so far, sorted."""
+        return sorted(self._rngs)
 
 
 def look_range_m(observer: Observer, obj: SimObject, t: float) -> float | None:
@@ -204,27 +225,26 @@ def do_looks(
     objects: Sequence[SimObject],
     t: float,
     sensor_curves: SensorCurves,
-    rngs: Mapping[str, np.random.Generator],
+    rngs: LookRngs,
     schedule: LookSchedule,
     book: ScoreBook,
 ) -> list[Look]:
     """One sensing pass at time t. Returns every look made, for logging.
 
-    Observers go in agent_id order and objects in object_id order. Draw order only matters per
-    observer, but update order matters across observers because the score floor does not
-    commute: a hit then a miss at the floor differs from a miss then a hit.
+    Observers go in agent_id order and objects in object_id order. With one stream per pair the
+    draws no longer depend on order, but the score updates still do, because the score floor
+    does not commute: a hit then a miss at the floor differs from a miss then a hit.
     """
     looks: list[Look] = []
     for observer in sorted(observers, key=lambda o: o.agent_id):
         if not observer.active or not schedule.due(observer.agent_id, t):
             continue
-        rng = rngs[observer.agent_id]
         for obj in sorted(objects, key=lambda o: o.object_id):
             range_m = look_range_m(observer, obj, t)
             if range_m is None:
                 continue
             p_hit = hit_probability(sensor_curves, observer.sensor_type, obj.kind, range_m)
-            hit = bool(rng.random() < p_hit)
+            hit = bool(rngs.get(observer.agent_id, obj.object_id).random() < p_hit)
             pd = adapt.pd_per_look(sensor_curves, observer.sensor_type, range_m)
             score = book.update(obj.object_id, llr_increment(pd, hit), t)
             looks.append(Look(observer.agent_id, obj.object_id, hit, score))

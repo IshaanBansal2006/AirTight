@@ -7,6 +7,11 @@ patrol, nobody looks, nothing is scored or recorded.
 Each step, in order: mark cells seen, retarget, then for t >= 0 the looks, then the recorder,
 then the agents move. Looks therefore use positions at time t, before anyone moves.
 
+Benign traffic is drawn over the fixed window [0, benign_window_s], never over [0, t_end]. The
+end of the episode depends on the tactic, so a window tied to it would give two tactics
+different animals under the same seed. With a fixed window the benign world is identical for
+every tactic and every fleet under one seed.
+
 The result is threshold-free. The alarm threshold is applied offline, so EpisodeScores carries
 peaks, not a verdict.
 
@@ -29,15 +34,15 @@ from typing import TYPE_CHECKING, Protocol
 
 from airtight.sim import adapt
 from airtight.sim.actors import Intruder, make_decoy, spawn_benign
-from airtight.sim.constants import DEFAULT_CELL_SIZE_M, TAU_REF, TIME_EPS
+from airtight.sim.constants import BENIGN_HORIZON_S, DEFAULT_CELL_SIZE_M, TAU_REF, TIME_EPS
 from airtight.sim.fleet import PatrolController, make_agents, step_agents
 from airtight.sim.geometry import Grid, inside_mask, patrol_weight
 from airtight.sim.sensing import (
+    LookRngs,
     LookSchedule,
     ScoreBook,
     do_looks,
     make_fixed_observers,
-    sensor_rng,
 )
 
 if TYPE_CHECKING:
@@ -139,6 +144,7 @@ def simulate(
     seed: int,
     params: EpisodeParams = EpisodeParams(),  # noqa: B008  frozen, so a shared default is safe
     recorder: Recorder | None = None,
+    benign_window_s: float = BENIGN_HORIZON_S,
 ) -> EpisodeScores:
     check_setup(site, fleet, sensor_curves, params)
     dt = params.dt
@@ -161,7 +167,12 @@ def simulate(
     decoy = make_decoy(tactic)
     t_cdp = max(intruder.t_reach + params.task_time_s - adapt.response_time_s(site), 0.0)
     t_end = intruder.t_reach + params.task_time_s + params.tail_s
-    benign = spawn_benign(site, 0.0, t_end, seed)
+    if t_end > benign_window_s + TIME_EPS:
+        raise ValueError(
+            f"the episode ends at t_end = {t_end:.1f} s, after the benign window of "
+            f"{benign_window_s:.1f} s; raise benign_window_s or shorten the tactic"
+        )
+    benign = spawn_benign(site, 0.0, benign_window_s, seed)
     objects: list[SimObject] = [intruder, *([decoy] if decoy is not None else []), *benign]
 
     n_warm = math.ceil(params.warmup_s / dt - TIME_EPS)
@@ -179,7 +190,7 @@ def simulate(
         {o.agent_id: adapt.sensor_look_rate_hz(sensor_curves, o.sensor_type) for o in observers},
         dt,
     )
-    rngs = {o.agent_id: sensor_rng(seed, o.agent_id) for o in observers}
+    rngs = LookRngs(seed)
     book = ScoreBook()
     n_looks = 0
 
