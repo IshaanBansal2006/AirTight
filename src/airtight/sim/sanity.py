@@ -11,6 +11,10 @@ tactic) is below 0.5, and an episode takes under a second.
 A second table repeats the run with the what-if EpisodeParams.task_time_s, to show the team what
 a task-time field on the asset would do. It is not part of the gate.
 
+Tables 1 and 2 run with the battery off, on the part 1 fleets, so they stay comparable with the
+accepted gate. A third table turns the battery on and sweeps the tactic's phase for a
+synchronized and a staggered fleet on the reference tactic: it shows the charging window.
+
 Wall-clock time is read here to time episodes; nothing inside the simulation reads it.
 """
 
@@ -40,6 +44,9 @@ GATE_LARGEST_ON_EASY_AT_LEAST = 0.85
 GATE_SECONDS_PER_EPISODE = 1.0
 WHAT_IF_TASK_TIME_S = 60.0
 WHAT_IF_MODES = ("asset", "band")
+PART1_FLEETS = ("1drone", "2drones", "4drones")
+PHASE_FLEETS = ("2drones", "2drones_staggered")
+PHASES = (0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875)
 
 
 class Job(NamedTuple):
@@ -49,6 +56,8 @@ class Job(NamedTuple):
     mode: str
     task_time_s: float
     seed: int
+    battery: bool = False
+    phase: float | None = None  # overrides the tactic file's phase when set
 
 
 class Outcome(NamedTuple):
@@ -82,8 +91,10 @@ def _scenario(
 def run_job(job: Job) -> Outcome:
     """One episode. Top level so a process pool can call it."""
     site, fleet, tactic, curves = _scenario(job.scenario, job.fleet, job.tactic)
+    if job.phase is not None:
+        tactic = tactic.model_copy(update={"phase": job.phase})
     start = time.perf_counter()
-    params = EpisodeParams(weight_mode=job.mode, task_time_s=job.task_time_s)
+    params = EpisodeParams(weight_mode=job.mode, task_time_s=job.task_time_s, battery=job.battery)
     scores = simulate(site, fleet, tactic, curves, job.seed, params)
     seconds = time.perf_counter() - start
     return Outcome(timely_at_ref(scores), scores.intruder_t_alarm_ref is not None, seconds)
@@ -102,11 +113,9 @@ def run_table(
     workers: int | None,
     modes: tuple[str, ...] = WEIGHT_MODES,
     task_time_s: float = 0.0,
+    fleets: tuple[str, ...] = PART1_FLEETS,
 ) -> list[Cell]:
-    fleets = sorted(
-        scenarios.names("fleet", scenario),
-        key=lambda f: len(scenarios.load_fleet(f, scenario).agents),
-    )
+    fleets = tuple(sorted(fleets, key=lambda f: len(scenarios.load_fleet(f, scenario).agents)))
     keys = [
         (fleet, tactic, mode)
         for tactic in scenarios.names("tactic", scenario)
@@ -134,6 +143,44 @@ def run_table(
             )
         )
     return cells
+
+
+def run_phase_table(
+    scenario: str, seeds: list[int], workers: int | None
+) -> dict[str, list[tuple[float, float]]]:
+    """Battery on, reference tactic, asset mode: (phase, timely fraction) per fleet."""
+    keys = [(fleet, phase) for fleet in PHASE_FLEETS for phase in PHASES]
+    jobs = [
+        Job(scenario, fleet, REFERENCE_TACTIC, "asset", 0.0, seed, battery=True, phase=phase)
+        for fleet, phase in keys
+        for seed in seeds
+    ]
+    if workers == 1:
+        outcomes = [run_job(job) for job in jobs]
+    else:
+        with ProcessPoolExecutor(max_workers=workers) as pool:
+            outcomes = list(pool.map(run_job, jobs, chunksize=len(seeds)))
+    table: dict[str, list[tuple[float, float]]] = {fleet: [] for fleet in PHASE_FLEETS}
+    for i, (fleet, phase) in enumerate(keys):
+        chunk = outcomes[i * len(seeds) : (i + 1) * len(seeds)]
+        table[fleet].append((phase, sum(o.timely for o in chunk) / len(chunk)))
+    return table
+
+
+def format_phase_table(table: dict[str, list[tuple[float, float]]], n_seeds: int) -> str:
+    lines = [
+        f"TABLE 3: battery on, tactic {REFERENCE_TACTIC!r}, mode 'asset', timely fraction by phase",
+        f"{n_seeds} seeds per cell, the same seeds in every cell",
+        f"{'fleet':20s} " + " ".join(f"{p:6.3f}" for p in PHASES) + "    mean  worst",
+    ]
+    for fleet, row in table.items():
+        values = [v for _, v in row]
+        lines.append(
+            f"{fleet:20s} "
+            + " ".join(f"{v:6.2f}" for v in values)
+            + f"  {sum(values) / len(values):6.2f} {min(values):6.2f}"
+        )
+    return "\n".join(lines)
 
 
 def gate(cells: list[Cell]) -> dict[str, bool]:
@@ -210,6 +257,8 @@ def main(argv: list[str] | None = None) -> int:
     )
     print()
     print(format_table(what_if, len(seeds), title))
+    print()
+    print(format_phase_table(run_phase_table(args.scenario, seeds, args.workers), len(seeds)))
     return 0 if all(verdict.values()) else 1
 
 

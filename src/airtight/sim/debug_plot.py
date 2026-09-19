@@ -69,13 +69,22 @@ def fleet_of_drones(n: int, scenario: str) -> FleetConfig:
 
 
 def draw(
-    tactic_name: str, drones: int, mode: str, seed: int, out: Path, scenario: str
+    tactic_name: str,
+    drones: int,
+    mode: str,
+    seed: int,
+    out: Path,
+    scenario: str,
+    battery: bool = False,
+    phase: float | None = None,
 ) -> EpisodeScores:
     site = scenarios.load_site(scenario)
     tactic = scenarios.load_tactic(tactic_name, scenario)
     curves = scenarios.load_sensor_curves(scenario)
     fleet = fleet_of_drones(drones, scenario)
-    params = EpisodeParams(weight_mode=mode)
+    if phase is not None:
+        tactic = tactic.model_copy(update={"phase": phase})
+    params = EpisodeParams(weight_mode=mode, battery=battery)
     recorder = TrailRecorder()
     scores = simulate(site, fleet, tactic, curves, seed, params, recorder)
     agent_ids = set(adapt.agent_ids(fleet))
@@ -157,8 +166,19 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--mode", default="asset", choices=WEIGHT_MODES)
     parser.add_argument("--seed", type=int, default=1000)
     parser.add_argument("--out", type=Path, default=Path("data/debug.png"))
+    parser.add_argument("--battery", action="store_true", help="follow the battery clocks")
+    parser.add_argument("--phase", type=float, default=None, help="override the tactic's phase")
     args = parser.parse_args(argv)
-    scores = draw(args.tactic, args.drones, args.mode, args.seed, args.out, args.scenario)
+    scores = draw(
+        args.tactic,
+        args.drones,
+        args.mode,
+        args.seed,
+        args.out,
+        args.scenario,
+        args.battery,
+        args.phase,
+    )
     print(f"wrote {args.out}: timely={timely_at_ref(scores)} t_alarm={scores.intruder_t_alarm_ref}")
     return 0
 

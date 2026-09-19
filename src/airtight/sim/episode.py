@@ -22,8 +22,23 @@ t_cdp = max(t_reach + task_time_s - response_time_s, 0) and the episode runs tha
 It exists to show the team what a task-time field on the asset would do. run_episode never sets
 it, so the contract result is unchanged, and it goes away the day the contract has the field.
 
-v0 ignores: endurance and charging, the tactic's phase, comms mode and comms events, tasks, and
-any reaction to the decoy (it is scored like an intruder, nobody is sent to it).
+Battery and phase. With EpisodeParams.battery on, each agent that charges follows its battery
+clock (battery.py) and the episode is placed in absolute time:
+t0_abs = phase * reference_cycle_s + jitter, where reference_cycle_s is the team's definition of
+"the fleet's charge cycle" (adapt.reference_cycle_s) and jitter is uniform on
+[-phase_jitter_s, +phase_jitter_s] from the reserved intruder stream default_rng([seed, 2]). The
+jitter is an honesty parameter: the adversary knows the schedule, not the second. It is always
+drawn, battery on or off, so the stream never shifts. At the start of warm-up an agent on duty
+starts on its pad and the warm-up disperses it, so an agent that is about to return docks a
+little early, by at most one transit time.
+
+run_episode turns the battery on. simulate leaves it off by default for now, so the part 1
+sanity tables and tests keep their meaning: the yard_night tactics were written with phase 0.45
+before phase meant anything, and that lands inside the charging window. The default flips once
+the scenario's reference phase is chosen.
+
+v0 still ignores: comms mode and comms events, tasks, battery log events, dock capacity, and any
+reaction to the decoy (it is scored like an intruder, nobody is sent to it).
 """
 
 from __future__ import annotations
@@ -32,8 +47,11 @@ import math
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Protocol
 
+import numpy as np
+
 from airtight.sim import adapt
-from airtight.sim.actors import Intruder, make_decoy, spawn_benign
+from airtight.sim.actors import INTRUDER_STREAM, Intruder, make_decoy, spawn_benign
+from airtight.sim.battery import make_clocks, step_battery
 from airtight.sim.constants import BENIGN_HORIZON_S, DEFAULT_CELL_SIZE_M, TAU_REF, TIME_EPS
 from airtight.sim.fleet import PatrolController, make_agents, step_agents
 from airtight.sim.geometry import Grid, inside_mask, patrol_weight
@@ -48,7 +66,6 @@ from airtight.sim.sensing import (
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
 
-    import numpy as np
     import numpy.typing as npt
 
     from airtight.contracts import FleetConfig, SensorCurves, Site, Tactic
@@ -73,6 +90,8 @@ class EpisodeParams:
     weight_mode: str = "asset"  # one of geometry.WEIGHT_MODES
     v_ref_mps: float = 2.5  # the intruder speed the defender plans against; sets the band ring
     task_time_s: float = 0.0  # WHAT-IF only, see the module docstring; run_episode never sets it
+    battery: bool = False  # follow the battery clocks; run_episode sets it, see the docstring
+    phase_jitter_s: float = 15.0  # the adversary knows the schedule, not the second
 
 
 @dataclass(frozen=True)
@@ -191,11 +210,17 @@ def simulate(
         dt,
     )
     rngs = LookRngs(seed)
+    jitter_rng = np.random.default_rng([seed, INTRUDER_STREAM])
+    jitter = float(jitter_rng.uniform(-params.phase_jitter_s, params.phase_jitter_s))
+    t0_abs = adapt.tactic_phase(tactic) * adapt.reference_cycle_s(fleet) + jitter
+    clocks = make_clocks(fleet) if params.battery else {}
     book = ScoreBook()
     n_looks = 0
 
     for k in range(n_warm + n_run + 1):
         t = (k - n_warm) * dt
+        if clocks:
+            step_battery(agents, clocks, t0_abs + t, dt)
         controller.mark_seen(observers, t)
         controller.retarget(agents, t)
         if k >= n_warm:

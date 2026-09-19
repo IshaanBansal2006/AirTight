@@ -1,0 +1,31 @@
+{
+  "name": "2drones_staggered",
+  "agents": [
+    {
+      "id": "d0",
+      "type": "drone",
+      "speed_mps": 8.0,
+      "endurance_s": 1500.0,
+      "charge_time_s": 2100.0,
+      "sensor_type": "drone_cam"
+    },
+    {
+      "id": "d1",
+      "type": "drone",
+      "speed_mps": 8.0,
+      "endurance_s": 1500.0,
+      "charge_time_s": 2100.0,
+      "sensor_type": "drone_cam"
+    }
+  ],
+  "charge_policy": {
+    "threshold_frac": 0.2,
+    "stagger_offsets_s": {
+      "d1": 1800.0
+    }
+  },
+  "comms_mode": "central_perfect",
+  "cost_per_hour_by_type": {
+    "drone": 6.0
+  }
+}
