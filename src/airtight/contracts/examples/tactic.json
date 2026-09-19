@@ -1,0 +1,11 @@
+{
+  "id": "hand_charging_window_north",
+  "family": "charging_window",
+  "entry_id": "north_gate",
+  "phase": 0.62,
+  "speed_mps": 1.6,
+  "waypoints": [{"x": 60, "y": 62}, {"x": 58, "y": 50}, {"x": 60, "y": 40}],
+  "decoy": null,
+  "comms_event": null,
+  "origin": "hand"
+}

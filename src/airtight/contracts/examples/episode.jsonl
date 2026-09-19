@@ -1,0 +1,11 @@
+{"site_hash":"0000000000aa","fleet_hash":"0000000000bb","sensor_curve_hash":"0000000000cc","tactic":{"id":"hand_charging_window_north","family":"charging_window","entry_id":"north_gate","phase":0.62,"speed_mps":1.6,"waypoints":[{"x":60,"y":62},{"x":58,"y":50},{"x":60,"y":40}],"decoy":null,"comms_event":null,"origin":"hand"},"seed":7,"sim_version":"example"}
+{"kind":"battery","t":0.0,"agent_id":"drone_1","soc":0.31,"docked":false}
+{"kind":"position","t":0.0,"object_id":"intruder","position":{"x":60,"y":75}}
+{"kind":"position","t":0.5,"object_id":"intruder","position":{"x":60,"y":74.2}}
+{"kind":"detection","t":6.0,"agent_id":"drone_1","object_id":"intruder","true_positive":true}
+{"kind":"score","t":6.0,"object_id":"intruder","value":3.2}
+{"kind":"task","t":6.5,"task_id":"verify_1","agent_id":null,"task_kind":"verify","status":"created"}
+{"kind":"task","t":7.0,"task_id":"verify_1","agent_id":"go2_1","task_kind":"verify","status":"assigned"}
+{"kind":"comms_graph","t":7.0,"edges":[["base","drone_1"],["base","go2_1"]]}
+{"kind":"alarm_delivered","t":14.0,"object_id":"intruder","via":"base"}
+{"kind":"outcome","t":40.0,"timely_detected":true,"t_alarm":14.0,"t_cdp":0.0,"human_decisions":1}

@@ -1,0 +1,18 @@
+{
+  "name": "example-yard",
+  "bounds": [0, 0, 120, 80],
+  "perimeter": [{"x": 5, "y": 5}, {"x": 115, "y": 5}, {"x": 115, "y": 75}, {"x": 5, "y": 75}],
+  "entry_points": [
+    {"id": "north_gate", "position": {"x": 60, "y": 75}, "kind": "gate"},
+    {"id": "east_fence", "position": {"x": 115, "y": 40}, "kind": "fence_gap"},
+    {"id": "loading_dock", "position": {"x": 20, "y": 5}, "kind": "dock_door"}
+  ],
+  "asset": {"x": 60, "y": 40},
+  "response_time_s": 90,
+  "docks": [{"id": "dock_a", "position": {"x": 10, "y": 70}, "capacity": 2}, {"id": "dock_b", "position": {"x": 110, "y": 10}, "capacity": 1}],
+  "fixed_sensors": [{"id": "cam_north", "position": {"x": 60, "y": 72}, "sensor_type": "fixed_camera", "heading_deg": 90}],
+  "benign_routes": [
+    {"id": "delivery", "cls": "vehicle", "waypoints": [{"x": 20, "y": 5}, {"x": 20, "y": 30}, {"x": 20, "y": 5}], "arrival_rate_per_hour": 4},
+    {"id": "staff_walk", "cls": "person", "waypoints": [{"x": 60, "y": 75}, {"x": 60, "y": 55}], "arrival_rate_per_hour": 10}
+  ]
+}

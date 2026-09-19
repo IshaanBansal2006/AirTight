@@ -1,0 +1,9 @@
+# Sibling checkouts consumed as editable path dependencies. Neither has release
+# tags, so the team pins by commit here and scripts/check_pins.sh enforces it.
+[dimos]
+path = "../dimos"
+commit = "2282a4a52"
+
+[drone-swarm-autonomy]
+path = "../drone-swarm-autonomy"
+commit = "0b9bd57"

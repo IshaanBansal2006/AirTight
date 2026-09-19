@@ -1,0 +1,29 @@
+{
+  "generated_at": "2026-09-19T18:00:00Z",
+  "site_hash": "0000000000aa",
+  "baseline_config": "2drone_go2_sync",
+  "conditions": {
+    "far_per_hour_operating_point": 1.0,
+    "adversary_knowledge": "full knowledge of patrol policy and charge schedule",
+    "sensor_calibration": "hand-written stub curve",
+    "detection_model_note": "reduced-order Bernoulli-per-look model, truth association",
+    "seed_list_hash": "example",
+    "n_seeds": 2
+  },
+  "configs": [
+    {
+      "config_name": "2drone_go2_sync",
+      "fleet_hash": "0000000000bb",
+      "n_episodes": 40,
+      "roc": [{"threshold": 2.0, "pd": 0.9, "pd_ci": [0.78, 0.96], "far_per_hour": 4.0}, {"threshold": 4.0, "pd": 0.7, "pd_ci": [0.55, 0.82], "far_per_hour": 1.0}],
+      "pd_at_operating_point": 0.7,
+      "pd_at_operating_point_ci": [0.55, 0.82],
+      "worst_tactic_id": "hand_charging_window_north",
+      "worst_tactic_pd": 0.4,
+      "cost_per_hour": 53.0,
+      "coverage_gap_s_per_hour": 410.0,
+      "human_decisions_per_hour": 2.5,
+      "paired_vs_baseline": []
+    }
+  ]
+}

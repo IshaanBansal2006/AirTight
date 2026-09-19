@@ -1,0 +1,37 @@
+# study aids and private per-project instructions, never committed
+explanations/
+CLAUDE.md
+
+# generated data: only the committed seed list and contract examples are tracked
+data/*
+!data/seeds.json
+logs/
+*.rrd
+
+# python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.coverage
+build/
+dist/
+
+# environments
+.venv/
+venv/
+.env
+default.env
+
+# media in the pitch lane
+pitch/**/*.mp4
+pitch/**/*.mov
+pitch/**/*.mkv
+
+# editors
+.vscode/
+.idea/
+*.swp
