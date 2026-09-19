@@ -14,3 +14,4 @@ TAU_REF = 4.0  # reference alarm threshold on the track score until the offline 
 NEVER_SEEN = -1e9  # peak score of an object no sensor ever looked at
 SCORE_FLOOR = -5.0  # a track score is clamped below at this value
 ASSUMED_PFA = 0.02  # per-look false-alarm probability assumed by the likelihood ratio
+DEFAULT_CELL_SIZE_M = 5.0  # patrol grid cell edge; Site has no cell size, so the sim owns it
