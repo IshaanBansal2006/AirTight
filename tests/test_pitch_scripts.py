@@ -123,3 +123,33 @@ def test_render_replay_from_a_v0_log(tmp_path: Path, monkeypatch: pytest.MonkeyP
     with pytest.raises(SystemExit) as exc:
         runpy.run_path(str(PITCH / "render_replay.py"), run_name="__main__")
     assert exc.value.code == 0 and (tmp_path / "clip.mp4").stat().st_size > 1000
+
+
+def test_fill_writeup_from_rendered_numbers(tmp_path: Path) -> None:
+    charts = tmp_path / "charts"
+    sys.argv = [
+        "make_charts.py",
+        "--report",
+        str(tmp_path / "missing.json"),
+        "--tactics-dir",
+        str(tmp_path),
+        "--out",
+        str(charts),
+    ]
+    with pytest.raises(SystemExit):
+        runpy.run_path(str(PITCH / "make_charts.py"), run_name="__main__")
+    sys.argv = [
+        "make_token_chart.py",
+        "--ledger",
+        str(tmp_path / "none.jsonl"),
+        "--out",
+        str(charts),
+    ]
+    with pytest.raises(SystemExit):
+        runpy.run_path(str(PITCH / "make_token_chart.py"), run_name="__main__")
+    sys.argv = ["fill_writeup.py", "--charts", str(charts), "--out", str(tmp_path / "w.md")]
+    with pytest.raises(SystemExit) as exc:
+        runpy.run_path(str(PITCH / "fill_writeup.py"), run_name="__main__")
+    assert exc.value.code == 0
+    text = (tmp_path / "w.md").read_text()
+    assert "EXAMPLE DATA" in text and "[pd_baseline]" not in text and "[ratio]" not in text

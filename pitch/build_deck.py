@@ -61,7 +61,19 @@ def build(
         ),
         f"# What we sell, and what is next\n\n- The score, the vulnerability map, and a re-score after purchase\n- Next: learned adversary, calibrated sensors on more platforms, fleet memory under link loss\n\n<small>{conditions}</small>{watermark}",
     ]
-    header = "---\nmarp: true\ntheme: default\npaginate: true\n---\n\n"
+    header = (
+        "---\nmarp: true\ntheme: default\npaginate: true\n"
+        "style: |\n"
+        "  section { background: #fcfcfb; color: #0b0b0b; font-family: ui-sans-serif, system-ui, sans-serif; padding: 48px 64px; }\n"
+        "  h1 { color: #0b0b0b; font-size: 1.7em; margin-bottom: 0.2em; }\n"
+        "  h2 { color: #52514e; font-weight: 500; font-size: 1.1em; }\n"
+        "  a, strong { color: #2a78d6; }\n"
+        "  small { color: #898781; font-size: 0.6em; }\n"
+        "  code { background: #f0efe9; color: #0b0b0b; }\n"
+        "  section::after { color: #898781; }\n"
+        "  img { display: block; margin: 0 auto; }\n"
+        "---\n\n"
+    )
     return header + "\n\n---\n\n".join(slides) + "\n"
 
 

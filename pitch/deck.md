@@ -2,6 +2,15 @@
 marp: true
 theme: default
 paginate: true
+style: |
+  section { background: #fcfcfb; color: #0b0b0b; font-family: ui-sans-serif, system-ui, sans-serif; padding: 48px 64px; }
+  h1 { color: #0b0b0b; font-size: 1.7em; margin-bottom: 0.2em; }
+  h2 { color: #52514e; font-weight: 500; font-size: 1.1em; }
+  a, strong { color: #2a78d6; }
+  small { color: #898781; font-size: 0.6em; }
+  code { background: #f0efe9; color: #0b0b0b; }
+  section::after { color: #898781; }
+  img { display: block; margin: 0 auto; }
 ---
 
 # Airtight
