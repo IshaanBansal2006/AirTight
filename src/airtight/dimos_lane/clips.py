@@ -3,8 +3,12 @@
 from __future__ import annotations
 
 import json
+import os
+import sys
+from pathlib import Path
 from typing import TYPE_CHECKING
 
+from airtight.contracts import XY, Tactic
 from airtight.contracts.episode import (
     OutcomeEvent,
     PositionEvent,
@@ -12,15 +16,42 @@ from airtight.contracts.episode import (
     write_episode_log,
 )
 from airtight.dimos_lane.replay import ReplayPlan, densify_intruder, plan_replay
-from airtight.dimos_lane.site_io import load_example_site
+from airtight.dimos_lane.site_io import (
+    load_example_site,
+    load_logistics_curves,
+    load_logistics_fleet,
+    load_logistics_site,
+)
 
 if TYPE_CHECKING:
-    from pathlib import Path
+    from collections.abc import Callable, Sequence
 
-    from airtight.contracts.site import XY, Site
+    from airtight.contracts.episode import EpisodeResult
+    from airtight.contracts.fleet import FleetConfig
+    from airtight.contracts.sensor_curve import SensorCurves
+    from airtight.contracts.site import Site
 
 SVG_W = 960
 SVG_H = 640
+
+REPO = Path(__file__).resolve().parents[3]
+HANDOFF_FAMILY = "charging_window"
+HANDOFF_ENTRY = "rear_fence_gap"
+HANDOFF_BASELINE = "d2_go2_guard_sync"
+HANDOFF_FIXED = "d3_go2_guard_stagger"
+HANDOFF_MAX_SEEDS = 20
+CLIPS_JSON_KEYS = (
+    "tactic_id",
+    "family",
+    "entry",
+    "phase",
+    "seed",
+    "baseline",
+    "fixed",
+    "miss_t_alarm",
+    "catch_t_alarm",
+    "t_cdp",
+)
 
 
 def _scale(site: Site, x: float, y: float) -> tuple[float, float]:
@@ -34,7 +65,7 @@ def _poly(site: Site, pts: list[XY]) -> str:
     return " ".join(f"{_scale(site, p.x, p.y)[0]:.1f},{_scale(site, p.x, p.y)[1]:.1f}" for p in pts)
 
 
-def render_html(plan: ReplayPlan, site: Site) -> str:
+def render_html(plan: ReplayPlan, site: Site, *, clean: bool = False) -> str:
     perimeter = _poly(site, site.perimeter + [site.perimeter[0]])
     asset = _scale(site, site.asset.x, site.asset.y)
     frames: list[dict[str, object]] = []
@@ -64,7 +95,17 @@ def render_html(plan: ReplayPlan, site: Site) -> str:
                 "alarm": plan.t_alarm is not None and t >= plan.t_alarm,
             }
         )
-    title = f"{plan.title} seed={plan.seed} {plan.tactic_id}"
+    if clean:
+        which = "Replay A — miss" if not plan.timely_detected else "Replay B — catch"
+        title = f"{which} · seed {plan.seed} · {plan.tactic_id}"
+        alarm = "no timely alarm" if plan.t_alarm is None else f"alarm at {plan.t_alarm:.0f}s"
+        meta = f"{alarm} · deadline t_cdp={plan.t_cdp:.0f}s"
+    else:
+        title = f"{plan.title} seed={plan.seed} {plan.tactic_id}"
+        meta = (
+            f"timely_detected={plan.timely_detected} t_alarm={plan.t_alarm} "
+            f"t_cdp={plan.t_cdp} dispatch={plan.dispatch_result}"
+        )
     payload = json.dumps({"frames": frames, "title": title, "timely": plan.timely_detected})
     return f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>{title}</title>
@@ -76,7 +117,7 @@ svg {{ background: #1b1f16; border: 1px solid #333; }}
 </style></head>
 <body>
 <div class="banner">{title}</div>
-<div class="meta">timely_detected={plan.timely_detected} t_alarm={plan.t_alarm} t_cdp={plan.t_cdp} dispatch={plan.dispatch_result}</div>
+<div class="meta">{meta}</div>
 <svg id="s" width="{SVG_W}" height="{SVG_H}">
   <polygon points="{perimeter}" fill="#24301c" stroke="#8f8" stroke-width="3"/>
   <circle cx="{asset[0]:.1f}" cy="{asset[1]:.1f}" r="8" fill="#c33"/>
@@ -118,10 +159,12 @@ tick();
 """
 
 
-def write_clip(plan: ReplayPlan, dest: Path, site: Site | None = None) -> Path:
+def write_clip(
+    plan: ReplayPlan, dest: Path, site: Site | None = None, *, clean: bool = False
+) -> Path:
     site = site or load_example_site()
     dest.parent.mkdir(parents=True, exist_ok=True)
-    dest.write_text(render_html(plan, site))
+    dest.write_text(render_html(plan, site, clean=clean))
     sidecar = dest.with_suffix(".json")
     sidecar.write_text(
         json.dumps(
@@ -131,7 +174,7 @@ def write_clip(plan: ReplayPlan, dest: Path, site: Site | None = None) -> Path:
                 "tactic_id": plan.tactic_id,
                 "timely_detected": plan.timely_detected,
                 "t_alarm": plan.t_alarm,
-                "dispatch_result": plan.dispatch_result,
+                "dispatch_result": None if clean else plan.dispatch_result,
             },
             indent=2,
         )
@@ -172,3 +215,132 @@ def write_demo_clips(example_log: Path, pitch_dir: Path) -> tuple[Path, Path]:
     catch_html = write_clip(catch_plan, pitch_dir / "clips" / "catch.html", site)
     miss_html = write_clip(miss_plan, pitch_dir / "clips" / "miss.html", site)
     return miss_html, catch_html
+
+
+def charging_window_tactic(
+    site: Site,
+    fleet: FleetConfig | None = None,
+    curves: SensorCurves | None = None,
+    tactics_dir: Path | None = None,
+) -> Tactic:
+    """Charging-window path through high-value cells the baseline fleet has not watched recently.
+
+    If lane C dropped a searched `top_charging_window.json`, use that instead.
+    """
+    from airtight.dimos_lane.stale_path import charging_window_from_staleness
+
+    root = tactics_dir or (REPO / "data" / "v3" / "tactics")
+    top = root / "top_charging_window.json"
+    if top.is_file():
+        payload = json.loads(top.read_text())
+        for raw in payload.get("tactics") or []:
+            tactic = Tactic.model_validate(raw)
+            if tactic.family == HANDOFF_FAMILY and tactic.entry_id == HANDOFF_ENTRY:
+                return tactic
+    used_fleet = fleet or load_logistics_fleet(HANDOFF_BASELINE)
+    used_curves = curves or load_logistics_curves()
+    return charging_window_from_staleness(site, used_fleet, used_curves, entry_id=HANDOFF_ENTRY)
+
+
+def clips_record(
+    tactic: Tactic,
+    seed: int,
+    miss: EpisodeResult,
+    catch: EpisodeResult,
+    *,
+    baseline: str = HANDOFF_BASELINE,
+    fixed: str = HANDOFF_FIXED,
+) -> dict[str, object]:
+    return {
+        "tactic_id": tactic.id,
+        "family": tactic.family,
+        "entry": tactic.entry_id,
+        "phase": tactic.phase,
+        "seed": seed,
+        "baseline": baseline,
+        "fixed": fixed,
+        "miss_t_alarm": miss.t_alarm,
+        "catch_t_alarm": catch.t_alarm,
+        "t_cdp": catch.t_cdp,
+    }
+
+
+def _seed_list(seeds_path: Path | None, max_seeds: int) -> list[int]:
+    path = seeds_path or (REPO / "data" / "seeds.json")
+    return [int(s) for s in json.loads(path.read_text())["seeds"][:max_seeds]]
+
+
+def _render_mp4(log: Path, site: Site, dest: Path) -> Path | None:
+    pitch = REPO / "pitch"
+    if str(pitch) not in sys.path:
+        sys.path.insert(0, str(pitch))
+    try:
+        from render_replay import render
+    except ImportError:
+        return None
+    try:
+        render(log, site, dest, fps=12, speed=3.0)
+    except Exception:
+        return None
+    return dest if dest.is_file() else None
+
+
+def find_miss_catch_pair(
+    site: Site,
+    baseline: FleetConfig,
+    fixed: FleetConfig,
+    tactic: Tactic,
+    curves: SensorCurves,
+    seeds: Sequence[int],
+    log_dir: Path,
+    run_episode: Callable[..., EpisodeResult],
+) -> tuple[int, EpisodeResult, EpisodeResult]:
+    for seed in seeds:
+        miss = run_episode(site, baseline, tactic, curves, seed, log_dir / "miss")
+        catch = run_episode(site, fixed, tactic, curves, seed, log_dir / "catch")
+        if not miss.timely_detected and catch.timely_detected:
+            return seed, miss, catch
+    raise RuntimeError(
+        f"no seed in the first {len(seeds)} where {baseline.name} misses and "
+        f"{fixed.name} catches {tactic.id}"
+    )
+
+
+def write_handoff_clips(
+    pitch_dir: Path,
+    *,
+    seeds: Sequence[int] | None = None,
+    seeds_path: Path | None = None,
+    max_seeds: int = HANDOFF_MAX_SEEDS,
+    log_dir: Path | None = None,
+    tactics_dir: Path | None = None,
+    render_mp4: bool = True,
+    run_episode: Callable[..., EpisodeResult] | None = None,
+) -> Path:
+    """Same-seed miss/catch on logistics_yard for C: HTML + clips.json (+ MP4 if ffmpeg)."""
+    if run_episode is None:
+        from airtight.sim.runner import run_episode as _run_episode
+
+        run_episode = _run_episode
+    os.environ.setdefault("AIRTIGHT_ENGINE", "v0")
+    site = load_logistics_site()
+    curves = load_logistics_curves()
+    baseline = load_logistics_fleet(HANDOFF_BASELINE)
+    fixed = load_logistics_fleet(HANDOFF_FIXED)
+    tactic = charging_window_tactic(site, fleet=baseline, curves=curves, tactics_dir=tactics_dir)
+    seed_ids = list(seeds) if seeds is not None else _seed_list(seeds_path, max_seeds)
+    out = pitch_dir / "clips"
+    logs = log_dir or (REPO / "data" / "clip_logs")
+    seed, miss, catch = find_miss_catch_pair(
+        site, baseline, fixed, tactic, curves, seed_ids, logs, run_episode
+    )
+    miss_plan = densify_intruder(plan_replay(miss.log_path, dispatch=False))
+    catch_plan = densify_intruder(plan_replay(catch.log_path, dispatch=False))
+    write_clip(miss_plan, out / "miss.html", site, clean=True)
+    write_clip(catch_plan, out / "catch.html", site, clean=True)
+    if render_mp4:
+        _render_mp4(miss.log_path, site, out / "miss.mp4")
+        _render_mp4(catch.log_path, site, out / "catch.mp4")
+    manifest = out / "clips.json"
+    manifest.write_text(json.dumps(clips_record(tactic, seed, miss, catch), indent=2) + "\n")
+    return manifest
