@@ -38,8 +38,54 @@ class FleetMemoryStore:
     def __len__(self) -> int:
         return len(self._items)
 
-    def observe(self, item: CoverageCell | Claim | Evidence) -> None:
-        self._apply(item)
+    def observe(self, item: CoverageCell | Claim | Evidence | dict[str, Any]) -> None:
+        """Accepts the typed items or the dict shapes lane A's module emits."""
+        self._apply(self.coerce(item) if isinstance(item, dict) else item)
+
+    def coerce(self, raw: dict[str, Any]) -> CoverageCell | Claim | Evidence:
+        """Dict to item. Coverage dicts carry x/y in metres and are binned to this store's cell size."""
+        kind = raw.get("kind")
+        if kind == "coverage":
+            if "cx" in raw and "cy" in raw:
+                return CoverageCell.model_validate(raw)
+            return CoverageCell(
+                cx=int(float(raw["x"]) // self.cell_m),
+                cy=int(float(raw["y"]) // self.cell_m),
+                last_seen_t=float(raw.get("last_seen_t", raw.get("last_seen", 0.0))),
+                by=str(raw.get("by", "unknown")),
+            )
+        if kind == "claim":
+            return Claim(
+                task_id=str(raw.get("task_id", raw.get("key"))),
+                agent_id=str(raw.get("agent_id", raw.get("value"))),
+                t=float(raw.get("t", 0.0)),
+            )
+        if kind == "evidence":
+            return Evidence(
+                evidence_id=str(raw.get("evidence_id", raw.get("key"))),
+                object_id=str(raw.get("object_id", "unknown")),
+                agent_id=str(raw.get("agent_id", "unknown")),
+                t=float(raw.get("t", 0.0)),
+                score=float(raw.get("score", 0.0)),
+                x=float(raw.get("x", 0.0)),
+                y=float(raw.get("y", 0.0)),
+            )
+        raise ValueError(f"memory item needs kind in (coverage, claim, evidence), got {kind!r}")
+
+    def records(
+        self, kind: str, region: Region | None = None, now: float | None = None
+    ) -> list[dict[str, Any]]:
+        """Query as plain dicts with an `age` field, for skills that print entries with their age."""
+        out = []
+        for it in self.query(kind, region):
+            d = it.model_dump()
+            t = d.get("last_seen_t", d.get("t", 0.0))
+            d["age"] = (now - t) if now is not None else 0.0
+            pos = self._position(it)
+            if isinstance(it, CoverageCell) and pos is not None:
+                d["x"], d["y"] = pos
+            out.append(d)
+        return out
 
     def merge(self, delta: bytes) -> None:
         for line in delta.decode().splitlines():

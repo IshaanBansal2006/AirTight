@@ -100,3 +100,15 @@ def test_evidence_sums_and_dedupes() -> None:
         a.query("evidence", region=(0, 0, 11, 11))
         and len(a.query("evidence", region=(50, 50, 60, 60))) == 0
     )
+
+
+def test_dict_items_from_lane_a_shape_are_accepted() -> None:
+    a = FleetMemoryStore(cell_m=2.0)
+    a.observe({"kind": "coverage", "x": 4.0, "y": 6.0, "last_seen": 10.0})
+    a.observe({"kind": "evidence", "key": "obs-1", "score": 1.5})
+    a.observe({"kind": "claim", "key": "north", "t": 3.0, "value": "go2_1"})
+    assert a.query("coverage")[0].cx == 2 and a.query("coverage")[0].cy == 3
+    assert a.evidence_score("unknown") == 1.5
+    recs = a.records("claim", now=5.0)
+    assert recs[0]["agent_id"] == "go2_1" and recs[0]["age"] == 2.0
+    assert a.records("coverage")[0]["x"] == 5.0

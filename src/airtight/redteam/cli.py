@@ -164,6 +164,89 @@ def cmd_propose(args: argparse.Namespace) -> int:
     return 0
 
 
+def _client_from(args: argparse.Namespace, cfg: RedTeamConfig):  # type: ignore[no-untyped-def]
+    from airtight.redteam.llm import LlmClient
+
+    if args.model:
+        cfg.llm.model = args.model
+    if args.budget is not None:
+        cfg.llm.budget_usd = args.budget
+    mock = (
+        Path(str(resources.files("airtight.redteam.fixtures").joinpath("proposals_mock.json")))
+        if args.mock
+        else None
+    )
+    return LlmClient(cfg.llm, args.cache_dir, args.ledger, mock_path=mock)
+
+
+def cmd_difficulty(args: argparse.Namespace) -> int:
+    from airtight.redteam.difficulty import check_difficulty
+    from airtight.sim.runner import run_episode
+
+    site, fleet, curves, cfg = _load_scene(args)
+    seeds = load_seeds(args.seeds, args.n_seeds or cfg.search.n_seeds)
+    rep = check_difficulty(
+        site,
+        fleet,
+        curves,
+        seeds,
+        run_episode,
+        args.log_dir,
+        cfg,
+        args.n_per_family,
+        workers=args.workers,
+    )
+    for r in rep.families:
+        print(
+            f"{r.family:16s} mean Pd={r.mean_pd:.2f} worst Pd={r.worst_pd:.2f} over {r.n_tactics} random tactics"
+        )
+    print(rep.verdict)
+    if args.out:
+        args.out.parent.mkdir(parents=True, exist_ok=True)
+        args.out.write_text(rep.model_dump_json(indent=2))
+    return 0 if rep.in_band() else 3
+
+
+def cmd_campaign(args: argparse.Namespace) -> int:
+    from airtight.redteam.campaign import run_campaign
+    from airtight.redteam.llm import BudgetExceeded
+    from airtight.sim.runner import run_episode
+
+    site, fleet, curves, cfg = _load_scene(args)
+    if args.n_random:
+        cfg.search.n_random = args.n_random
+    if args.n_rounds is not None:
+        cfg.search.n_rounds = args.n_rounds
+    seeds = load_seeds(args.seeds, args.n_seeds or cfg.search.n_seeds)
+    client = _client_from(args, cfg)
+    try:
+        result, _ = run_campaign(
+            site,
+            fleet,
+            curves,
+            seeds,
+            run_episode,
+            args.log_dir,
+            args.out,
+            client,
+            cfg,
+            args.families,
+            args.seed,
+            args.workers,
+        )
+    except BudgetExceeded as e:
+        print(f"refused: {e}", file=sys.stderr)
+        return 2
+    for f in result.families:
+        print(
+            f"{f.family:16s} search-only={f.search_only_best:.3f} with-llm={f.with_llm_best:.3f} llm in elites={f.llm_tactic_in_elites} llm is best={f.llm_tactic_is_best}"
+        )
+    print(
+        f"{result.proposals_accepted} accepted, {result.proposals_rejected} rejected, ${result.llm_spent_usd:.4f} spent, {result.n_episodes} episodes; written to {args.out}"
+    )
+    return 0
+
+
 def cmd_ledger(args: argparse.Namespace) -> int:
     from airtight.redteam.accounting import compare_planners, ledger_from, summarize_ledger
 
@@ -241,6 +324,39 @@ def build_parser() -> argparse.ArgumentParser:
     q.add_argument("--cache-dir", type=Path, default=REPO_ROOT / "data" / "llm_cache")
     q.add_argument("--ledger", type=Path, default=REPO_ROOT / "data" / "llm_calls.jsonl")
     q.set_defaults(fn=cmd_propose)
+
+    d = sub.add_parser(
+        "difficulty", help="random tactics against the baseline: is mean Pd in the 0.6 to 0.9 band?"
+    )
+    _add_scene_args(d)
+    d.add_argument("--seeds", type=Path, default=REPO_ROOT / "data" / "seeds.json")
+    d.add_argument("--n-seeds", type=int, default=None)
+    d.add_argument("--n-per-family", type=int, default=30)
+    d.add_argument("--log-dir", type=Path, default=REPO_ROOT / "data" / "search_logs")
+    d.add_argument("--workers", type=int, default=1)
+    d.add_argument("--out", type=Path, default=None)
+    d.set_defaults(fn=cmd_difficulty)
+
+    cp = sub.add_parser(
+        "campaign",
+        help="search, propose against the results, search again with proposals injected, compare",
+    )
+    _add_scene_args(cp)
+    cp.add_argument("--families", nargs="+", choices=FAMILIES, default=list(FAMILIES))
+    cp.add_argument("--seeds", type=Path, default=REPO_ROOT / "data" / "seeds.json")
+    cp.add_argument("--n-seeds", type=int, default=None)
+    cp.add_argument("--n-random", type=int, default=None)
+    cp.add_argument("--n-rounds", type=int, default=None)
+    cp.add_argument("--out", type=Path, default=REPO_ROOT / "data" / "campaign")
+    cp.add_argument("--log-dir", type=Path, default=REPO_ROOT / "data" / "search_logs")
+    cp.add_argument("--workers", type=int, default=1)
+    cp.add_argument("--seed", type=int, default=0)
+    cp.add_argument("--mock", action="store_true")
+    cp.add_argument("--model", default=None)
+    cp.add_argument("--budget", type=float, default=None)
+    cp.add_argument("--cache-dir", type=Path, default=REPO_ROOT / "data" / "llm_cache")
+    cp.add_argument("--ledger", type=Path, default=REPO_ROOT / "data" / "llm_calls.jsonl")
+    cp.set_defaults(fn=cmd_campaign)
 
     ld = sub.add_parser("ledger", help="spend so far and the naive-versus-propose cost comparison")
     ld.add_argument("--ledger", type=Path, default=REPO_ROOT / "data" / "llm_calls.jsonl")

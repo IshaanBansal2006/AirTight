@@ -12,11 +12,11 @@ Built and tested on the stub simulator, with the design recorded in decisions 00
 | C1 | done | `redteam/families.py`, `redteam/validate.py`, `redteam/geometry.py`, `redteam/coverage.py` |
 | C2 | done on the stub | `redteam/search.py`, `redteam/objective.py`; `airtight-redteam search` |
 | C4a | done, one live call verified ($0.00015) | `redteam/proposer.py`, `primitives.py`, `llm.py`; `airtight-redteam propose` |
-| C3, C4b | waiting on lane B's real `run_episode` (hour 8) | rerun `search` and `propose --prior` unchanged |
+| C3, C4b | tooling done; waiting on lane B's real `run_episode` (hour 8) | `airtight-redteam difficulty` (band check, exit 3 when out) and `airtight-redteam campaign` (search, propose, re-search, compare) |
 | C5 | done, property tests pass | `memory/store.py`, `memory/items.py`; `tests/memory/` |
 | C6 | pipeline done; numbers from the ledger | `redteam/accounting.py`; `airtight-redteam ledger`; `pitch/make_token_chart.py` |
 | C7 | done as the `comms_cut` family | `redteam/families.py` |
-| C8 | chart pipeline done; deck and video pending the frozen report | `pitch/make_charts.py`, `deck_outline.md`, `demo_script.md` |
+| C8 | charts and deck builder done; final deck and video pending the frozen report and lane A's clips | `pitch/make_charts.py`, `make_token_chart.py`, `build_deck.py`, `deck_outline.md`, `demo_script.md` |
 
 Commands that matter:
 
@@ -25,7 +25,9 @@ uv run airtight-redteam search --workers 8                 # data/tactics/top_<f
 uv run airtight-redteam propose --mock --prior data/tactics # free; --mock off makes one real call under the cap
 uv run airtight-redteam search --inject data/tactics/llm_proposals.json
 uv run airtight-redteam ledger
-uv run python pitch/make_charts.py && uv run python pitch/make_token_chart.py
+uv run airtight-redteam difficulty --workers 8              # hour-10 gate, before freezing the scenario
+uv run airtight-redteam campaign --mock --workers 8          # C3 + C4b in one go; drop --mock for one live call
+uv run python pitch/make_charts.py && uv run python pitch/make_token_chart.py && uv run python pitch/build_deck.py
 ```
 
 At hour 8, the only change is that `run_episode` stops being the stub; nothing in lane C imports anything but that function and the contracts.
