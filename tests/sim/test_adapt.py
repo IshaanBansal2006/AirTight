@@ -225,3 +225,28 @@ def test_has_curve_and_fp_classes() -> None:
     curves = _load("sensor_curve.json", SensorCurves)
     assert adapt.has_curve(curves, "drone_camera") and not adapt.has_curve(curves, "sonar")
     assert adapt.fp_classes(curves, "drone_camera") == {"person", "vehicle"}
+
+
+def test_agent_energy_offsets_and_never_charges(fleet: FleetConfig) -> None:
+    drone = adapt.agent_energy(fleet, "drone_1")
+    assert drone == adapt.EnergySpec(endurance_s=1500.0, charge_time_s=2400.0, offset_s=0.0)
+    assert adapt.agent_energy(fleet, "guard_1") is None  # charge_time_s == 0 means never charges
+    offsets = fleet.charge_policy.model_copy(update={"stagger_offsets_s": {"drone_2": 1950.0}})
+    staggered = fleet.model_copy(update={"charge_policy": offsets})
+    spec = adapt.agent_energy(staggered, "drone_2")
+    assert spec is not None and spec.offset_s == 1950.0
+    assert adapt.agent_energy(staggered, "drone_1") == drone
+
+
+def test_reference_cycle_is_lane_cs_definition(fleet: FleetConfig) -> None:
+    # redteam/families.py charge_cycle_s: mean of endurance + charge over agents that charge
+    expected = float(
+        np.mean([a.endurance_s + a.charge_time_s for a in fleet.agents if a.charge_time_s > 0])
+    )
+    assert adapt.reference_cycle_s(fleet) == expected == 5600.0  # (3900 + 3900 + 9000) / 3
+    guards_only = fleet.model_copy(update={"agents": [fleet.agents[3]]})
+    assert adapt.reference_cycle_s(guards_only) == 3600.0  # and the same fallback
+
+
+def test_tactic_phase() -> None:
+    assert adapt.tactic_phase(_load("tactic.json", Tactic)) == 0.62

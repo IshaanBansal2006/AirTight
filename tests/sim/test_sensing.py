@@ -11,13 +11,14 @@ from airtight.sim import adapt
 from airtight.sim.constants import ASSUMED_PFA, NEVER_SEEN, SCORE_FLOOR, TAU_REF
 from airtight.sim.fleet import AgentState
 from airtight.sim.sensing import (
+    LookRngs,
     LookSchedule,
     ScoreBook,
     do_looks,
     hit_probability,
     llr_increment,
     look_range_m,
-    sensor_rng,
+    look_rng,
 )
 
 DT = 0.25
@@ -82,7 +83,7 @@ def _state(rng: np.random.Generator) -> dict[str, Any]:
 def _hold(objects: list[Held], seed: int, n_looks: int = 20) -> ScoreBook:
     """One 2 Hz observer at (100, 100) staring at the objects for n_looks looks."""
     observer = _observer()
-    book, rngs, schedule = ScoreBook(), {"d0": sensor_rng(seed, "d0")}, _schedule(observer)
+    book, rngs, schedule = ScoreBook(), LookRngs(seed), _schedule(observer)
     for k in range(n_looks * 2):
         do_looks([observer], objects, k * DT, CURVES, rngs, schedule, book)
     return book
@@ -147,11 +148,11 @@ def test_unqualified_object_is_never_seen_and_nothing_is_drawn(
 ) -> None:
     target = Held("intruder", "intruder", xy)
     assert look_range_m(observer, target, 0.0) is None
-    book, rngs = ScoreBook(), {"d0": sensor_rng(5, "d0")}
+    book, rngs = ScoreBook(), LookRngs(5)
     looks = do_looks([observer], [target], 0.0, CURVES, rngs, _schedule(observer), book)
     assert looks == [] and book.object_ids() == []
     assert book.peak("intruder") == NEVER_SEEN
-    assert _state(rngs["d0"]) == _state(sensor_rng(5, "d0"))
+    assert rngs.pairs() == []  # nothing was drawn: the pair's generator was never even created
 
 
 def test_wedge_sees_ahead_and_a_dead_object_is_skipped() -> None:
@@ -166,11 +167,11 @@ def test_inactive_observer_never_looks_and_never_draws() -> None:
     observer = _observer()
     observer.active = False
     target = Held("intruder", "intruder", (108.0, 100.0))
-    book, rngs = ScoreBook(), {"d0": sensor_rng(5, "d0")}
+    book, rngs = ScoreBook(), LookRngs(5)
     for k in range(40):
         assert do_looks([observer], [target], k * DT, CURVES, rngs, _schedule(observer), book) == []
     assert book.peak("intruder") == NEVER_SEEN
-    assert _state(rngs["d0"]) == _state(sensor_rng(5, "d0"))
+    assert rngs.pairs() == []
 
 
 def test_exactly_one_draw_per_qualifying_pair() -> None:
@@ -180,12 +181,14 @@ def test_exactly_one_draw_per_qualifying_pair() -> None:
         Held("fox-0", "animal", (100.0, 105.0)),
         Held("far-0", "animal", (300.0, 300.0)),
     ]
-    book, rngs = ScoreBook(), {"d0": sensor_rng(5, "d0")}
+    book, rngs = ScoreBook(), LookRngs(5)
     looks = do_looks([observer], objects, 0.0, CURVES, rngs, _schedule(observer), book)
     assert [look.object_id for look in looks] == ["fox-0", "intruder"]
-    reference = sensor_rng(5, "d0")
-    reference.random(2)
-    assert _state(rngs["d0"]) == _state(reference)
+    assert rngs.pairs() == [("d0", "fox-0"), ("d0", "intruder")]  # no stream for the far object
+    for object_id in ("fox-0", "intruder"):
+        reference = look_rng(5, "d0", object_id)
+        reference.random()
+        assert _state(rngs.get("d0", object_id)) == _state(reference)  # exactly one draw each
 
 
 def test_score_book_floor_peak_and_t_max() -> None:
@@ -234,8 +237,7 @@ def test_look_schedule_counts_and_validation() -> None:
 def test_slow_sensor_looks_a_quarter_as_often() -> None:
     fast, slow = _observer("fast"), _observer("slow", sensor_type="slow_cam")
     target = Held("intruder", "intruder", (108.0, 100.0))
-    rngs = {"fast": sensor_rng(1, "fast"), "slow": sensor_rng(1, "slow")}
-    book, schedule = ScoreBook(), _schedule(fast, slow)
+    rngs, book, schedule = LookRngs(1), ScoreBook(), _schedule(fast, slow)
     looks = [
         look
         for k in range(41)
@@ -252,8 +254,7 @@ def _run_pair(seed: int, observers_reversed: bool, objects_reversed: bool) -> Sc
         Held("fox-0", "animal", (104.0, 103.0)),
         Held("tarp-0", "debris", (103.0, 97.0)),
     ]
-    rngs = {o.agent_id: sensor_rng(seed, o.agent_id) for o in observers}
-    book, schedule = ScoreBook(), _schedule(*observers)
+    rngs, book, schedule = LookRngs(seed), ScoreBook(), _schedule(*observers)
     if observers_reversed:
         observers.reverse()
     if objects_reversed:
@@ -276,7 +277,38 @@ def test_same_seed_same_result_and_order_of_inputs_does_not_matter() -> None:
     assert _dump(_run_pair(10, False, False)) != base
 
 
-def test_sensor_rng_depends_on_seed_and_agent_only() -> None:
-    assert _state(sensor_rng(1, "d0")) == _state(sensor_rng(1, "d0"))
-    assert _state(sensor_rng(1, "d0")) != _state(sensor_rng(1, "d1"))
-    assert _state(sensor_rng(1, "d0")) != _state(sensor_rng(2, "d0"))
+def test_look_rng_depends_on_seed_observer_and_object_only() -> None:
+    base = _state(look_rng(1, "d0", "intruder"))
+    assert _state(look_rng(1, "d0", "intruder")) == base
+    assert _state(look_rng(2, "d0", "intruder")) != base
+    assert _state(look_rng(1, "d1", "intruder")) != base
+    assert _state(look_rng(1, "d0", "fox-0")) != base
+    assert _state(look_rng(1, "intruder", "d0")) != base  # observer and object are not swappable
+    rngs = LookRngs(1)
+    assert rngs.get("d0", "intruder") is rngs.get("d0", "intruder")  # cached for the episode
+    assert _state(rngs.get("d0", "intruder")) == base
+
+
+def _intruder_hits(objects: list[Held], seed: int) -> list[bool]:
+    observer = _observer()
+    book, rngs, schedule = ScoreBook(), LookRngs(seed), _schedule(observer)
+    hits = []
+    for k in range(80):
+        for look in do_looks([observer], objects, k * DT, CURVES, rngs, schedule, book):
+            if look.object_id == "intruder":
+                hits.append(look.hit)
+    return hits
+
+
+def test_intruder_hit_sequence_ignores_a_benign_object_in_view() -> None:
+    """The point of per-pair streams: a benign object wandering into the same observer's view
+    must not shift the intruder's draws. "fox-0" sorts before "intruder", so under the old
+    per-observer stream its draw came first at every look and changed every intruder draw."""
+    intruder = Held("intruder", "intruder", (108.0, 100.0))
+    fox = Held("fox-0", "animal", (100.0, 105.0))
+    tarp = Held("tarp-0", "debris", (95.0, 100.0))
+    for seed in range(20):
+        alone = _intruder_hits([intruder], seed)
+        assert len(alone) == 40 and True in alone and False in alone
+        assert _intruder_hits([intruder, fox], seed) == alone
+        assert _intruder_hits([tarp, fox, intruder], seed) == alone
