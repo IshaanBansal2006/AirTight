@@ -12,7 +12,8 @@ Built and tested on the stub simulator, with the design recorded in decisions 00
 | C1 | done | `redteam/families.py`, `redteam/validate.py`, `redteam/geometry.py`, `redteam/coverage.py` |
 | C2 | done on the stub | `redteam/search.py`, `redteam/objective.py`; `airtight-redteam search` |
 | C4a | done, one live call verified ($0.00015) | `redteam/proposer.py`, `primitives.py`, `llm.py`; `airtight-redteam propose` |
-| C3, C4b | tooling done; waiting on lane B's real `run_episode` (hour 8) | `airtight-redteam difficulty` (band check, exit 3 when out) and `airtight-redteam campaign` (search, propose, re-search, compare) |
+| C3 | done on v0: scenario tuned to mean Pd 0.76 (decision 008 amendment); full search running on `data/v0/` | `airtight-redteam difficulty --engine v0`, `search --engine v0` |
+| C4b | pending the v0 search result; one live call then `search --inject` | `airtight-redteam propose --prior data/v0/tactics` |
 | C5 | done, property tests pass | `memory/store.py`, `memory/items.py`; `tests/memory/` |
 | C6 | pipeline done; numbers from the ledger | `redteam/accounting.py`; `airtight-redteam ledger`; `pitch/make_token_chart.py` |
 | C7 | done as the `comms_cut` family | `redteam/families.py` |
