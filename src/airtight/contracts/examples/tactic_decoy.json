@@ -1,0 +1,11 @@
+{
+  "id": "hand_decoy_loading_dock",
+  "family": "decoy",
+  "entry_id": "loading_dock",
+  "phase": 0.15,
+  "speed_mps": 1.4,
+  "waypoints": [{"x": 22, "y": 22}, {"x": 40, "y": 34}, {"x": 60, "y": 40}],
+  "decoy": {"position": {"x": 60, "y": 68}, "lead_time_s": 60},
+  "comms_event": null,
+  "origin": "hand"
+}

@@ -1,0 +1,107 @@
+{
+  "report": "/home/ishaan/projects/AirTight/src/airtight/contracts/examples/report.json",
+  "conditions": {
+    "far_per_hour_operating_point": 1.0,
+    "adversary_knowledge": "full knowledge of patrol policy and charge schedule",
+    "sensor_calibration": "hand-written stub curve",
+    "detection_model_note": "reduced-order Bernoulli-per-look model, truth association",
+    "seed_list_hash": "example",
+    "n_seeds": 2
+  },
+  "n_configs": 3,
+  "cost_vs_detection": {
+    "2drone_go2_sync": {
+      "cost_per_hour": 53.0,
+      "pd": 0.7,
+      "ci": [
+        0.55,
+        0.82
+      ]
+    },
+    "2drone_go2_stagger": {
+      "cost_per_hour": 53.0,
+      "pd": 0.85,
+      "ci": [
+        0.71,
+        0.93
+      ]
+    },
+    "3drone_go2_stagger": {
+      "cost_per_hour": 59.0,
+      "pd": 0.9,
+      "ci": [
+        0.77,
+        0.96
+      ]
+    }
+  },
+  "frontier": [
+    "2drone_go2_stagger",
+    "3drone_go2_stagger"
+  ],
+  "roc_configs": [
+    "2drone_go2_sync",
+    "3drone_go2_stagger",
+    "2drone_go2_stagger"
+  ],
+  "worst_tactics": {
+    "charging_window": {
+      "id": "charging_window-636961687",
+      "entry": "loading_dock",
+      "phase": 0.2697867137638703,
+      "speed_mps": 0.869654990691531,
+      "origin": "random"
+    },
+    "decoy": {
+      "id": "decoy-250828168",
+      "entry": "east_fence",
+      "phase": 0.5571380502062263,
+      "speed_mps": 2.161543747716353,
+      "origin": "random"
+    },
+    "blind_spot": {
+      "id": "blind_spot-048880309",
+      "entry": "loading_dock",
+      "phase": 0.4024377919935872,
+      "speed_mps": 1.8221916506042022,
+      "origin": "random"
+    },
+    "comms_cut": {
+      "id": "comms_cut-894972740",
+      "entry": "east_fence",
+      "phase": 0.8604144367749376,
+      "speed_mps": 1.3463371979737726,
+      "origin": "random"
+    }
+  },
+  "before_after": {
+    "baseline": "2drone_go2_sync",
+    "fixed": "3drone_go2_stagger",
+    "pd": [
+      0.7,
+      0.9
+    ],
+    "worst_tactic_pd": [
+      0.4,
+      0.78
+    ],
+    "human_decisions_per_hour": [
+      2.5,
+      2.8
+    ],
+    "coverage_gap_s_per_hour": [
+      410.0,
+      60.0
+    ],
+    "paired_deltas": [
+      {
+        "metric": "pd_at_operating_point",
+        "delta": 0.2,
+        "ci": [
+          0.08,
+          0.32
+        ]
+      }
+    ]
+  }
+}

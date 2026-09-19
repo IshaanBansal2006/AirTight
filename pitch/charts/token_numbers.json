@@ -1,0 +1,25 @@
+{
+  "comparison": {
+    "usd_per_call": 0.0001481,
+    "basis": "mean of 1 real calls",
+    "episodes_per_config": 200,
+    "n_configs": 12,
+    "calls_per_config_propose_then_search": 2,
+    "naive_usd": 0.35544,
+    "propose_then_search_usd": 0.0035544,
+    "ratio": 99.99999999999999
+  },
+  "ledger": {
+    "calls": 2,
+    "api_calls": 1,
+    "cached_calls": 0,
+    "mock_calls": 1,
+    "input_tokens": 865,
+    "output_tokens": 154,
+    "usd": 0.0001481,
+    "by_purpose": {
+      "propose": 0.0001481
+    },
+    "mean_api_call_usd": 0.0001481
+  }
+}

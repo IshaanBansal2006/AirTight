@@ -1,0 +1,11 @@
+{
+  "id": "hand_blind_spot_east",
+  "family": "blind_spot",
+  "entry_id": "east_fence",
+  "phase": 0.4,
+  "speed_mps": 1.2,
+  "waypoints": [{"x": 100, "y": 22}, {"x": 80, "y": 22}, {"x": 60, "y": 40}],
+  "decoy": null,
+  "comms_event": null,
+  "origin": "hand"
+}

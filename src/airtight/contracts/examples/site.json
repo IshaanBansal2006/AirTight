@@ -10,7 +10,7 @@
   "asset": {"x": 60, "y": 40},
   "response_time_s": 90,
   "docks": [{"id": "dock_a", "position": {"x": 10, "y": 70}, "capacity": 2}, {"id": "dock_b", "position": {"x": 110, "y": 10}, "capacity": 1}],
-  "fixed_sensors": [{"id": "cam_north", "position": {"x": 60, "y": 72}, "sensor_type": "fixed_camera", "heading_deg": 90}],
+  "fixed_sensors": [{"id": "cam_north", "position": {"x": 60, "y": 72}, "sensor_type": "fixed_camera", "heading_deg": 270}],
   "benign_routes": [
     {"id": "delivery", "cls": "vehicle", "waypoints": [{"x": 20, "y": 5}, {"x": 20, "y": 30}, {"x": 20, "y": 5}], "arrival_rate_per_hour": 4},
     {"id": "staff_walk", "cls": "person", "waypoints": [{"x": 60, "y": 75}, {"x": 60, "y": 55}], "arrival_rate_per_hour": 10}

@@ -30,7 +30,7 @@ def run_episode(
     log_dir: Path,
 ) -> EpisodeResult:
     """Hour-1 stub: a random outcome with the real shape and a valid log. Lane B replaces this at H8."""
-    rng = np.random.default_rng(seed)
+    rng = np.random.default_rng([seed, int(tactic.content_hash(), 16)])
     path_len = _path_length_m(site, tactic)
     t_reach_asset = path_len / tactic.speed_mps
     t_cdp = max(0.0, t_reach_asset - site.response_time_s)
