@@ -13,6 +13,26 @@ def _fmt(v: float, digits: int = 2) -> str:
     return f"{v:.{digits}f}"
 
 
+def load_clip_facts(clips_dir: Path) -> dict | None:
+    """Lane C's clips.json, or lane A's miss.json and catch.json sidecars folded into the same shape."""
+    ours = clips_dir / "clips.json"
+    if ours.exists():
+        return json.loads(ours.read_text())
+    miss, catch = clips_dir / "miss.json", clips_dir / "catch.json"
+    if not (miss.exists() and catch.exists()):
+        return None
+    m, c = json.loads(miss.read_text()), json.loads(catch.read_text())
+    return {
+        "tactic_id": c.get("tactic_id", m.get("tactic_id", "?")),
+        "seed": c.get("seed", m.get("seed", "?")),
+        "baseline": m.get("fleet", "baseline fleet"),
+        "fixed": c.get("fleet", "fixed fleet"),
+        "miss_t_alarm": m.get("t_alarm"),
+        "catch_t_alarm": c.get("t_alarm") if c.get("t_alarm") is not None else float("nan"),
+        "t_cdp": c.get("t_cdp", m.get("t_cdp", float("nan"))),
+    }
+
+
 def clip_line(clips: dict | None, which: str) -> str:
     if not clips:
         return ""
@@ -81,7 +101,7 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--charts", type=Path, default=REPO / "pitch" / "charts")
     ap.add_argument("--out", type=Path, default=REPO / "pitch" / "deck.md")
-    ap.add_argument("--clips", type=Path, default=REPO / "pitch" / "clips" / "clips.json")
+    ap.add_argument("--clips-dir", type=Path, default=REPO / "pitch" / "clips")
     args = ap.parse_args(argv)
     numbers_path = args.charts / "numbers.json"
     tokens_path = args.charts / "token_numbers.json"
@@ -97,7 +117,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.charts.resolve().is_relative_to(args.out.resolve().parent)
         else args.charts
     )
-    clips = json.loads(args.clips.read_text()) if args.clips.exists() else None
+    clips = load_clip_facts(args.clips_dir)
     args.out.write_text(build(numbers, tokens, str(rel), example, clips))
     print(
         f"deck written to {args.out}"

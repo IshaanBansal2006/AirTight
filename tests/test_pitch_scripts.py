@@ -153,3 +153,42 @@ def test_fill_writeup_from_rendered_numbers(tmp_path: Path) -> None:
     assert exc.value.code == 0
     text = (tmp_path / "w.md").read_text()
     assert "EXAMPLE DATA" in text and "[pd_baseline]" not in text and "[ratio]" not in text
+
+
+def test_deck_accepts_lane_a_clip_sidecars(tmp_path: Path) -> None:
+    sys.path.insert(0, str(PITCH))
+    from build_deck import load_clip_facts
+
+    (tmp_path / "miss.json").write_text(
+        json.dumps(
+            {
+                "title": "miss",
+                "seed": 7,
+                "tactic_id": "t1",
+                "timely_detected": False,
+                "t_alarm": None,
+                "fleet": "base",
+            }
+        )
+    )
+    (tmp_path / "catch.json").write_text(
+        json.dumps(
+            {
+                "title": "catch",
+                "seed": 7,
+                "tactic_id": "t1",
+                "timely_detected": True,
+                "t_alarm": 14.0,
+                "t_cdp": 30.0,
+                "fleet": "fixed",
+            }
+        )
+    )
+    facts = load_clip_facts(tmp_path)
+    assert (
+        facts
+        and facts["seed"] == 7
+        and facts["catch_t_alarm"] == 14.0
+        and facts["fixed"] == "fixed"
+    )
+    assert load_clip_facts(tmp_path / "nowhere") is None
