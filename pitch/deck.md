@@ -10,8 +10,6 @@ paginate: true
 
 A security score and a vulnerability map for building owners, insurers and security firms, before any robot is purchased, and a re-score after.
 
-**EXAMPLE DATA, NOT A RESULT**
-
 ---
 
 # Site twin and mixed fleet
@@ -19,8 +17,6 @@ A security score and a vulnerability map for building owners, insurers and secur
 ![height:480px](charts/vulnerability_map.png)
 
 Drones, a ground robot and guards bid in one auction. Batteries and docks make coverage continuity real.
-
-**EXAMPLE DATA, NOT A RESULT**
 
 ---
 
@@ -30,22 +26,18 @@ Four tactic families: charging window, decoy, blind spot, comms cut.
 
 An LLM proposes; search attacks. Every tactic passes one validator.
 
-- **charging_window**: entry `loading_dock`, phase 0.27, 0.9 m/s, origin random
-- **decoy**: entry `east_fence`, phase 0.56, 2.2 m/s, origin random
-- **blind_spot**: entry `loading_dock`, phase 0.40, 1.8 m/s, origin random
-- **comms_cut**: entry `east_fence`, phase 0.86, 1.3 m/s, origin random
-
-**EXAMPLE DATA, NOT A RESULT**
+- **charging_window**: entry `rear_fence_gap`, phase 1.00, 1.8 m/s, origin random
+- **decoy**: entry `main_gate`, phase 0.98, 1.7 m/s, origin random
+- **blind_spot**: entry `rear_fence_gap`, phase 0.33, 2.0 m/s, origin search
+- **comms_cut**: entry `service_gate`, phase 0.97, 1.6 m/s, origin random
 
 ---
 
 # What the adversary found
 
-Charging-window attack: enter `loading_dock` at phase 0.27 of the charge cycle at 0.9 m/s.
+Charging-window attack: enter `rear_fence_gap` at phase 1.00 of the charge cycle at 1.8 m/s.
 
 *Replay clip A: the miss.*
-
-**EXAMPLE DATA, NOT A RESULT**
 
 ---
 
@@ -53,9 +45,7 @@ Charging-window attack: enter `loading_dock` at phase 0.27 of the charge cycle a
 
 ![height:440px](charts/cost_vs_detection.png)
 
-<small>Operating point 1 false alarm/h · 2 seeds · adversary: full knowledge of patrol policy and charge schedule · sensor: hand-written stub curve · reduced-order Bernoulli-per-look model, truth association</small>
-
-**EXAMPLE DATA, NOT A RESULT**
+<small>Operating point 1 false alarm/h · 100 seeds · adversary: open-loop adversary with full knowledge of the patrol policy and charge schedule; search plus LLM proposals · sensor: hand-written stub curve with a 360-degree drone disc · reduced-order per-look Bernoulli model, truth association, engine v0</small>
 
 ---
 
@@ -63,23 +53,19 @@ Charging-window attack: enter `loading_dock` at phase 0.27 of the charge cycle a
 
 ![height:400px](charts/before_after.png)
 
-2drone_go2_sync to 3drone_go2_stagger: detection 0.70 to 0.90; against the re-attacking worst tactic 0.40 to 0.78.
+d2_go2_guard_sync to d4_go2_guard_stagger: detection 0.22 to 0.67; against the re-attacking worst tactic 0.05 to 0.59.
 
 *Replay clip B: the catch.*
-
-**EXAMPLE DATA, NOT A RESULT**
 
 ---
 
 # Human attention is a cost
 
-Human decisions per hour: 2.50 to 2.80. Coverage gap: 410 to 60 s/h.
+Human decisions per hour: 15.46 to 46.90. Coverage gap: 0 to 0 s/h.
 
 ![height:300px](charts/token_cost.png)
 
-Adversary cost per scored configuration: 100x cheaper than an LLM planning every episode (mean of 1 real calls).
-
-**EXAMPLE DATA, NOT A RESULT**
+Adversary cost per scored configuration: 100x cheaper than an LLM planning every episode (mean of 2 real calls).
 
 ---
 
@@ -88,6 +74,4 @@ Adversary cost per scored configuration: 100x cheaper than an LLM planning every
 - The score, the vulnerability map, and a re-score after purchase
 - Next: learned adversary, calibrated sensors on more platforms, fleet memory under link loss
 
-<small>Operating point 1 false alarm/h · 2 seeds · adversary: full knowledge of patrol policy and charge schedule · sensor: hand-written stub curve · reduced-order Bernoulli-per-look model, truth association</small>
-
-**EXAMPLE DATA, NOT A RESULT**
+<small>Operating point 1 false alarm/h · 100 seeds · adversary: open-loop adversary with full knowledge of the patrol policy and charge schedule; search plus LLM proposals · sensor: hand-written stub curve with a 360-degree drone disc · reduced-order per-look Bernoulli model, truth association, engine v0</small>

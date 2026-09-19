@@ -1,105 +1,187 @@
 {
-  "report": "/home/ishaan/projects/AirTight/src/airtight/contracts/examples/report.json",
+  "report": "pitch/report_quick.json",
   "conditions": {
     "far_per_hour_operating_point": 1.0,
-    "adversary_knowledge": "full knowledge of patrol policy and charge schedule",
-    "sensor_calibration": "hand-written stub curve",
-    "detection_model_note": "reduced-order Bernoulli-per-look model, truth association",
-    "seed_list_hash": "example",
-    "n_seeds": 2
+    "adversary_knowledge": "open-loop adversary with full knowledge of the patrol policy and charge schedule; search plus LLM proposals",
+    "sensor_calibration": "hand-written stub curve with a 360-degree drone disc",
+    "detection_model_note": "reduced-order per-look Bernoulli model, truth association, engine v0",
+    "seed_list_hash": "3bddecbe8dea",
+    "n_seeds": 100
   },
-  "n_configs": 3,
+  "n_configs": 12,
   "cost_vs_detection": {
-    "2drone_go2_sync": {
-      "cost_per_hour": 53.0,
-      "pd": 0.7,
+    "d1_go2_guard_sync": {
+      "cost_per_hour": 48.0,
+      "pd": 0.25,
       "ci": [
-        0.55,
-        0.82
+        0.2074375,
+        0.295
       ]
     },
-    "2drone_go2_stagger": {
-      "cost_per_hour": 53.0,
-      "pd": 0.85,
+    "d1_go2_guard_stagger": {
+      "cost_per_hour": 48.0,
+      "pd": 0.25,
       "ci": [
-        0.71,
-        0.93
+        0.2,
+        0.2925
       ]
     },
-    "3drone_go2_stagger": {
-      "cost_per_hour": 59.0,
-      "pd": 0.9,
+    "d2_go2_guard_sync": {
+      "cost_per_hour": 55.0,
+      "pd": 0.2225,
       "ci": [
-        0.77,
-        0.96
+        0.19,
+        0.2651875000000001
+      ]
+    },
+    "d2_go2_guard_stagger": {
+      "cost_per_hour": 55.0,
+      "pd": 0.245,
+      "ci": [
+        0.2025,
+        0.2825
+      ]
+    },
+    "d3_go2_guard_sync": {
+      "cost_per_hour": 62.0,
+      "pd": 0.725,
+      "ci": [
+        0.6099375,
+        0.7675624999999999
+      ]
+    },
+    "d3_go2_guard_stagger": {
+      "cost_per_hour": 62.0,
+      "pd": 0.585,
+      "ci": [
+        0.5174375,
+        0.6600625
+      ]
+    },
+    "d4_go2_guard_sync": {
+      "cost_per_hour": 69.0,
+      "pd": 0.69,
+      "ci": [
+        0.6599375000000001,
+        0.7725
+      ]
+    },
+    "d4_go2_guard_stagger": {
+      "cost_per_hour": 69.0,
+      "pd": 0.6725,
+      "ci": [
+        0.6122500000000001,
+        0.7175
+      ]
+    },
+    "d2_nogo2_guard_stagger": {
+      "cost_per_hour": 46.0,
+      "pd": 0.3725,
+      "ci": [
+        0.3073125,
+        0.4125625
+      ]
+    },
+    "d2_go2_noguard_stagger": {
+      "cost_per_hour": 23.0,
+      "pd": 0.045,
+      "ci": [
+        0.0249375,
+        0.0675
+      ]
+    },
+    "d2_nogo2_noguard_stagger": {
+      "cost_per_hour": 14.0,
+      "pd": 0.1525,
+      "ci": [
+        0.1199375,
+        0.195
+      ]
+    },
+    "d0_go2_guard_sync": {
+      "cost_per_hour": 41.0,
+      "pd": 0.055,
+      "ci": [
+        0.0325,
+        0.075
       ]
     }
   },
   "frontier": [
-    "2drone_go2_stagger",
-    "3drone_go2_stagger"
+    "d2_nogo2_noguard_stagger",
+    "d2_nogo2_guard_stagger",
+    "d3_go2_guard_sync"
   ],
   "roc_configs": [
-    "2drone_go2_sync",
-    "3drone_go2_stagger",
-    "2drone_go2_stagger"
+    "d2_go2_guard_sync",
+    "d3_go2_guard_sync",
+    "d4_go2_guard_sync",
+    "d4_go2_guard_stagger"
   ],
   "worst_tactics": {
     "charging_window": {
-      "id": "charging_window-636961687",
-      "entry": "loading_dock",
-      "phase": 0.2697867137638703,
-      "speed_mps": 0.869654990691531,
+      "id": "charging_window-439068210",
+      "entry": "rear_fence_gap",
+      "phase": 0.9952998033878611,
+      "speed_mps": 1.8301223906650246,
       "origin": "random"
     },
     "decoy": {
-      "id": "decoy-250828168",
-      "entry": "east_fence",
-      "phase": 0.5571380502062263,
-      "speed_mps": 2.161543747716353,
+      "id": "decoy-556745041",
+      "entry": "main_gate",
+      "phase": 0.9780456893193393,
+      "speed_mps": 1.6543569796661126,
       "origin": "random"
     },
     "blind_spot": {
-      "id": "blind_spot-048880309",
-      "entry": "loading_dock",
-      "phase": 0.4024377919935872,
-      "speed_mps": 1.8221916506042022,
-      "origin": "random"
+      "id": "blind_spot-823883722",
+      "entry": "rear_fence_gap",
+      "phase": 0.3345602565126827,
+      "speed_mps": 2.0,
+      "origin": "search"
     },
     "comms_cut": {
-      "id": "comms_cut-894972740",
-      "entry": "east_fence",
-      "phase": 0.8604144367749376,
-      "speed_mps": 1.3463371979737726,
+      "id": "comms_cut-685633756",
+      "entry": "service_gate",
+      "phase": 0.9720099963425136,
+      "speed_mps": 1.5870437968641706,
       "origin": "random"
     }
   },
   "before_after": {
-    "baseline": "2drone_go2_sync",
-    "fixed": "3drone_go2_stagger",
+    "baseline": "d2_go2_guard_sync",
+    "fixed": "d4_go2_guard_stagger",
     "pd": [
-      0.7,
-      0.9
+      0.2225,
+      0.6725
     ],
     "worst_tactic_pd": [
-      0.4,
-      0.78
+      0.05,
+      0.59
     ],
     "human_decisions_per_hour": [
-      2.5,
-      2.8
+      15.462994986325173,
+      46.90441812518636
     ],
     "coverage_gap_s_per_hour": [
-      410.0,
-      60.0
+      0.0,
+      0.0
     ],
     "paired_deltas": [
       {
         "metric": "pd_at_operating_point",
-        "delta": 0.2,
+        "delta": 0.45,
         "ci": [
-          0.08,
-          0.32
+          0.3849375,
+          0.5125
+        ]
+      },
+      {
+        "metric": "human_decisions_per_hour",
+        "delta": 31.44142313886119,
+        "ci": [
+          31.44142313886119,
+          31.44142313886119
         ]
       }
     ]
