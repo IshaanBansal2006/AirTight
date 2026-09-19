@@ -11,9 +11,7 @@ from airtight.redteam import RedTeamConfig, sample_tactic, validate
 from airtight.redteam.families import FAMILIES
 
 SCEN = Path(__file__).parents[1] / "scenarios" / "logistics_yard"
-CURVES = SensorCurves.model_validate_json(
-    resources.files("airtight.contracts.examples").joinpath("sensor_curve.json").read_text()
-)
+CURVES = SensorCurves.model_validate_json((SCEN / "sensor_curve.json").read_text())
 
 
 @pytest.fixture(scope="module")
