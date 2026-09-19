@@ -4,12 +4,14 @@ import hashlib
 import json
 import logging
 from datetime import UTC, datetime
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
 
-from airtight.redteam.config import LlmConfig
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from airtight.redteam.config import LlmConfig
 
 log = logging.getLogger(__name__)
 
@@ -25,7 +27,7 @@ class LlmCall(BaseModel):
     usd: float
 
 
-class BudgetExceeded(RuntimeError):
+class BudgetExceededError(RuntimeError):
     pass
 
 
@@ -111,7 +113,7 @@ class LlmClient:
         )
         spent = self.spent_usd()
         if spent + worst_case > self.cfg.budget_usd:
-            raise BudgetExceeded(
+            raise BudgetExceededError(
                 f"spent ${spent:.4f} and this call could cost ${worst_case:.4f}, over the ${self.cfg.budget_usd:.2f} cap; "
                 f"raise LlmConfig.budget_usd deliberately or use --mock / the cache"
             )

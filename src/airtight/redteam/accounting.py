@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from pydantic import BaseModel
 
-from airtight.redteam.config import LlmConfig
 from airtight.redteam.llm import LlmCall, LlmClient, cost_usd
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from airtight.redteam.config import LlmConfig
 
 
 class LedgerSummary(BaseModel):

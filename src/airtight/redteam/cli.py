@@ -130,7 +130,7 @@ def _load_prior(directory: Path) -> dict[str, SearchResult]:
 
 
 def cmd_propose(args: argparse.Namespace) -> int:
-    from airtight.redteam.llm import BudgetExceeded, LlmClient
+    from airtight.redteam.llm import BudgetExceededError, LlmClient
     from airtight.redteam.proposer import propose
 
     site, fleet, curves, cfg = _load_scene(args)
@@ -147,7 +147,7 @@ def cmd_propose(args: argparse.Namespace) -> int:
     prior = _load_prior(args.prior) if args.prior else None
     try:
         batch = propose(site, fleet, curves, cfg, client, prior, n=args.n)
-    except BudgetExceeded as e:
+    except BudgetExceededError as e:
         print(f"refused: {e}", file=sys.stderr)
         return 2
     args.out.parent.mkdir(parents=True, exist_ok=True)
@@ -209,7 +209,7 @@ def cmd_difficulty(args: argparse.Namespace) -> int:
 
 def cmd_campaign(args: argparse.Namespace) -> int:
     from airtight.redteam.campaign import run_campaign
-    from airtight.redteam.llm import BudgetExceeded
+    from airtight.redteam.llm import BudgetExceededError
     from airtight.sim.runner import run_episode
 
     site, fleet, curves, cfg = _load_scene(args)
@@ -234,7 +234,7 @@ def cmd_campaign(args: argparse.Namespace) -> int:
             args.seed,
             args.workers,
         )
-    except BudgetExceeded as e:
+    except BudgetExceededError as e:
         print(f"refused: {e}", file=sys.stderr)
         return 2
     for f in result.families:

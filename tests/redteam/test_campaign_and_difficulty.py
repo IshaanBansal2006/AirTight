@@ -2,13 +2,16 @@ from __future__ import annotations
 
 from importlib import resources
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from airtight.contracts import FleetConfig, SensorCurves, Site
 from airtight.redteam import RedTeamConfig
 from airtight.redteam.campaign import run_campaign
 from airtight.redteam.difficulty import BAND, check_difficulty
 from airtight.redteam.llm import LlmClient
 from airtight.sim.runner import run_episode
+
+if TYPE_CHECKING:
+    from airtight.contracts import FleetConfig, SensorCurves, Site
 
 MOCK = Path(str(resources.files("airtight.redteam.fixtures").joinpath("proposals_mock.json")))
 

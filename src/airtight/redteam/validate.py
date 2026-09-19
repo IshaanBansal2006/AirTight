@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import math
+from typing import TYPE_CHECKING
 
-from airtight.contracts import Site, Tactic
 from airtight.redteam.config import RedTeamConfig
 from airtight.redteam.geometry import (
     distance_to_boundary,
@@ -10,6 +10,9 @@ from airtight.redteam.geometry import (
     path_inside_polygon,
     path_length,
 )
+
+if TYPE_CHECKING:
+    from airtight.contracts import Site, Tactic
 
 
 def validate(tactic: Tactic, site: Site, cfg: RedTeamConfig | None = None) -> list[str]:

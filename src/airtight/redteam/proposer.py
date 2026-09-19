@@ -1,16 +1,18 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, Field, ValidationError
 
 from airtight.contracts import FleetConfig, SensorCurves, Site, Tactic
-from airtight.redteam.config import RedTeamConfig
 from airtight.redteam.families import FAMILIES, charge_cycle_s
-from airtight.redteam.llm import LlmClient
 from airtight.redteam.primitives import CompileError, Program, Step, compile_program
-from airtight.redteam.search import SearchResult
 from airtight.redteam.validate import validate
+
+if TYPE_CHECKING:
+    from airtight.redteam.config import RedTeamConfig
+    from airtight.redteam.llm import LlmClient
+    from airtight.redteam.search import SearchResult
 
 SCHEMA_NAME = "tactic_proposals"
 

@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 import pytest
 
-from airtight.contracts import FleetConfig, SensorCurves, Site
 from airtight.redteam import perturb, sample_tactic, validate
 from airtight.redteam.coverage import GeometryCoverage
 from airtight.redteam.families import FAMILIES, charge_cycle_s
+
+if TYPE_CHECKING:
+    from airtight.contracts import FleetConfig, SensorCurves, Site
 
 
 @pytest.mark.parametrize("family", FAMILIES)

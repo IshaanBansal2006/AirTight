@@ -1,18 +1,22 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Sequence
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from pydantic import BaseModel
 
 from airtight.contracts import FleetConfig, SensorCurves, Site, TacticFamily
 from airtight.redteam.config import RedTeamConfig
 from airtight.redteam.families import FAMILIES
-from airtight.redteam.llm import LlmClient
-from airtight.redteam.objective import EpisodeFn
 from airtight.redteam.proposer import ProposalBatch, propose
 from airtight.redteam.search import SearchResult, search_all
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+    from pathlib import Path
+
+    from airtight.redteam.llm import LlmClient
+    from airtight.redteam.objective import EpisodeFn
 
 
 class FamilyOutcome(BaseModel):

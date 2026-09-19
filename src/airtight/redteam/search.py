@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
-from collections.abc import Sequence
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import numpy as np
 from pydantic import BaseModel, Field
@@ -14,6 +13,10 @@ from airtight.redteam.coverage import CoverageMap, GeometryCoverage
 from airtight.redteam.families import FAMILIES, perturb, sample_tactic
 from airtight.redteam.objective import EpisodeFn, TacticScore, evaluate
 from airtight.redteam.validate import validate
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+    from pathlib import Path
 
 log = logging.getLogger(__name__)
 

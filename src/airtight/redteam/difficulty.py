@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import numpy as np
 from pydantic import BaseModel
@@ -10,6 +9,10 @@ from airtight.contracts import FleetConfig, SensorCurves, Site, TacticFamily
 from airtight.redteam.config import RedTeamConfig
 from airtight.redteam.families import FAMILIES, sample_tactic
 from airtight.redteam.objective import EpisodeFn, evaluate
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+    from pathlib import Path
 
 BAND = (0.6, 0.9)
 

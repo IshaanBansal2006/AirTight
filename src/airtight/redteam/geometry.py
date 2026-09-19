@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import math
-from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
 from airtight.contracts import XY
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 Bounds = tuple[float, float, float, float]
 

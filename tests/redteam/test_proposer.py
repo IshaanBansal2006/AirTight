@@ -3,15 +3,18 @@ from __future__ import annotations
 import json
 from importlib import resources
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
-from airtight.contracts import FleetConfig, SensorCurves, Site
 from airtight.redteam import RedTeamConfig, validate
 from airtight.redteam.accounting import compare_planners, summarize_ledger
-from airtight.redteam.llm import BudgetExceeded, LlmClient
+from airtight.redteam.llm import BudgetExceededError, LlmClient
 from airtight.redteam.primitives import CompileError, Program, Step, compile_program
 from airtight.redteam.proposer import RESPONSE_SCHEMA, build_prompt, propose
+
+if TYPE_CHECKING:
+    from airtight.contracts import FleetConfig, SensorCurves, Site
 
 MOCK = Path(str(resources.files("airtight.redteam.fixtures").joinpath("proposals_mock.json")))
 
@@ -104,7 +107,7 @@ def test_budget_cap_refuses_before_any_network(
     site: Site, fleet: FleetConfig, curves: SensorCurves, tmp_path: Path
 ) -> None:
     live = _client(tmp_path, mock=False, budget=0.0)
-    with pytest.raises(BudgetExceeded, match="cap"):
+    with pytest.raises(BudgetExceededError, match="cap"):
         propose(site, fleet, curves, RedTeamConfig(), live)
 
 

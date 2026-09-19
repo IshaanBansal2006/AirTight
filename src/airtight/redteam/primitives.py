@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 import hashlib
-from typing import Annotated, Literal
+from typing import TYPE_CHECKING, Annotated, Literal
 
 from pydantic import BaseModel, Field
 
 from airtight.contracts import XY, CommsEvent, Decoy, FleetConfig, Site, Tactic, TacticFamily
-from airtight.redteam.config import RedTeamConfig
 from airtight.redteam.families import charge_cycle_s
+
+if TYPE_CHECKING:
+    from airtight.redteam.config import RedTeamConfig
 
 Op = Literal["enter", "wait", "move", "sprint", "drop_decoy", "cut_comms"]
 
