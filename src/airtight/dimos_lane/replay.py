@@ -15,6 +15,7 @@ from airtight.dimos_lane.modules.orchestrator import Orchestrator
 from airtight.dimos_lane.person import interpolate_path
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from pathlib import Path
 
     from airtight.contracts.site import XY
@@ -36,7 +37,7 @@ class ReplayPlan:
 
 
 def _positions_by_object(
-    events: list[object],
+    events: Sequence[object],
 ) -> dict[str, list[tuple[float, XY]]]:
     out: dict[str, list[tuple[float, XY]]] = {}
     for event in events:

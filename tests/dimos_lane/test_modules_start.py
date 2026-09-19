@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import inspect
+
 from airtight.dimos_lane.modules.allocator import Allocator, AllocatorModule, verify_task
 from airtight.dimos_lane.modules.dimos_backend import DimosBackend, DimosBackendModule
 from airtight.dimos_lane.modules.fleet_memory import FleetMemoryModule
@@ -11,6 +13,7 @@ from airtight.dimos_lane.modules.sim_fleet import (
     default_drones,
     topic_for,
 )
+from airtight.dimos_lane.modules.walk import WalkModule
 from airtight.dimos_lane.site_io import load_example_site
 
 
@@ -24,9 +27,12 @@ def test_each_module_blueprint_builds() -> None:
         DimosBackendModule,
         FleetMemoryModule,
         OrchestratorModule,
+        WalkModule,
     ):
         bp = cls.blueprint()
         assert bp is not None
+        params = inspect.signature(cls.__init__).parameters
+        assert any(p.kind is inspect.Parameter.VAR_KEYWORD for p in params.values()), cls.__name__
 
 
 def test_allocator_gives_verify_to_go2() -> None:
@@ -57,7 +63,12 @@ def test_sim_fleet_prefixes_topics() -> None:
 
 def test_dimos_backend_goto_and_step() -> None:
     calls: list[tuple[float, float]] = []
-    backend = DimosBackend(move_to=lambda x, y: calls.append((x, y)) or "ok")
+
+    def _move_to(x: float, y: float) -> str:
+        calls.append((x, y))
+        return "ok"
+
+    backend = DimosBackend(move_to=_move_to)
     import numpy as np
 
     backend.goto("go2_1", np.array([60.0, 75.0]))

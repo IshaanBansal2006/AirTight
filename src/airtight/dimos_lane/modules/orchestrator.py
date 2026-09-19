@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import numpy as np
 from dimos.agents.annotation import skill
 from dimos.core.module import Module
@@ -58,8 +60,8 @@ def _north_gate_xy() -> tuple[float, float]:
 
 
 class OrchestratorModule(Module):
-    def __init__(self, config_args: dict[str, object] | None = None) -> None:
-        super().__init__(dict(config_args or {}))
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
         self.inner = Orchestrator()
 
     @skill
