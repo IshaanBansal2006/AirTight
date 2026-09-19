@@ -1,0 +1,8 @@
+{
+  "title": "miss",
+  "seed": 7,
+  "tactic_id": "hand_charging_window_north",
+  "timely_detected": false,
+  "t_alarm": null,
+  "dispatch_result": "task=verify-60-74 winner=guard_1 auction={'guard_1': ['verify-60-74']} proposal=p-c2b40ade"
+}
