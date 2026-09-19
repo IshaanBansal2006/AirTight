@@ -214,7 +214,11 @@ def test_fixed_sensors_convert_heading_to_radians(site: Site) -> None:
     (cam,) = adapt.fixed_sensors(site)
     assert (cam.sensor_id, cam.sensor_type) == ("cam_north", "fixed_camera")
     assert cam.position.tolist() == [60.0, 72.0]
-    assert cam.heading_rad == pytest.approx(math.pi / 2)
+    # compare with the example itself: the team may correct its heading (lane C has)
+    assert cam.heading_rad == pytest.approx(math.radians(site.fixed_sensors[0].heading_deg))
+    turned = site.fixed_sensors[0].model_copy(update={"heading_deg": 270.0})
+    (west,) = adapt.fixed_sensors(site.model_copy(update={"fixed_sensors": [turned]}))
+    assert west.heading_rad == pytest.approx(3 * math.pi / 2)
 
 
 def test_has_curve_and_fp_classes() -> None:
