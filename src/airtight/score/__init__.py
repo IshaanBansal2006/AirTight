@@ -1,1 +1,1 @@
-"""Offline scoring: episode logs to ROC curves, an operating point, and the contract report."""
+"""Offline scoring. `airtight.score.report` is lane C's log-based scorer and sweep runner (airtight-sweep)."""

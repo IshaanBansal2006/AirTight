@@ -8,9 +8,9 @@ from pathlib import Path
 
 from airtight.contracts import FleetConfig, SensorCurves, Site
 from airtight.redteam.search import load_seeds
-from airtight.score.sweep import build_report, load_top_tactics, run_config, seed_list_hash
+from airtight.score.report.sweep import build_report, load_top_tactics, run_config, seed_list_hash
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
+REPO_ROOT = Path(__file__).resolve().parents[4]
 SCEN = REPO_ROOT / "scenarios" / "logistics_yard"
 
 

@@ -6,11 +6,11 @@ from pathlib import Path
 import pytest
 
 from airtight.contracts import FleetConfig, Report, SensorCurves, Site, Tactic
-from airtight.score.logs import summarize_log
-from airtight.score.sweep import build_report, run_config, seed_list_hash
+from airtight.score.report.logs import summarize_log
+from airtight.score.report.sweep import build_report, run_config, seed_list_hash
 from airtight.sim.runner import run_episode
 
-SCEN = Path(__file__).parents[2] / "scenarios" / "logistics_yard"
+SCEN = Path(__file__).parents[3] / "scenarios" / "logistics_yard"
 
 
 @pytest.fixture(autouse=True)

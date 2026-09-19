@@ -2,8 +2,14 @@ from __future__ import annotations
 
 import math
 
-from airtight.score.logs import EpisodeSummary
-from airtight.score.roc import far_at, operating_threshold, pd_at_operating_point, roc_curve, wilson
+from airtight.score.report.logs import EpisodeSummary
+from airtight.score.report.roc import (
+    far_at,
+    operating_threshold,
+    pd_at_operating_point,
+    roc_curve,
+    wilson,
+)
 
 
 def _s(

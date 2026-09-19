@@ -14,7 +14,7 @@ Airtight is a security-posture engine. You give it a site twin: perimeter, entry
 
 - Robot runtime on dimOS: the Go2 walks, patrols and answers skills over MCP in MuJoCo; the allocator, the approval gate and the fleet are dimOS modules composed into one blueprint.
 - A headless simulator for the sweep: kinematic agents, per-look Bernoulli sensing from a calibrated curve, a log-likelihood track score, battery clocks and docks, benign traffic with false alarms.
-- A red team: four tactic families over one schema, a validator, elite search with a continuous objective, and an LLM that proposes tactics as programs of primitives which the search then attacks. The LLM never plans an episode, which is why the adversary costs [ratio]x less than an LLM planner.
+- A red team: four tactic families over one schema, a validator, elite search with a continuous objective, and an LLM that proposes tactics as programs of primitives which the search then attacks. The LLM never plans an episode, which is why the adversary costs [ratio]x less than an LLM planner. In our runs the cheapest model's proposals were outcompeted by the search; the honest claim is that the proposer is a seed, not the adversary.
 - A fleet memory that keeps merging under a cut link: a state-based CRDT with property tests for order independence.
 - An offline scorer: thresholds swept on logged scores, the operating point set at one false alarm per hour, bootstrap intervals, paired comparisons on the same seeds.
 - Every number on every slide is produced by a script from the frozen report.
