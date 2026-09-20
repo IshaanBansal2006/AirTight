@@ -8,7 +8,6 @@ protect (asset-weighted) and stale (not surveilled recently).
 from __future__ import annotations
 
 import math
-from collections.abc import Sequence
 from statistics import median
 from typing import TYPE_CHECKING, NamedTuple
 
@@ -18,6 +17,8 @@ from airtight.sim.coverage import uncovered_intervals
 from airtight.sim.episode import _run_loop, official_params
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from airtight.contracts import FleetConfig, SensorCurves, Site
     from airtight.sim.fleet import PatrolController
 
