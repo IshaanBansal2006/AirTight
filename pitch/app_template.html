@@ -109,7 +109,7 @@ nav.tabs button[aria-selected="true"]{color:var(--accent)}
   <h2>Improvement over iterations</h2>
   <div id="minmaxBox"></div>
   <h2>All configurations</h2>
-  <div class="tablewrap"><table id="cfgTable"><thead><tr><th>Fleet</th><th class="num">$/h</th><th class="num">Detect</th><th class="num">Worst</th><th class="num">Dec/h</th></tr></thead><tbody></tbody></table></div>
+  <div class="tablewrap" tabindex="0" role="region" aria-label="Every fleet configuration scored"><table id="cfgTable"><thead><tr><th>Fleet</th><th class="num">$/h</th><th class="num">Detect</th><th class="num">Worst</th><th class="num">Dec/h</th></tr></thead><tbody></tbody></table></div>
 </section>
 
 <section class="tab" id="tab-threats" role="tabpanel">
@@ -156,6 +156,7 @@ nav.tabs button[aria-selected="true"]{color:var(--accent)}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script id="data" type="application/json">__DATA__</script>
 <script>
+document.documentElement.lang = 'en';
 (function(){
 const D = JSON.parse(document.getElementById('data').textContent);
 const $ = (s) => document.querySelector(s);
@@ -189,6 +190,7 @@ $('#scoreLead').textContent = `Every number here comes from ${D.report.n_seeds} 
 const dir = (a,b,higherBetter) => a===b ? 'flat' : ((higherBetter ? a>b : a<b) ? 'up' : 'down');
 const tiles = [
   {v:fmt(fixed.worst_pd), k:'detection against the worst tactic', d:`was ${fmt(base.worst_pd)}`, cls:dir(fixed.worst_pd, base.worst_pd, true)},
+  ...(fixed.blind_pd == null || base.blind_pd == null ? [] : [{v:fmt(fixed.blind_pd), k:'worst tactic, schedule hidden', d:`was ${fmt(base.blind_pd)}`, cls:dir(fixed.blind_pd, base.blind_pd, true)}]),
   {v:'$'+fixed.cost.toFixed(0), unit:'/h', k:'fleet cost', d:`was $${base.cost.toFixed(0)}`, cls:dir(fixed.cost, base.cost, false)},
   {v:fmt(fixed.decisions), unit:'/h', k:'human decisions', d:`was ${fmt(base.decisions)}`, cls:dir(fixed.decisions, base.decisions, false)},
   {v:fmt(fixed.gap,0), unit:' s/h', k:'nobody on patrol', d:`was ${fmt(base.gap,0)} s/h`, cls:dir(fixed.gap, base.gap, false)},
@@ -199,7 +201,7 @@ $('#condLine').textContent = D.report.conditions;
 $('#cfgTable tbody').innerHTML = D.report.configs.map(c => `<tr><td>${c.name}${c.name===D.report.baseline?' <span class="pill">baseline</span>':''}</td><td class="num">${c.cost.toFixed(0)}</td><td class="num">${fmt(c.pd)}</td><td class="num">${fmt(c.worst_pd)}</td><td class="num">${fmt(c.decisions)}</td></tr>`).join('');
 if (D.minmax && D.minmax.length) {
   const pretty = (n) => { const [base, ...rest] = n.split('+'); const m = base.match(/^d(\d+)_(go2|nogo2)_(guard|noguard)_(sync|stagger)/); if(!m) return n.replaceAll('_',' '); const extra = rest.join('+'); const k = parseInt(m[1]) + (extra.match(/drone/g)||[]).length; const bits=[`${k} drone${k===1?'':'s'}`]; if(m[2]==='go2'||extra.includes('go2')) bits.push('Go2'); if(m[3]==='guard'||extra.includes('guard')) bits.push('guard'); return bits.join(', ') + (m[4]==='stagger'?', staggered':', synchronized'); };
-  $('#minmaxBox').innerHTML = `<div class="tablewrap"><table><thead><tr><th>Round</th><th>Fleet</th><th class="num">$/h</th><th class="num">Worst case after re-attack</th><th>Fix</th></tr></thead><tbody>${D.minmax.map(i => `<tr><td class="num">${i.k}</td><td>${pretty(i.fleet)}</td><td class="num">${i.cost.toFixed(0)}</td><td class="num">${fmt(i.worst_pd)}</td><td>${(i.move||'stop').replaceAll('_',' ')}</td></tr>`).join('')}</tbody></table></div><div class="cap">Each round the red team attacks the current fleet, every affordable fix is scored against what it found, the best worst case wins, and the red team attacks again. The re-attack number stays near zero: the adversary knows the patrol and the fleet does not react yet, so it finds a new hole after every fix. The loop is how a site finds that hole first.</div>`;
+  $('#minmaxBox').innerHTML = `<div class="tablewrap" tabindex="0" role="region" aria-label="Attack, fix and re-attack rounds"><table><thead><tr><th>Round</th><th>Fleet</th><th class="num">$/h</th><th class="num">Worst case after re-attack</th><th>Fix</th></tr></thead><tbody>${D.minmax.map(i => `<tr><td class="num">${i.k}</td><td>${pretty(i.fleet)}</td><td class="num">${i.cost.toFixed(0)}</td><td class="num">${fmt(i.worst_pd)}</td><td>${(i.move||'stop').replaceAll('_',' ')}</td></tr>`).join('')}</tbody></table></div><div class="cap">Each round the red team attacks the current fleet, every affordable fix is scored against what it found, the best worst case wins, and the red team attacks again. The re-attack number stays near zero: the adversary knows the patrol and the fleet does not react yet, so it finds a new hole after every fix. The loop is how a site finds that hole first.</div>`;
 } else {
   $('#minmaxBox').innerHTML = `<div class="tile"><div class="k">Attack, fix, re-attack</div><div class="v">running</div><div class="d">three rounds against the baseline; this page updates when they finish</div></div>`;
 }

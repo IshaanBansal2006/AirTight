@@ -9,6 +9,7 @@ from pathlib import Path
 
 from airtight.contracts import FleetConfig, SensorCurves, Site
 from airtight.redteam.search import load_seeds
+from airtight.score.logreport.logs import EpisodeSummary
 from airtight.score.logreport.sweep import (
     ConfigInputs,
     build_report,
@@ -53,6 +54,11 @@ def main(argv: list[str] | None = None) -> int:
         "--keep-logs",
         action="store_true",
         help="keep every episode log (large); default prunes after summarising",
+    )
+    ap.add_argument(
+        "--no-schedule-blind",
+        action="store_true",
+        help="skip the second pass where the same tactics get random entry phases",
     )
     ap.add_argument("--only", nargs="*", default=None, help="subset of config names")
     ap.add_argument("--out", type=Path, default=REPO_ROOT / "data" / "report.json")
@@ -100,14 +106,34 @@ def main(argv: list[str] | None = None) -> int:
             args.workers,
             prune_logs=not args.keep_logs,
         )
+        blind: list[EpisodeSummary] = []
+        if not args.no_schedule_blind:
+            blind = run_config(
+                site,
+                fleet,
+                tactics,
+                curves,
+                seeds,
+                run_episode,
+                args.log_dir,
+                args.workers,
+                prune_logs=not args.keep_logs,
+                randomize_phase=True,
+            )
         if quiet_seeds and engine != "stub":
             quiet = run_quiet_nights(site, fleet, curves, quiet_seeds, args.workers)
             gap = coverage_gap(site, fleet, curves)
             per_config[name] = ConfigInputs(
-                fleet=fleet, summaries=summaries, quiet=quiet, coverage_gap_s_per_hour=gap
+                fleet=fleet,
+                summaries=summaries,
+                quiet=quiet,
+                coverage_gap_s_per_hour=gap,
+                summaries_blind=blind,
             )
         else:
-            per_config[name] = inputs_without_quiet(fleet, summaries)
+            per_config[name] = inputs_without_quiet(fleet, summaries).model_copy(
+                update={"summaries_blind": blind}
+            )
         inp = per_config[name]
         print(
             f"{name:28s} {len(summaries):5d} episodes  timely@ref={sum(s.timely_at_ref for s in summaries) / len(summaries):.2f}"
@@ -151,7 +177,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     for c in report.configs:
         print(
-            f"{c.config_name:28s} pd@op={c.pd_at_operating_point:.2f} [{c.pd_at_operating_point_ci[0]:.2f},{c.pd_at_operating_point_ci[1]:.2f}]  worst={c.worst_tactic_pd:.2f} ({c.worst_tactic_id})  cost=${c.cost_per_hour:.0f}/h  decisions/h={c.human_decisions_per_hour:.2f}"
+            f"{c.config_name:28s} pd@op={c.pd_at_operating_point:.2f} [{c.pd_at_operating_point_ci[0]:.2f},{c.pd_at_operating_point_ci[1]:.2f}]  worst={c.worst_tactic_pd:.2f} blind={c.worst_tactic_pd_schedule_blind if c.worst_tactic_pd_schedule_blind is not None else float('nan'):.2f} ({c.worst_tactic_id})  cost=${c.cost_per_hour:.0f}/h  decisions/h={c.human_decisions_per_hour:.2f}"
         )
     print(
         f"engine={engine}; {len(tactics)} tactics x {len(seeds)} seeds x {len(names)} configs; report written to {args.out}"

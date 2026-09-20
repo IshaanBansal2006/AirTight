@@ -62,7 +62,7 @@ Clip A, seed 63663: d2_go2_guard_sync never raised a timely alarm against `charg
 
 ![height:400px](charts/before_after.png)
 
-d2_go2_guard_sync to d3_go2_guard_stagger: detection 0.14 to 0.63; against the re-attacking worst tactic 0.04 to 0.49.
+d2_go2_guard_sync to d3_go2_guard_stagger: detection 0.14 to 0.63; against the re-attacking worst tactic 0.04 to 0.49; the same tactics without the charge schedule 0.53 to 0.51.
 
 *Replay clip B: the catch.*
 
@@ -80,6 +80,14 @@ Adversary cost per scored configuration: 100x cheaper than an LLM planning every
 
 ---
 
+# What hiding the schedule is worth
+
+![height:440px](charts/schedule_blind.png)
+
+Same fleets, same worst tactics. The orange point assumes the adversary has the charge schedule to the second; the blue point gives it the site and nothing else. The gap is what a site buys by keeping its schedule private, and the score reports both.
+
+---
+
 # Attack, fix, re-attack
 
 Each round the red team searches the current fleet, every affordable fix is scored against what it found, the best worst case wins, and the red team attacks again.
@@ -91,7 +99,7 @@ Each round the red team searches the current fleet, every affordable fix is scor
 | 2 | 3 drones, Go2, guard, staggered | 62 | 0.05 | add drone |
 | 3 | 4 drones, Go2, guard, staggered | 69 | 0.00 | stop |
 
-The re-attack number stays near zero: with full knowledge of the patrol and no reaction from the fleet, the adversary finds a new hole after every fix. The score reports the typical intruder and the worst case side by side, and the loop is how a site finds the next hole before an intruder does.
+The re-attack number stays near zero: with the charge schedule in hand and no reaction from the fleet, the adversary finds a new hole after every fix. Hide the schedule and the same tactics land far less often, which is the number a buyer can act on. The score reports the typical intruder and the worst case side by side, and the loop is how a site finds the next hole before an intruder does.
 
 ---
 

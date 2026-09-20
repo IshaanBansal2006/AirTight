@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from importlib import resources
 from pathlib import Path
 
 import numpy as np
@@ -10,6 +11,8 @@ from airtight.redteam import RedTeamConfig
 from airtight.redteam.objective import summarize
 from airtight.redteam.search import search_all, search_family
 from airtight.sim.runner import run_episode
+
+EXAMPLES = resources.files("airtight.contracts.examples")
 
 
 def test_summarize_orders_near_misses_below_misses(hand_tactics: list[Tactic]) -> None:
@@ -94,3 +97,13 @@ def test_injected_tactics_join_population(
         seed_tactics=hand_tactics,
     )
     assert any(t.id == "hand_decoy_loading_dock" for t in res.tactics)
+
+
+def test_schedule_blind_changes_only_the_phase_and_is_seed_deterministic() -> None:
+    from airtight.redteam.objective import schedule_blind
+
+    tactic = Tactic.model_validate_json(EXAMPLES.joinpath("tactic.json").read_text())
+    a, b, c = schedule_blind(tactic, 11), schedule_blind(tactic, 11), schedule_blind(tactic, 12)
+    assert a == b and a.phase != c.phase
+    assert a.model_dump(exclude={"phase"}) == tactic.model_dump(exclude={"phase"})
+    assert 0.0 <= a.phase < 1.0

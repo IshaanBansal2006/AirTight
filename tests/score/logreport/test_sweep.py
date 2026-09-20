@@ -85,8 +85,23 @@ def test_two_config_sweep_builds_a_valid_report(tmp_path: Path) -> None:
         summaries = run_config(
             site, fleet, tactics, curves, seeds, run_episode, tmp_path / "logs", prune_logs=True
         )
-        per_config[name] = inputs_without_quiet(fleet, summaries)
+        blind = run_config(
+            site,
+            fleet,
+            tactics,
+            curves,
+            seeds,
+            run_episode,
+            tmp_path / "logs",
+            prune_logs=True,
+            randomize_phase=True,
+        )
+        assert [b.tactic_id for b in blind] == ["walk"] * 3
+        per_config[name] = inputs_without_quiet(fleet, summaries).model_copy(
+            update={"summaries_blind": blind}
+        )
     assert not (tmp_path / "logs" / "d2_go2_guard_sync").exists()
+    assert not (tmp_path / "logs" / "d2_go2_guard_sync_blind").exists()
     report = build_report(
         site,
         per_config,
@@ -98,6 +113,8 @@ def test_two_config_sweep_builds_a_valid_report(tmp_path: Path) -> None:
     )
     assert Report.model_validate_json(report.model_dump_json()) == report
     other = report.config("d4_go2_guard_stagger")
+    assert other.worst_tactic_pd_schedule_blind is not None
+    assert 0.0 <= other.worst_tactic_pd_schedule_blind <= 1.0
     assert other.n_episodes == 3 and {d.metric for d in other.paired_vs_baseline} == {
         "pd_at_operating_point",
         "human_decisions_per_hour",

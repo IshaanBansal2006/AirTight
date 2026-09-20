@@ -26,6 +26,14 @@ def pretty_fleet(name: str) -> str:
     return ", ".join(bits) + (", staggered" if m.group(4) == "stagger" else ", synchronized")
 
 
+def blind_line(ba: dict) -> str:
+    """The same worst tactics against an adversary that does not know the charge schedule, when the report has it."""
+    pair = ba.get("worst_tactic_pd_schedule_blind") or [None, None]
+    if pair[0] is None or pair[1] is None:
+        return ""
+    return f"; the same tactics without the charge schedule {_fmt(pair[0])} to {_fmt(pair[1])}"
+
+
 def _fmt(v: float, digits: int = 2) -> str:
     return f"{v:.{digits}f}"
 
@@ -83,10 +91,16 @@ def build(
                 f"| {i['k']} | {pretty_fleet(i['fleet'])} | {i['cost']:.0f} | {i['worst_pd']:.2f} | {(i.get('move') or 'stop').replace('_', ' ')} |"
                 for i in mm
             )
-            + "\n\nThe re-attack number stays near zero: with full knowledge of the patrol and no reaction from the fleet, the adversary finds a new hole after every fix. The score reports the typical intruder and the worst case side by side, and the loop is how a site finds the next hole before an intruder does."
+            + "\n\nThe re-attack number stays near zero: with the charge schedule in hand and no reaction from the fleet, the adversary finds a new hole after every fix. Hide the schedule and the same tactics land far less often, which is the number a buyer can act on. The score reports the typical intruder and the worst case side by side, and the loop is how a site finds the next hole before an intruder does."
             + watermark
         )
         if mm
+        else None
+    )
+    sb = numbers.get("schedule_blind") or {}
+    schedule_slide = (
+        f"# What hiding the schedule is worth\n\n![height:440px]({charts_rel}/schedule_blind.png)\n\nSame fleets, same worst tactics. The orange point assumes the adversary has the charge schedule to the second; the blue point gives it the site and nothing else. The gap is what a site buys by keeping its schedule private, and the score reports both.{watermark}"
+        if sb and ba
         else None
     )
     slides = [
@@ -105,7 +119,7 @@ def build(
         ),
         f"# The score\n\n![height:470px]({charts_rel}/cost_vs_detection.png){watermark}",
         (
-            f"# The fix and the re-attack\n\n![height:400px]({charts_rel}/before_after.png)\n\n{ba['baseline']} to {ba['fixed']}: detection {_fmt(ba['pd'][0])} to {_fmt(ba['pd'][1])}; against the re-attacking worst tactic {_fmt(ba['worst_tactic_pd'][0])} to {_fmt(ba['worst_tactic_pd'][1])}.\n\n*Replay clip B: the catch.*{clip_line(clips, 'catch')}{watermark}"
+            f"# The fix and the re-attack\n\n![height:400px]({charts_rel}/before_after.png)\n\n{ba['baseline']} to {ba['fixed']}: detection {_fmt(ba['pd'][0])} to {_fmt(ba['pd'][1])}; against the re-attacking worst tactic {_fmt(ba['worst_tactic_pd'][0])} to {_fmt(ba['worst_tactic_pd'][1])}{blind_line(ba)}.\n\n*Replay clip B: the catch.*{clip_line(clips, 'catch')}{watermark}"
             if ba
             else f"# The fix and the re-attack\n\n*Needs a report with at least two configurations.*{watermark}"
         ),
@@ -114,6 +128,7 @@ def build(
             if ba
             else f"# Human attention is a cost\n\n![height:300px]({charts_rel}/token_cost.png)\n\n{cmp['ratio']:,.0f}x cheaper than an LLM planning every episode ({cmp['basis']}).{watermark}"
         ),
+        *([schedule_slide] if schedule_slide else []),
         *([minmax_slide] if minmax_slide else []),
         f"# What we sell, and what is next\n\n- The score, the vulnerability map, and a re-score after purchase\n- Next: learned adversary, calibrated sensors on more platforms, fleet memory under link loss\n\n<small>{conditions}</small>{watermark}",
     ]

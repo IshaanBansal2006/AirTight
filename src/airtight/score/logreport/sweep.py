@@ -9,7 +9,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 import numpy as np
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from airtight.contracts import (
     Conditions,
@@ -48,6 +48,10 @@ class ConfigInputs(BaseModel):
     summaries: list[EpisodeSummary]
     quiet: QuietStats
     coverage_gap_s_per_hour: float
+    summaries_blind: list[EpisodeSummary] = Field(
+        default_factory=list,
+        description="the same tactics with random entry phases; empty when the pass was skipped",
+    )
 
 
 def _job(
@@ -56,6 +60,17 @@ def _job(
     fn, site, fleet, tactic, curves, seed, log_dir = args
     result = fn(site, fleet, tactic, curves, seed, log_dir)
     return summarize_log(result.log_path)
+
+
+def _blind_job(
+    args: tuple[EpisodeFn, Site, FleetConfig, Tactic, SensorCurves, int, Path],
+) -> EpisodeSummary:
+    """The same tactic with its entry phase drawn from the seed; reported under the original tactic id."""
+    from airtight.redteam.objective import schedule_blind
+
+    fn, site, fleet, tactic, curves, seed, log_dir = args
+    result = fn(site, fleet, schedule_blind(tactic, seed), curves, seed, log_dir)
+    return summarize_log(result.log_path).model_copy(update={"tactic_id": tactic.id})
 
 
 def run_config(
@@ -68,16 +83,18 @@ def run_config(
     log_dir: Path,
     workers: int = 1,
     prune_logs: bool = False,
+    randomize_phase: bool = False,
 ) -> list[EpisodeSummary]:
     """Every tactic on every seed with full logs, summarised as they finish; logs optionally deleted after."""
-    cfg_dir = log_dir / fleet.name
+    cfg_dir = log_dir / (fleet.name + ("_blind" if randomize_phase else ""))
     cfg_dir.mkdir(parents=True, exist_ok=True)
     jobs = [(episode_fn, site, fleet, t, curves, s, cfg_dir) for t in tactics for s in seeds]
+    job = _blind_job if randomize_phase else _job
     if workers <= 1:
-        out = [_job(j) for j in jobs]
+        out = [job(j) for j in jobs]
     else:
         with ProcessPoolExecutor(max_workers=workers) as pool:
-            out = list(pool.map(_job, jobs, chunksize=max(1, len(jobs) // (workers * 8))))
+            out = list(pool.map(job, jobs, chunksize=max(1, len(jobs) // (workers * 8))))
     if prune_logs:
         shutil.rmtree(cfg_dir, ignore_errors=True)
     log.info(
@@ -127,6 +144,12 @@ def config_result(
     worst_id, worst_pd = min(
         ((tid, pd_at(ss, tau)) for tid, ss in by_tactic.items()), key=lambda p: p[1]
     )
+    blind: float | None = None
+    if inputs.summaries_blind:
+        by_tactic_blind: dict[str, list[EpisodeSummary]] = {}
+        for b in inputs.summaries_blind:
+            by_tactic_blind.setdefault(b.tactic_id, []).append(b)
+        blind = min(pd_at(ss, tau) for ss in by_tactic_blind.values())
     result = ConfigResult(
         config_name=fleet.name,
         fleet_hash=fleet.content_hash(),
@@ -136,6 +159,7 @@ def config_result(
         pd_at_operating_point_ci=ci,
         worst_tactic_id=worst_id,
         worst_tactic_pd=worst_pd,
+        worst_tactic_pd_schedule_blind=blind,
         cost_per_hour=fleet.cost_per_hour(),
         coverage_gap_s_per_hour=inputs.coverage_gap_s_per_hour,
         human_decisions_per_hour=far_at(quiet, DEPLOYED_ALARM_THRESHOLD),
