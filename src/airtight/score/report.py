@@ -84,16 +84,27 @@ def _ci(values: npt.NDArray[np.float64]) -> tuple[float, float]:
 
 
 def paired_deltas(
-    score: ConfigScore, reps: roc.Replicates, base: ConfigScore, base_reps: roc.Replicates
+    score: ConfigScore,
+    reps: roc.Replicates,
+    base: ConfigScore,
+    base_reps: roc.Replicates,
+    worst_ids: tuple[str, str] | None = None,
 ) -> list[PairedDelta]:
-    """Configuration minus baseline, with paired bootstrap intervals."""
+    """Configuration minus baseline, with paired bootstrap intervals.
+
+    worst_tactic_pd compares each configuration's worst tactic. By default that is the worst in
+    THIS data. worst_ids = (configuration's tactic, baseline's tactic) fixes the two tactics
+    instead, which is how a held-out confirmation avoids choosing the tactic on the data it is
+    scored on.
+    """
     if not (
         np.array_equal(reps.row_w, base_reps.row_w)
         and np.array_equal(reps.quiet_w, base_reps.quiet_w)
     ):
         raise ValueError("the two configurations were not resampled with the same indices")
     ids, base_ids = list(score.pd_by_tactic), list(base.pd_by_tactic)
-    worst, base_worst = ids.index(score.worst_tactic_id), base_ids.index(base.worst_tactic_id)
+    mine, theirs = worst_ids or (score.worst_tactic_id, base.worst_tactic_id)
+    worst, base_worst = ids.index(mine), base_ids.index(theirs)
     rows = (
         (
             METRIC_PD,
@@ -102,7 +113,7 @@ def paired_deltas(
         ),
         (
             METRIC_WORST,
-            score.worst_tactic_pd - base.worst_tactic_pd,
+            score.pd_by_tactic[mine] - base.pd_by_tactic[theirs],
             reps.pd_by_tactic[:, worst] - base_reps.pd_by_tactic[:, base_worst],
         ),
         (

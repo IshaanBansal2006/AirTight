@@ -20,10 +20,9 @@ import numpy as np
 
 from airtight.sim import adapt
 from airtight.sim.geometry import in_wedge, voronoi_mask
-from airtight.sim.sensing import FixedObserver
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Mapping, Sequence
 
     import numpy.typing as npt
 
@@ -32,6 +31,8 @@ if TYPE_CHECKING:
     from airtight.sim.sensing import Observer
 
     Array = npt.NDArray[np.float64]
+    BoolArray = npt.NDArray[np.bool_]
+    Footprint = tuple[tuple[float, float, float, float, float], int, int, int, int, BoolArray]
 
 PATROL_STREAM = 4
 _ARRIVE_EPS_M = 1e-9
@@ -61,11 +62,17 @@ class AgentState:
         return self.active and self.mode == "patrol"
 
 
-def make_agents(site: Site, fleet: FleetConfig, sensor_curves: SensorCurves) -> list[AgentState]:
+def make_agents(
+    site: Site,
+    fleet: FleetConfig,
+    sensor_curves: SensorCurves,
+    dock_assignment: Mapping[str, str] | None = None,
+) -> list[AgentState]:
+    """dock_assignment maps agent id to dock id; agents not listed dock round-robin."""
     agents = []
     for index, agent_id in enumerate(adapt.agent_ids(fleet)):
         sensor_type = adapt.agent_sensor_type(fleet, agent_id)
-        pos = adapt.start_position(site, fleet, agent_id)
+        pos = adapt.start_position(site, fleet, agent_id, dock_assignment)
         agents.append(
             AgentState(
                 agent_id=agent_id,
@@ -112,8 +119,10 @@ class PatrolController:
         self._centres = grid.cell_centers()
         self._weighted = weight > 0
         self._rngs: dict[str, np.random.Generator] = {}
-        # Fixed sensors never move: the disk+wedge mask is constant for the episode.
-        self._static_footprint: dict[int, tuple[int, int, int, int, np.ndarray]] = {}
+        # An observer whose pose has not changed (every fixed sensor, always) sees the same
+        # cells as last step. Keyed by id(observer) and checked against the pose, so a new
+        # object at a recycled address can never reuse a stale mask.
+        self._static_footprint: dict[int, Footprint] = {}
         self._xmin = grid.xmin
         self._ymin = grid.ymin
         self._cell_size = grid.cell_size
@@ -145,7 +154,7 @@ class PatrolController:
 
     def _footprint_window(
         self, pos: Array, heading: float, fov_deg: float, radius_m: float
-    ) -> tuple[int, int, int, int, np.ndarray]:
+    ) -> tuple[int, int, int, int, BoolArray]:
         """Boolean mask of cell centres inside the observer's disk and wedge, plus its bbox.
 
         A 360° camera (the drone) is a disk: the wedge is identically true and is not computed.
@@ -169,31 +178,34 @@ class PatrolController:
 
         Only cells whose centre can sit inside the footprint disk are tested. The disk test and
         the wedge test are unchanged, so the set of marked cells is identical to a full-grid pass.
-        Fixed sensors reuse a cached mask: their pose never changes.
+        The mask is reused while the observer's pose is unchanged.
         """
         for agent in observers:
             if not agent.active:
                 continue
-            if isinstance(agent, FixedObserver):
-                cached = self._static_footprint.get(id(agent))
-                if cached is None:
-                    row0, row1, col0, col1, seen = self._footprint_window(
-                        agent.pos, agent.heading, agent.fov_deg, agent.footprint_radius_m
-                    )
-                    cached = (row0, row1, col0, col1, seen)
-                    self._static_footprint[id(agent)] = cached
-                row0, row1, col0, col1, seen = cached
-            else:
+            pose = (
+                float(agent.pos[0]),
+                float(agent.pos[1]),
+                float(agent.heading),
+                float(agent.fov_deg),
+                float(agent.footprint_radius_m),
+            )
+            cached = self._static_footprint.get(id(agent))
+            if cached is None or cached[0] != pose:
                 row0, row1, col0, col1, seen = self._footprint_window(
                     agent.pos, agent.heading, agent.fov_deg, agent.footprint_radius_m
                 )
+                cached = (pose, row0, row1, col0, col1, seen)
+                self._static_footprint[id(agent)] = cached
+            _, row0, row1, col0, col1, seen = cached
             if seen.size:
                 self.last_seen[row0:row1, col0:col1][seen] = t
 
     def _due_to_retarget(self, agent: AgentState, t: float) -> bool:
         dx = float(agent.target[0] - agent.pos[0])
         dy = float(agent.target[1] - agent.pos[1])
-        arrived = math.hypot(dx, dy) <= agent.footprint_radius_m / 2.0
+        # sqrt of the sum of squares, as np.linalg.norm computes it; math.hypot differs by an ulp
+        arrived = math.sqrt(dx * dx + dy * dy) <= agent.footprint_radius_m / 2.0
         return arrived or t - agent.last_retarget_t >= self.retarget_period_s
 
     def retarget(self, agents: list[AgentState], t: float) -> None:
@@ -240,7 +252,8 @@ def step_agents(agents: list[AgentState], dt: float) -> None:
             continue
         dx = float(agent.target[0]) - float(agent.pos[0])
         dy = float(agent.target[1]) - float(agent.pos[1])
-        distance = math.hypot(dx, dy)
+        # sqrt of the sum of squares, as np.linalg.norm computes it; math.hypot differs by an ulp
+        distance = math.sqrt(dx * dx + dy * dy)
         if distance == 0.0:
             continue
         agent.heading = math.atan2(dy, dx)

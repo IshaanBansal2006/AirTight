@@ -1,1 +1,7 @@
-"""Offline scoring. `airtight.score.logreport` is lane C's log-based scorer and sweep runner (airtight-sweep)."""
+"""Offline scoring.
+
+Lane B: roc, quiet, config_score, quick, sweep, report, replays, fix. These score the engine's
+threshold-free EpisodeScores directly and write data/report.json.
+Lane C: the logreport subpackage, a scorer and sweep runner that work from episode logs
+(airtight-sweep).
+"""

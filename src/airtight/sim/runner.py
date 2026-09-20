@@ -71,6 +71,11 @@ def _run_v0(
     )
     events: list[BaseModel]
     params = official_params()
+    if params.task_time_s > 0:
+        # An assumption run must never pass for a headline one, so the log says so.
+        header = header.model_copy(
+            update={"sim_version": f"{SIM_VERSION_V0}+task{params.task_time_s:g}s-ASSUMPTION"}
+        )
     if full_log:
         recorder = LogRecorder(dt=params.dt)
         scores = simulate(site, fleet, tactic, sensor_curves, seed, params, recorder)

@@ -43,10 +43,13 @@ reaction to the decoy (it is scored like an intruder, nobody is sent to it).
 
 from __future__ import annotations
 
+import dataclasses
+import json
 import math
 import os
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Protocol
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Protocol
 
 import numpy as np
 
@@ -95,6 +98,11 @@ class EpisodeParams:
     task_time_s: float = 0.0  # WHAT-IF only, see the module docstring; run_episode never sets it
     battery: bool = False  # follow the battery clocks; run_episode sets it, see the docstring
     phase_jitter_s: float = 15.0  # the adversary knows the schedule, not the second
+    entry_gain: float = 0.0  # weight mode "mix" only: gain of the term peaking at each entry
+    band_gain: float = 0.0  # weight mode "mix" only: gain of the band term
+    # (agent id, dock id) pairs, sorted by agent id; agents not listed dock round-robin. A tuple
+    # so the dataclass stays hashable; the JSON override takes a mapping.
+    dock_assignment: tuple[tuple[str, str], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -176,6 +184,73 @@ def check_setup(
 
 
 WEIGHT_MODE_ENV = "AIRTIGHT_WEIGHT_MODE"
+PARAMS_JSON_ENV = "AIRTIGHT_PARAMS_JSON"
+TASK_TIME_ENV = "AIRTIGHT_TASK_TIME_S"
+# Fields the JSON override may not set: the battery is always on for official numbers, and a
+# task time is an assumption, which has its own variable so it can never hide in a policy file.
+_PARAMS_JSON_FORBIDDEN = ("battery", "task_time_s")
+
+
+def params_from_mapping(data: Mapping[str, object], base: EpisodeParams) -> EpisodeParams:
+    """base with the EpisodeParams fields in data replaced. Raises one ValueError naming every
+    unknown field and every value of the wrong type. dock_assignment is a mapping of agent id
+    to dock id."""
+    fields = {f.name: f for f in dataclasses.fields(EpisodeParams)}
+    problems = [f"unknown field {k!r}" for k in data if k not in fields]
+    problems += [f"field {k!r} may not be set here" for k in data if k in _PARAMS_JSON_FORBIDDEN]
+    updates: dict[str, Any] = {}
+    for key, value in data.items():
+        if key not in fields or key in _PARAMS_JSON_FORBIDDEN:
+            continue
+        if key == "dock_assignment":
+            if not isinstance(value, dict) or not all(
+                isinstance(a, str) and isinstance(d, str) for a, d in value.items()
+            ):
+                problems.append("dock_assignment must map agent id to dock id")
+            else:
+                updates[key] = tuple(sorted(value.items()))
+        elif key == "weight_mode":
+            if value not in WEIGHT_MODES:
+                problems.append(f"weight_mode {value!r} is not one of {WEIGHT_MODES}")
+            else:
+                updates[key] = value
+        elif isinstance(value, bool) or not isinstance(value, (int, float)):
+            problems.append(f"field {key!r} must be a number, got {value!r}")
+        elif not math.isfinite(value):
+            problems.append(f"field {key!r} must be finite, got {value!r}")
+        else:
+            updates[key] = float(value)
+    if problems:
+        raise ValueError("invalid episode parameters:\n  - " + "\n  - ".join(problems))
+    return dataclasses.replace(base, **updates)
+
+
+def params_to_mapping(params: EpisodeParams) -> dict[str, object]:
+    """The fields that differ from official defaults, in the form params_from_mapping reads,
+    so a policy can be written to a file for AIRTIGHT_PARAMS_JSON."""
+    base = EpisodeParams(battery=True)
+    out: dict[str, object] = {}
+    for f in dataclasses.fields(EpisodeParams):
+        value = getattr(params, f.name)
+        if f.name in _PARAMS_JSON_FORBIDDEN or value == getattr(base, f.name):
+            continue
+        out[f.name] = dict(value) if f.name == "dock_assignment" else value
+    return out
+
+
+def assumption_task_time_s() -> float:
+    """The task-time assumption from AIRTIGHT_TASK_TIME_S, 0.0 when unset. A run with this set
+    is an assumption run, never a headline number: the contract's asset has no task time."""
+    raw = os.environ.get(TASK_TIME_ENV)
+    if raw is None or raw == "":
+        return 0.0
+    try:
+        value = float(raw)
+    except ValueError:
+        raise ValueError(f"{TASK_TIME_ENV}={raw!r} is not a number") from None
+    if not (math.isfinite(value) and value >= 0):
+        raise ValueError(f"{TASK_TIME_ENV}={raw!r} must be finite and >= 0")
+    return value
 
 
 def official_params() -> EpisodeParams:
@@ -184,19 +259,46 @@ def official_params() -> EpisodeParams:
     The sweep calls this too, so a sweep can never disagree with run_episode. simulate's own
     default keeps the battery off so the part 1 tables keep their meaning.
 
-    One documented override: the environment variable AIRTIGHT_WEIGHT_MODE sets the patrol
-    weight mode (asset, uniform or band). Unset means asset. It exists because the weight mode
-    is an engine parameter, not a fleet field, so a fix that changes it can only reach
-    run_episode, and lane C's re-attack, this way. Nothing else can be overridden.
+    One documented override: the environment variable AIRTIGHT_PARAMS_JSON is the path of a
+    JSON object of EpisodeParams fields (see params_from_mapping). Unset means the defaults.
+    It exists because the patrol policy is a set of engine parameters, not fleet fields, so a
+    recommended policy can only reach run_episode, and lane C's re-attack, this way. The
+    battery cannot be turned off through it.
+
+    AIRTIGHT_WEIGHT_MODE, the older single-purpose override, still works as an alias for
+    {"weight_mode": <mode>}. Setting both is an error unless they agree.
+
+    AIRTIGHT_TASK_TIME_S is separate on purpose: it sets the task-time what-if and marks the
+    run as an assumption run (see assumption_task_time_s).
     """
+    params = EpisodeParams(battery=True)
+    path = os.environ.get(PARAMS_JSON_ENV)
+    data: dict[str, object] = {}
+    if path:
+        try:
+            loaded = json.loads(Path(path).read_text())
+        except (OSError, ValueError) as err:
+            raise ValueError(f"{PARAMS_JSON_ENV}={path!r} cannot be read as JSON: {err}") from None
+        if not isinstance(loaded, dict):
+            raise ValueError(f"{PARAMS_JSON_ENV}={path!r} must hold a JSON object")
+        data = loaded
+        params = params_from_mapping(data, params)
     mode = os.environ.get(WEIGHT_MODE_ENV)
-    if mode is None or mode == "":
-        return EpisodeParams(battery=True)
-    if mode not in WEIGHT_MODES:
-        raise ValueError(
-            f"{WEIGHT_MODE_ENV}={mode!r} is not a weight mode; choose one of {WEIGHT_MODES}"
-        )
-    return EpisodeParams(battery=True, weight_mode=mode)
+    if mode:
+        if mode not in WEIGHT_MODES:
+            raise ValueError(
+                f"{WEIGHT_MODE_ENV}={mode!r} is not a weight mode; choose one of {WEIGHT_MODES}"
+            )
+        if "weight_mode" in data and data["weight_mode"] != mode:
+            raise ValueError(
+                f"{WEIGHT_MODE_ENV}={mode!r} disagrees with weight_mode "
+                f"{data['weight_mode']!r} in {PARAMS_JSON_ENV}"
+            )
+        params = dataclasses.replace(params, weight_mode=mode)
+    task_time = assumption_task_time_s()
+    if task_time > 0:
+        params = dataclasses.replace(params, task_time_s=task_time)
+    return params
 
 
 def _start_jitter_s(seed: int, params: EpisodeParams) -> float:
@@ -235,8 +337,11 @@ def _run_loop(
         asset_gain=params.asset_gain,
         mode=params.weight_mode,
         r_c=adapt.critical_radius_m(site, params.v_ref_mps),
+        entry_positions=adapt.entries(site),
+        entry_gain=params.entry_gain,
+        band_gain=params.band_gain,
     )
-    agents = make_agents(site, fleet, sensor_curves)
+    agents = make_agents(site, fleet, sensor_curves, dict(params.dock_assignment))
     observers: list[Observer] = [*agents, *make_fixed_observers(site, sensor_curves)]
 
     n_warm = math.ceil(params.warmup_s / dt - TIME_EPS)

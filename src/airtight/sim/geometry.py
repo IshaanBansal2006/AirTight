@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     BoolArray = npt.NDArray[np.bool_]
 
 _EPS = 1e-9
-WEIGHT_MODES = ("asset", "uniform", "band")
+WEIGHT_MODES = ("asset", "uniform", "band", "mix")
 
 
 @dataclass(frozen=True)
@@ -113,6 +113,9 @@ def patrol_weight(
     asset_gain: float = 1.0,
     mode: str = "asset",
     r_c: float = 0.0,
+    entry_positions: Array | None = None,
+    entry_gain: float = 0.0,
+    band_gain: float = 0.0,
 ) -> Array:
     """Where the patrol should spend its time. Zero outside the fence in every mode.
 
@@ -122,18 +125,48 @@ def patrol_weight(
     "band":    inside * (base + asset_gain where the distance to the nearest asset is >= r_c).
                r_c is the critical ring: a detection inside it is already too late, so the
                band mode spends the extra weight outside it. Inside the ring only base.
+    "mix":     inside * (base + asset_gain * asset_term + entry_gain * entries_term
+               + band_gain * band_term). asset_term is the sum of "asset" mode, entries_term
+               is sum over entry_positions of exp(-distance / scale_m), so it peaks at each
+               entry, and band_term is the indicator of "band" mode. Gains are non-negative.
+               The named modes are special cases: (a, 0, 0) is "asset" with asset_gain a,
+               (0, 0, 0) is "uniform", and (0, 0, b) is "band" with asset_gain b. entry_gain
+               and band_gain are read in this mode only.
     """
     if mode not in WEIGHT_MODES:
         raise ValueError(f"unknown weight mode {mode!r}; choose one of {WEIGHT_MODES}")
     centers = grid.cell_centers()
     assets = np.asarray(asset_positions, dtype=np.float64).reshape(-1, 2)
     extra: Array = np.zeros(grid.shape, dtype=np.float64)
-    if mode == "asset" and len(assets):
-        distance = np.linalg.norm(centers[..., None, :] - assets, axis=-1)
-        extra = asset_gain * np.exp(-distance / scale_m).sum(axis=-1)
-    elif mode == "band" and len(assets):
-        nearest = np.linalg.norm(centers[..., None, :] - assets, axis=-1).min(axis=-1)
+    if mode == "asset":
+        for ax, ay in assets:
+            distance = np.hypot(centers[..., 0] - ax, centers[..., 1] - ay)
+            extra += asset_gain * np.exp(-distance / scale_m)
+    elif mode == "band":
+        nearest = np.full(grid.shape, np.inf, dtype=np.float64)
+        for ax, ay in assets:
+            nearest = np.minimum(nearest, np.hypot(centers[..., 0] - ax, centers[..., 1] - ay))
         extra = asset_gain * (nearest >= r_c).astype(np.float64)
+    elif mode == "mix":
+        if min(asset_gain, entry_gain, band_gain) < 0:
+            raise ValueError(
+                f"mix gains must be non-negative, got asset {asset_gain}, entry {entry_gain}, "
+                f"band {band_gain}"
+            )
+        nearest = np.full(grid.shape, np.inf, dtype=np.float64)
+        for ax, ay in assets:
+            distance = np.hypot(centers[..., 0] - ax, centers[..., 1] - ay)
+            nearest = np.minimum(nearest, distance)
+            if asset_gain > 0:
+                extra += asset_gain * np.exp(-distance / scale_m)
+        if entry_gain > 0:
+            if entry_positions is None:
+                raise ValueError("mix mode with entry_gain > 0 needs entry_positions")
+            for ex, ey in np.asarray(entry_positions, dtype=np.float64).reshape(-1, 2):
+                distance = np.hypot(centers[..., 0] - ex, centers[..., 1] - ey)
+                extra += entry_gain * np.exp(-distance / scale_m)
+        if band_gain > 0:
+            extra += band_gain * (nearest >= r_c).astype(np.float64)
     weight: Array = inside * (base + extra)
     return weight
 
@@ -203,15 +236,17 @@ def in_wedge(origin: Array, heading: float, fov_deg: float, points: Array) -> Bo
         dx = float(pts[0] - origin[0])
         dy = float(pts[1] - origin[1])
         if dx == 0.0 and dy == 0.0:
-            return np.bool_(True)
+            return np.asarray(True, dtype=np.bool_)
         delta = math.atan2(dy, dx) - heading
-        off = (delta + math.pi) % (2.0 * math.pi) - math.pi
-        return np.bool_(abs(off) <= math.radians(fov_deg) / 2.0)
+        # atan2(sin, cos) is bit-for-bit what np.angle(np.exp(1j * delta)) returns
+        off = math.atan2(math.sin(delta), math.cos(delta))
+        return np.asarray(abs(off) <= math.radians(fov_deg) / 2.0, dtype=np.bool_)
     dx = pts[..., 0] - origin[0]
     dy = pts[..., 1] - origin[1]
-    # wrap Δbearing to [-π, π] without allocating a complex exponential
+    # wrapped to [-pi, pi]; atan2(sin, cos) is bit-for-bit np.angle(np.exp(1j * delta)), and a
+    # mod-based wrap is not: it moves cells that sit exactly on a wedge edge
     delta = np.arctan2(dy, dx) - heading
-    off_axis = np.mod(delta + math.pi, 2.0 * math.pi) - math.pi
+    off_axis = np.arctan2(np.sin(delta), np.cos(delta))
     half = math.radians(fov_deg) / 2.0
     inside: BoolArray = (np.abs(off_axis) <= half) | ((dx == 0) & (dy == 0))
     return inside
