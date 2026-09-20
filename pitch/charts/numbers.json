@@ -1,5 +1,5 @@
 {
-  "report": "/home/ishaan/projects/AirTight/pitch/report.json",
+  "report": "pitch/report.json",
   "conditions": {
     "far_per_hour_operating_point": 1.0,
     "adversary_knowledge": "open-loop adversary with full knowledge of the patrol policy and charge schedule; search plus LLM proposals",
@@ -9,6 +9,40 @@
     "n_seeds": 200
   },
   "n_configs": 12,
+  "minmax": [
+    {
+      "k": 0,
+      "fleet": "d2_go2_guard_sync",
+      "cost": 55.0,
+      "worst_pd": 0.050000000000000044,
+      "worst_family": "blind_spot",
+      "move": "stagger"
+    },
+    {
+      "k": 1,
+      "fleet": "d2_go2_guard_stagger",
+      "cost": 55.0,
+      "worst_pd": 0.0,
+      "worst_family": "blind_spot",
+      "move": "add_drone"
+    },
+    {
+      "k": 2,
+      "fleet": "d2_go2_guard_stagger+drone_stagger",
+      "cost": 62.0,
+      "worst_pd": 0.050000000000000044,
+      "worst_family": "blind_spot",
+      "move": "add_drone"
+    },
+    {
+      "k": 3,
+      "fleet": "d2_go2_guard_stagger+drone_stagger+drone_stagger",
+      "cost": 69.0,
+      "worst_pd": 0.0,
+      "worst_family": "charging_window",
+      "move": null
+    }
+  ],
   "cost_vs_detection": {
     "d1_go2_guard_sync": {
       "cost_per_hour": 48.0,

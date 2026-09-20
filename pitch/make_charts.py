@@ -455,6 +455,8 @@ def main(argv: list[str] | None = None) -> int:
         "conditions": r.conditions.model_dump(),
         "n_configs": len(r.configs),
     }
+    minmax_path = REPO / "data" / "minmax" / "summary.json"
+    numbers["minmax"] = json.loads(minmax_path.read_text()) if minmax_path.exists() else []
     chart_cost_vs_detection(r, p, args.out, numbers)
     chart_roc(r, p, args.out, numbers)
     chart_vulnerability_map(r, site, curves, args.tactics_dir, p, args.out, numbers)
