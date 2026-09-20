@@ -12,7 +12,7 @@ synthesizer, UKF tracking with Dempster-Shafer classification, and a human appro
 
 ```bash
 cd ~/projects
-git clone https://github.com/dimensionalOS/dimos.git && git -C dimos checkout 2282a4a52
+git clone -b drone-autonomy https://github.com/IshaanBansal2006/dimos-airtight.git dimos   # private working copy of dimOS
 git clone <this repo> AirTight && cd AirTight
 uv sync --extra dev
 ./scripts/check_pins.sh
@@ -22,7 +22,9 @@ uv run pytest
 
 dimOS needs its system packages first; run `scripts/install.sh` from the dimos checkout
 once, or follow its `docs/installation/`. On WSL2 source `scripts/dimos_env.sh` before any
-blueprint run.
+blueprint run. The dimos checkout is our private working copy on branch `drone-autonomy`;
+its `AIRTIGHT.md` says what may change there and what may not. Changes to dimOS go to that
+repo as pull requests, not into this one.
 
 ## Layout
 
