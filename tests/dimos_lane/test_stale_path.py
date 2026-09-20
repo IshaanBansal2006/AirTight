@@ -89,11 +89,13 @@ def test_skips_a_second_waypoint_closer_than_min_leg() -> None:
     site = load_logistics_site()
     entry = site.entry("rear_fence_gap").position
     asset = site.asset
+
     def along(frac: float) -> XY:
         return XY(
             x=entry.x + frac * (asset.x - entry.x),
             y=entry.y + frac * (asset.y - entry.y),
         )
+
     first = along(0.49)
     too_close = along(0.51)
     path = waypoints_through_stale(
@@ -167,7 +169,9 @@ def test_find_miss_catch_pair_raises_when_every_seed_catches() -> None:
     )
 
     def always_catch(*_args: object, **_kwargs: object) -> EpisodeResult:
-        return EpisodeResult(timely_detected=True, t_alarm=1.0, t_cdp=10.0, log_path=Path("x.jsonl"))
+        return EpisodeResult(
+            timely_detected=True, t_alarm=1.0, t_cdp=10.0, log_path=Path("x.jsonl")
+        )
 
     with pytest.raises(RuntimeError, match="no seed"):
         find_miss_catch_pair(

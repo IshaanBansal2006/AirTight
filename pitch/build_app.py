@@ -78,6 +78,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--clips", type=Path, default=REPO / "pitch" / "clips" / "clips_c.json")
     ap.add_argument("--minmax", type=Path, default=REPO / "data" / "minmax" / "summary.json")
     ap.add_argument("--template", type=Path, default=REPO / "pitch" / "app_template.html")
+    ap.add_argument("--clip-logs", type=Path, default=REPO / "data" / "clip_logs")
     ap.add_argument("--out", type=Path, default=REPO / "pitch" / "app.html")
     args = ap.parse_args(argv)
     report = Report.model_validate_json(args.report.read_text())
@@ -104,18 +105,12 @@ def main(argv: list[str] | None = None) -> int:
     threats.sort(key=lambda x: -x["miss"])
     cond = report.conditions
     miss_log = (
-        REPO
-        / "data"
-        / "clip_logs"
+        args.clip_logs
         / "miss"
         / f"{clips['baseline']}__{clips['tactic_id']}__{clips['seed']}.jsonl"
     )
     catch_log = (
-        REPO
-        / "data"
-        / "clip_logs"
-        / "catch"
-        / f"{clips['fixed']}__{clips['tactic_id']}__{clips['seed']}.jsonl"
+        args.clip_logs / "catch" / f"{clips['fixed']}__{clips['tactic_id']}__{clips['seed']}.jsonl"
     )
     payload = {
         "site": site.model_dump(mode="json"),

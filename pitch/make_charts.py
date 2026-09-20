@@ -331,6 +331,12 @@ def chart_vulnerability_map(
     }
 
 
+def two_lines(name: str) -> str:
+    """A fleet name split after its second part so two of them fit side by side in a narrow panel."""
+    parts = name.split("_")
+    return name if len(parts) <= 2 else "_".join(parts[:2]) + "\n" + "_".join(parts[2:])
+
+
 def chart_before_after(r: Report, fixed: str | None, p: Palette, out: Path, numbers: dict) -> None:
     base = r.config(r.baseline_config)
     others = [c for c in r.configs if c.config_name != r.baseline_config]
@@ -375,7 +381,7 @@ def chart_before_after(r: Report, fixed: str | None, p: Palette, out: Path, numb
             False,
         ),
     ]
-    fig, axes = plt.subplots(1, len(metrics), figsize=(2.75 * len(metrics), 4.2))
+    fig, axes = plt.subplots(1, len(metrics), figsize=(min(2.75 * len(metrics), 12.0), 4.2))
     for ax, (name, b, a, bci, aci, higher_is_better) in zip(axes, metrics, strict=True):
         ax.plot([0, 1], [b, a], color=p.axis, linewidth=1.2, zorder=1)
         for x, v, ci, color in ((0, b, bci, p.muted), (1, a, aci, p.series[0])):
@@ -398,7 +404,9 @@ def chart_before_after(r: Report, fixed: str | None, p: Palette, out: Path, numb
         else:
             verdict, color = "worse", p.critical
         ax.set_title(f"{name}\n{verdict}", fontsize=8, color=color)
-        ax.set_xticks([0, 1], [base.config_name, after.config_name], fontsize=7)
+        ax.set_xticks(
+            [0, 1], [two_lines(base.config_name), two_lines(after.config_name)], fontsize=7
+        )
         ax.set_xlim(-0.4, 1.4)
         ax.margins(y=0.3)
     fig.suptitle(
