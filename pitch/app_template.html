@@ -81,7 +81,7 @@
           <div class="cond"><span class="condlbl">Measured under</span><dl class="hm-cond" id="condList"></dl></div>
         </div>
         <div class="s" id="heroS">No report found. Run airtight-sweep, then pitch/build_app.py.</div>
-        <div class="range" id="range"></div>
+        <div class="range" id="range" hidden></div>
         <div class="range-lbl hm-rangelbl"><span id="rangeLo"></span><span id="rangeHi"></span></div>
         <div class="hm-note" id="condLine"></div>
       </div>
@@ -167,7 +167,7 @@
       </div>
       <div class="sect">
         <h2>Fleet memory</h2>
-        <div class="sub">What every robot knows right now: when each place was last seen, and the evidence behind the current track.</div>
+        <div class="sub">What every robot knows right now: how long ago each place was last seen, and the evidence behind the current track.</div>
         <div class="list" id="memoryList"></div>
         <div class="list" id="evidenceList"></div>
       </div>
@@ -227,7 +227,7 @@
           #tab-perception #pEnd{white-space:nowrap}
           @media (max-width:699px){#tab-perception .rp-stage.compare{grid-template-columns:minmax(0,1fr)}}
         </style>
-        <div class="rp-top"><div class="sub" id="pLead"></div><span class="rec"><i></i>recorded</span></div>
+        <div class="rp-top"><div class="sub" id="pLead"></div></div>
         <div class="rp-modes">
           <div class="seg" id="pMode" role="group" aria-label="Replay layout"><button type="button" data-mode="single" aria-pressed="true">One episode</button><button type="button" data-mode="compare" aria-pressed="false">Before and after</button></div>
           <div class="seg" id="pEpSeg" role="group" aria-label="Episode shown"><button type="button" data-ep="miss" aria-pressed="false">Before: missed</button><button type="button" data-ep="catch" aria-pressed="true">After: caught</button></div>
@@ -253,7 +253,7 @@
         <div class="sect"><h2>What happened</h2><ol class="rp-events" id="pEvents"></ol></div>
       </div>
       </div>
-      <div class="sect rp-side"><div class="sect"><h2>Agents</h2><div class="stats" id="agentCards"></div></div><div class="sect"><h2>Coverage right now</h2><div class="list" id="coverageList"></div></div></div>
+      <div class="sect rp-side"><div class="sect"><h2>Agents</h2><div class="stats" id="agentCards"></div></div><div class="sect"><h2>Time since each place was last seen</h2><div class="list" id="coverageList"></div></div></div>
     </section>
 
     <section class="page" id="tab-logs">
@@ -337,7 +337,7 @@ $('#envList').addEventListener('click', e => { const b = e.target.closest('butto
 /*__INCLUDE:scene3d.js__*/
 // ---------- fleet memory (derived from the recorded night) ----------
 function memoryAt(ep, t){ const zones = [...site.entry_points.map(e => [e.id.replaceAll('_',' '), e.position]), ['the asset', site.asset], ...site.docks.map(d => [d.id.replaceAll('_',' '), d.position])]; return zones.map(([name, z]) => { let seen=null, by=null; for (const id of agentsOf(ep)) { const range = (D.curves[(fleetAgents.find(a=>a.id===id)||{}).sensor_type] || {range: 25}).range; for (const p of ep.tracks[id]) { if (p[0] > t) break; if (Math.hypot(p[1]-z.x, p[2]-z.y) <= Math.min(range, 40) && (seen==null || p[0] > seen)) { seen = p[0]; by = id; } } } return {name, seen, by, stale: seen==null ? null : t - seen}; }); }
-function renderMemory(t){ const rows = memoryAt(catchEp, t); $('#memoryList').innerHTML = rows.map(r => `<div class="row ${r.seen==null ? 'sev-high' : (r.stale > 30 ? 'sev-med' : 'sev-low')}"><div class="dot"></div><div><div class="t">${esc(r.name)}</div><div class="s">${r.seen==null ? 'not seen yet tonight' : 'last seen by ' + esc(r.by.replace('_',' '))}</div></div><div class="n">${r.seen==null ? '—' : r.stale.toFixed(0) + ' s'}<span>ago</span></div></div>`).join(''); const ev = catchEp.detections.filter(d => d[0] <= t).slice(-6).reverse(); $('#evidenceList').innerHTML = ev.length ? ev.map(d => `<div class="row ${d[3] ? 'sev-high' : 'sev-low'}"><div class="dot"></div><div><div class="t">${esc(d[1].replace('_',' '))} saw ${esc(d[2])}</div><div class="s">${d[3] ? 'confirmed on the intruder track' : 'benign, dismissed by the tracker'}, near ${esc(zoneOf(...positionAt(catchEp.tracks[d[2]] || catchEp.tracks.intruder, d[0]).slice(1)))}</div></div><div class="n">${d[0].toFixed(0)} s<span>evidence</span></div></div>`).join('') : '<div class="empty">No evidence yet: nobody has seen the track.</div>'; }
+function renderMemory(t){ const rows = memoryAt(catchEp, t); $('#memoryList').innerHTML = rows.map(r => `<div class="row ${r.seen==null ? 'sev-high' : (r.stale > 30 ? 'sev-med' : 'sev-low')}"><div class="dot"></div><div><div class="t">${esc(r.name)}</div><div class="s">${r.seen==null ? 'not seen yet tonight' : 'last seen by ' + esc(r.by.replace('_',' '))}</div></div><div class="n">${r.seen==null ? 'never' : (r.stale < 1 ? 'now' : r.stale.toFixed(0) + ' s')}</div></div>`).join(''); const ev = catchEp.detections.filter(d => d[0] <= t).slice(-6).reverse(); $('#evidenceList').innerHTML = ev.length ? ev.map(d => `<div class="row ${d[3] ? 'sev-high' : 'sev-low'}"><div class="dot"></div><div><div class="t">${esc(d[1].replace('_',' '))} saw ${esc(d[2])}</div><div class="s">${d[3] ? 'confirmed on the intruder track' : 'benign, dismissed by the tracker'}, near ${esc(zoneOf(...positionAt(catchEp.tracks[d[2]] || catchEp.tracks.intruder, d[0]).slice(1)))}</div></div><div class="n">${d[0].toFixed(0)} s<span>evidence</span></div></div>`).join('') : '<div class="empty">No evidence yet: nobody has seen the track.</div>'; }
 renderMemory(catchEp.t_alarm || 0);
 
 // ---------- swarm: approvals ----------
@@ -407,7 +407,7 @@ function buildLogs(){ const L = []; const seedTime = (t) => `t = ${t.toFixed(0)}
 const filterNames = {all:'All', alert:'Alerts', human:'Decisions', llm:'LLM', round:'Red team', run:'Archive'};
 $('#logFilters').innerHTML = Object.entries(filterNames).map(([k,v]) => `<button data-f="${k}" aria-pressed="${k==='all'}">${v}</button>`).join('');
 $('#logFilters').addEventListener('click', e => { const b = e.target.closest('button[data-f]'); if(!b) return; logFilter = b.dataset.f; $('#logFilters').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x===b))); renderLogs(); });
-function renderLogs(){ const all = buildLogs(); const L = all.filter(l => logFilter==='all' || l.kind===logFilter); const tagText = {alert:'ALERT', human:'YOU', llm:'LLM', round:'RED', run:'ARCH'}; $('#logList').innerHTML = L.length ? L.map(l => `<details class="log"><summary><span class="tag ${l.kind}">${tagText[l.kind]}</span><span><span class="t">${esc(l.t)}</span><br><span class="s">${esc(l.when)}</span></span><span class="pill ${l.outcome}">${l.outcome === 'good' ? 'good' : l.outcome === 'bad' ? 'bad' : 'noted'}</span></summary><div class="body"><div><b>What happened</b>${esc(l.what)}</div><div><b>Result</b>${esc(l.result)}</div><div><b>What we would improve</b>${esc(l.improve)}</div></div></details>`).join('') : '<div class="empty">Nothing in this filter yet.</div>'; $('#retention').innerHTML = `<div class="sub"><b style="color:var(--ink)">Where the record lives.</b> This phone keeps the last 200 entries. Everything older, and every raw episode log, is in the results archive by run (${D.runs.map(r => r.path).join(', ') || 'results/'}) with a manifest that names the commit, the site and the sensor curve it came from. Airtight tightens the airspace one night at a time: every alert, decision and red-team round above feeds the next fix.</div>`; }
+function renderLogs(){ const all = buildLogs(); const L = all.filter(l => logFilter==='all' || l.kind===logFilter); const tagText = {alert:'ALERT', human:'YOU', llm:'LLM', round:'RED', run:'ARCH'}; $('#logList').innerHTML = L.length ? L.map(l => `<details class="log"><summary><span class="tag ${l.kind}">${tagText[l.kind]}</span><span><span class="t">${esc(l.t)}</span><br><span class="s">${esc(l.when)}</span></span><span class="pill ${l.outcome}">${l.outcome === 'good' ? 'caught in time' : l.outcome === 'bad' ? (l.kind === 'round' ? 'hole found' : 'missed') : ''}</span></summary><div class="body"><div><b>What happened</b>${esc(l.what)}</div><div><b>Result</b>${esc(l.result)}</div><div><b>What we would improve</b>${esc(l.improve)}</div></div></details>`).join('') : '<div class="empty">Nothing in this filter yet.</div>'; $('#retention').innerHTML = `<div class="sub"><b style="color:var(--ink)">Where the record lives.</b> This phone keeps the last 200 entries. Everything older, and every raw episode log, is in the results archive by run (${D.runs.map(r => r.path).join(', ') || 'results/'}) with a manifest that names the commit, the site and the sensor curve it came from. Airtight tightens the airspace one night at a time: every alert, decision and red-team round above feeds the next fix.</div>`; }
 renderLogs();
 })();
 </script>

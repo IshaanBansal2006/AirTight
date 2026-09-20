@@ -318,3 +318,6 @@ dialog.gloss dt{font-weight:var(--w-strong);margin-top:var(--space-4)}
 dialog.gloss dt:first-child{margin-top:0}
 dialog.gloss dd{margin:var(--space-1) 0 0;color:var(--ink-2);line-height:1.45}
 .glossclose{margin-top:var(--space-5);font:var(--w-label) var(--text-sm,13px)/1 var(--font);color:var(--surface);background:var(--ink);border:0;border-radius:var(--radius-1);padding:var(--space-3) var(--space-4);min-height:40px;cursor:pointer}
+
+/* a log entry with nothing to say about its outcome shows no chip */
+#logList summary span:empty{display:none}
