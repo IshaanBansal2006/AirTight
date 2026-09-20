@@ -242,6 +242,8 @@ def do_looks(
     does not commute: a hit then a miss at the floor differs from a miss then a hit.
     """
     looks: list[Look] = []
+    if not objects:
+        return looks
     due = [
         observer
         for observer in sorted(observers, key=lambda o: o.agent_id)
@@ -250,6 +252,8 @@ def do_looks(
     if not due:
         return looks
     alive = sorted((obj for obj in objects if obj.alive(t)), key=lambda o: o.object_id)
+    if not alive:
+        return looks
     positions = [obj.position(t) for obj in alive]
     for observer in due:
         for obj, xy in zip(alive, positions, strict=True):

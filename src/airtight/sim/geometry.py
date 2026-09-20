@@ -196,7 +196,7 @@ def in_wedge(origin: Array, heading: float, fov_deg: float, points: Array) -> Bo
     points is (..., 2); the result has shape points.shape[:-1]. fov_deg >= 360 is always True,
     and so is a point at distance 0, whose bearing is undefined. Range is not checked here.
     """
-    pts = np.asarray(points, dtype=np.float64)
+    pts = points if isinstance(points, np.ndarray) else np.asarray(points, dtype=np.float64)
     if fov_deg >= 360.0:
         return np.ones(pts.shape[:-1], dtype=np.bool_)
     if pts.ndim == 1:
@@ -234,9 +234,10 @@ def voronoi_mask(
         return np.ones(centres.shape[:2], dtype=np.bool_)
     own = np.asarray(own_xy, dtype=np.float64)
     d_own = ((centres - own) ** 2).sum(axis=-1)  # squared distance keeps ties exact
-    peer_ids = np.fromiter(peers, dtype=np.int64, count=len(peers))
-    peer_xy = np.stack([np.asarray(peers[int(i)], dtype=np.float64) for i in peer_ids])
-    d_peer = ((centres[..., None, :] - peer_xy) ** 2).sum(axis=-1)
-    own_wins = (d_own[..., None] < d_peer) | ((d_own[..., None] == d_peer) & (own_id < peer_ids))
-    mask: BoolArray = own_wins.all(axis=-1)
+    # AND over peers in 2-D: same predicate as a stacked (rows, cols, n_peers) all-reduce,
+    # without the 3-D temporary. AND is commutative, so dict order does not matter.
+    mask: BoolArray = np.ones(centres.shape[:2], dtype=np.bool_)
+    for pid, pxy in peers.items():
+        d_p = ((centres - np.asarray(pxy, dtype=np.float64)) ** 2).sum(axis=-1)
+        mask &= (d_own < d_p) | ((d_own == d_p) & (own_id < pid))
     return mask

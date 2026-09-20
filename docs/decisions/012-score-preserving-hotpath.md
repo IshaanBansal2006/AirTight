@@ -44,3 +44,10 @@ Optimize **how** the existing formulas run, not **what** they compute.
 - v0 `run_config(..., prune_logs=True)` (CLI default) reads peaks from `EpisodeScores` and writes no JSONL. `--keep-logs` is the old full-log path. Replay export and miss/catch clips still request `full_log=True`, and clip search uses header+outcome until a pair is found.
 - `--handoff` writes HTML + `clips.json`; pass `--mp4` for ffmpeg.
 - Evidence conflicts compare a field tuple, not two `model_dump_json()` strings. `delta` caches the JSONL line after the first serialize.
+
+## Follow-up: mark_seen / retarget allocations
+
+- A 360° footprint (the drone camera) is a disk: the wedge is identically true and is not computed.
+- `retarget` returns immediately when no agent has arrived or hit its period, and writes distance / staleness into per-controller work arrays.
+- Voronoi membership ANDs one peer at a time in 2-D (same ties: lower id wins) instead of a 3-D broadcast.
+- `pd_per_look` keeps numpy bin edges per curve so each look does not re-wrap the Python list.

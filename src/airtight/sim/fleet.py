@@ -20,6 +20,7 @@ import numpy as np
 
 from airtight.sim import adapt
 from airtight.sim.geometry import in_wedge, voronoi_mask
+from airtight.sim.sensing import FixedObserver
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -113,6 +114,18 @@ class PatrolController:
         self._rngs: dict[str, np.random.Generator] = {}
         # Fixed sensors never move: the disk+wedge mask is constant for the episode.
         self._static_footprint: dict[int, tuple[int, int, int, int, np.ndarray]] = {}
+        self._xmin = grid.xmin
+        self._ymin = grid.ymin
+        self._cell_size = grid.cell_size
+        self._rows = grid.rows
+        self._cols = grid.cols
+        self._work_dx = np.empty(grid.shape, dtype=np.float64)
+        self._work_dy = np.empty(grid.shape, dtype=np.float64)
+        self._work_dist = np.empty(grid.shape, dtype=np.float64)
+        self._work_stale = np.empty(grid.shape, dtype=np.float64)
+        self._work_base = np.empty(grid.shape, dtype=np.float64)
+        self._work_util = np.empty(grid.shape, dtype=np.float64)
+        self._empty_seen = np.zeros((0, 0), dtype=np.bool_)
 
     def rng_for(self, agent_id: str) -> np.random.Generator:
         if agent_id not in self._rngs:
@@ -133,20 +146,22 @@ class PatrolController:
     def _footprint_window(
         self, pos: Array, heading: float, fov_deg: float, radius_m: float
     ) -> tuple[int, int, int, int, np.ndarray]:
-        """Boolean mask of cell centres inside the observer's disk and wedge, plus its bbox."""
-        xmin, ymin = self.grid.xmin, self.grid.ymin
-        cs = self.grid.cell_size
-        rows, cols = self.grid.rows, self.grid.cols
+        """Boolean mask of cell centres inside the observer's disk and wedge, plus its bbox.
+
+        A 360° camera (the drone) is a disk: the wedge is identically true and is not computed.
+        """
         x, y = float(pos[0]), float(pos[1])
-        col0 = max(0, int(math.floor((x - radius_m - xmin) / cs)) - 1)
-        col1 = min(cols, int(math.ceil((x + radius_m - xmin) / cs)) + 1)
-        row0 = max(0, int(math.floor((y - radius_m - ymin) / cs)) - 1)
-        row1 = min(rows, int(math.ceil((y + radius_m - ymin) / cs)) + 1)
+        cs = self._cell_size
+        col0 = max(0, int(math.floor((x - radius_m - self._xmin) / cs)) - 1)
+        col1 = min(self._cols, int(math.ceil((x + radius_m - self._xmin) / cs)) + 1)
+        row0 = max(0, int(math.floor((y - radius_m - self._ymin) / cs)) - 1)
+        row1 = min(self._rows, int(math.ceil((y + radius_m - self._ymin) / cs)) + 1)
         if row0 >= row1 or col0 >= col1:
-            return row0, row1, col0, col1, np.zeros((0, 0), dtype=np.bool_)
+            return row0, row1, col0, col1, self._empty_seen
         window = self._centres[row0:row1, col0:col1]
         seen = np.hypot(window[..., 0] - x, window[..., 1] - y) <= radius_m
-        seen &= in_wedge(pos, heading, fov_deg, window)
+        if fov_deg < 360.0:
+            seen &= in_wedge(pos, heading, fov_deg, window)
         return row0, row1, col0, col1, seen
 
     def mark_seen(self, observers: Sequence[Observer], t: float) -> None:
@@ -159,13 +174,13 @@ class PatrolController:
         for agent in observers:
             if not agent.active:
                 continue
-            static = not hasattr(agent, "speed_mps")
-            if static:
+            if isinstance(agent, FixedObserver):
                 cached = self._static_footprint.get(id(agent))
                 if cached is None:
-                    cached = self._footprint_window(
+                    row0, row1, col0, col1, seen = self._footprint_window(
                         agent.pos, agent.heading, agent.fov_deg, agent.footprint_radius_m
                     )
+                    cached = (row0, row1, col0, col1, seen)
                     self._static_footprint[id(agent)] = cached
                 row0, row1, col0, col1, seen = cached
             else:
@@ -175,27 +190,36 @@ class PatrolController:
             if seen.size:
                 self.last_seen[row0:row1, col0:col1][seen] = t
 
+    def _due_to_retarget(self, agent: AgentState, t: float) -> bool:
+        dx = float(agent.target[0] - agent.pos[0])
+        dy = float(agent.target[1] - agent.pos[1])
+        arrived = math.hypot(dx, dy) <= agent.footprint_radius_m / 2.0
+        return arrived or t - agent.last_retarget_t >= self.retarget_period_s
+
     def retarget(self, agents: list[AgentState], t: float) -> None:
+        due_ids = {a.agent_id for a in agents if a.patrolling and self._due_to_retarget(a, t)}
+        if not due_ids:
+            return
         active = sorted((a for a in agents if a.patrolling), key=lambda a: a.index)
         weighted_stale: Array | None = None
         for agent in active:
-            dx = float(agent.target[0] - agent.pos[0])
-            dy = float(agent.target[1] - agent.pos[1])
-            to_target = math.hypot(dx, dy)
-            arrived = to_target <= agent.footprint_radius_m / 2.0
-            if not arrived and t - agent.last_retarget_t < self.retarget_period_s:
+            if agent.agent_id not in due_ids:
                 continue
             peers = {a.index: a.pos for a in active if a is not agent}
             region = voronoi_mask(self._centres, agent.pos, peers, agent.index)
-            distance = np.hypot(
-                self._centres[..., 0] - agent.pos[0], self._centres[..., 1] - agent.pos[1]
-            )
+            np.subtract(self._centres[..., 0], agent.pos[0], out=self._work_dx)
+            np.subtract(self._centres[..., 1], agent.pos[1], out=self._work_dy)
+            np.hypot(self._work_dx, self._work_dy, out=self._work_dist)
             if weighted_stale is None:
-                weighted_stale = self.staleness(t) * self.weight
-            base = weighted_stale / (1.0 + distance / self.d0_m)
-            utility = base * region
+                np.subtract(t, self.last_seen, out=self._work_stale)
+                np.maximum(self._work_stale, 0.0, out=self._work_stale)
+                np.multiply(self._work_stale, self.weight, out=self._work_stale)
+                weighted_stale = self._work_stale
+            np.divide(weighted_stale, 1.0 + self._work_dist / self.d0_m, out=self._work_base)
+            np.multiply(self._work_base, region, out=self._work_util)
+            utility: Array = self._work_util
             if not np.any(utility > 0):
-                utility = base
+                utility = self._work_base
             if not np.any(utility > 0):
                 continue  # nothing worth visiting: keep the old target, draw nothing
             flat = utility.ravel()
@@ -204,7 +228,7 @@ class PatrolController:
             # stable sort: ties resolve by cell index, so the candidate set is reproducible
             top = positive[np.argsort(-flat[positive], kind="stable")][:k]
             pick = int(top[int(self.rng_for(agent.agent_id).integers(k))])
-            row, col = divmod(pick, self.grid.cols)
+            row, col = divmod(pick, self._cols)
             agent.target = self._centres[row, col].copy()
             agent.last_retarget_t = t
 
@@ -214,14 +238,17 @@ def step_agents(agents: list[AgentState], dt: float) -> None:
     for agent in agents:
         if not agent.active:
             continue
-        delta = agent.target - agent.pos
-        dx, dy = float(delta[0]), float(delta[1])
+        dx = float(agent.target[0]) - float(agent.pos[0])
+        dy = float(agent.target[1]) - float(agent.pos[1])
         distance = math.hypot(dx, dy)
         if distance == 0.0:
             continue
         agent.heading = math.atan2(dy, dx)
         step = agent.speed_mps * dt
         if distance <= step + _ARRIVE_EPS_M:
-            agent.pos = agent.target.copy()
+            agent.pos[0] = float(agent.target[0])
+            agent.pos[1] = float(agent.target[1])
         else:
-            agent.pos = agent.pos + delta * (step / distance)
+            s = step / distance
+            agent.pos[0] += dx * s
+            agent.pos[1] += dy * s

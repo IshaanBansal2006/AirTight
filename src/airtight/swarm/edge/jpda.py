@@ -115,9 +115,14 @@ class JPDA:
         "missed or fell outside the gate"). Bayes-normalized.
         """
         weights = [self.cfg.p_false_alarm * (1.0 - self.cfg.p_detection * P_GATE)]
-        for det in gated_detections:
-            likelihood = gaussian_likelihood(det.measurement - z_pred, S)
-            weights.append(self.cfg.p_detection * likelihood)
+        if gated_detections:
+            Z = np.stack([det.measurement for det in gated_detections])
+            d = Z - z_pred
+            # Same quadratic form as gaussian_likelihood, batched over detections.
+            m = d.shape[1]
+            norm = 1.0 / np.sqrt((2.0 * np.pi) ** m * np.linalg.det(S))
+            quad = np.einsum("ni,ni->n", d, np.linalg.solve(S, d.T).T)
+            weights.extend((self.cfg.p_detection * norm * np.exp(-0.5 * quad)).tolist())
         betas = np.asarray(weights)
         return betas / betas.sum()
 

@@ -85,6 +85,18 @@ def test_mark_seen_window_matches_full_grid() -> None:
     assert np.array_equal(marked, expected)
 
 
+def test_mark_seen_360_fov_is_disk_only() -> None:
+    """A 360° camera must mark the disk and skip the wedge; drones use this path."""
+    grid = Grid(0.0, 0.0, 300.0, 200.0, 5.0)
+    weight = np.ones(grid.shape, dtype=np.float64)
+    agent = _agent((80.0, 90.0), radius=22.0, fov=360.0, heading=math.pi / 3)
+    ctrl = PatrolController(grid, weight, seed=0, t_start=0.0)
+    ctrl.mark_seen([agent], t=5.0)
+    centres = grid.cell_centers()
+    expected = np.hypot(centres[..., 0] - agent.pos[0], centres[..., 1] - agent.pos[1]) <= 22.0
+    assert np.array_equal(ctrl.last_seen == 5.0, expected)
+
+
 def test_fixed_sensor_mask_is_cached_and_identical() -> None:
     grid = Grid(0.0, 0.0, 80.0, 80.0, 5.0)
     weight = np.ones(grid.shape, dtype=np.float64)
