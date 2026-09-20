@@ -4,7 +4,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://cdnjs.cloudflare.com">
 <link rel="preload" as="script" href="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;700&family=Barlow+Semi+Condensed:wght@700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;600&display=swap">
 <style>
 /*__INCLUDE:app.css__*/
 </style>
@@ -13,28 +13,86 @@
   <header class="topbar">
     <button class="envbtn" id="envBtn" aria-haspopup="dialog" aria-expanded="false"><i></i><span id="envName">Logistics yard</span><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
     <div class="title" id="pageTitle">Tonight</div>
+    <button type="button" class="glossbtn" id="glossBtn" aria-haspopup="dialog">Glossary</button>
     <div class="avatar" title="Operator on duty">OP</div>
     <div class="pop" id="envPop" hidden role="dialog" aria-label="Choose an environment"><h3>Environments</h3><div id="envList"></div></div>
   </header>
+  <nav class="tabbar" aria-label="Pages">
+    <button data-tab="tab-home" aria-selected="true"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Home</button>
+    <button data-tab="tab-map" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15M15 6v15"/></svg>Map</button>
+    <button data-tab="tab-swarm" aria-selected="false" class="center"><span class="orb"><svg viewBox="0 0 24 24"><path d="M12 3v4M5 8l3 3M19 8l-3 3M12 21a5 5 0 0 0 5-5v-3H7v3a5 5 0 0 0 5 5z"/></svg></span>Swarm</button>
+    <button data-tab="tab-perception" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>Perception</button>
+    <button data-tab="tab-logs" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M5 4h14v16H5zM9 9h6M9 13h6M9 17h4"/></svg>Logs</button>
+  </nav>
   <main id="main">
     <section class="page active" id="tab-home">
       <div class="hero">
-        <div class="k" id="heroK">Airspace score, timely detection at one false alarm an hour</div>
-        <div class="big" id="heroBig">–</div>
-        <div class="s" id="heroS"></div>
+        <style>
+          #tab-home .headline{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr)}
+          #tab-home .hm-figs{display:flex;flex-direction:column;gap:var(--space-4);min-width:0}
+          #tab-home .hm-fig .lab{font-size:var(--text-sm);font-weight:var(--w-label);color:var(--ink-2)}
+          #tab-home .hm-fig .big{margin-top:var(--space-1)}
+          #tab-home .hm-fig .big.second{font-size:var(--text-2xl)}
+          #tab-home .hm-fig .ci{white-space:normal}
+          #tab-home .hm-cond{margin:0;display:grid;grid-template-columns:1fr;gap:var(--space-2)}
+          #tab-home .hm-cond dt{font-size:var(--text-xs);color:var(--ink-3)}
+          #tab-home .hm-cond dd{margin:0;font-size:var(--text-sm);color:var(--ink);line-height:1.3}
+          #tab-home .hm-note{font-size:var(--text-xs);line-height:1.4;color:var(--ink-2);margin-top:var(--space-2)}
+          #tab-home .hm-empty{font-size:var(--text-sm);color:var(--ink-2);padding:var(--space-4);border:1px dashed var(--hair)}
+          #tab-home .hm-chartcard{position:relative;padding:var(--space-3) var(--space-2) var(--space-3)}
+          #tab-home .hm-cap{font-size:var(--text-xs);color:var(--ink-2);line-height:1.4;padding:var(--space-2) var(--space-2) 0;max-width:70ch}
+          #tab-home .hm-legend{padding:var(--space-2) var(--space-2) 0}
+          #tab-home .hm-legend svg{width:14px;height:12px;vertical-align:-2px;margin-right:4px;overflow:visible}
+          #tab-home .chart{overflow:visible}
+          #tab-home .chart .grid{stroke:var(--grid);stroke-width:1}
+          #tab-home .chart .axis{stroke:var(--ink-3);stroke-width:1}
+          #tab-home .chart text{fill:var(--ink-3)}
+          #tab-home .chart text.ttl{fill:var(--ink-2);font-weight:var(--w-label)}
+          #tab-home .chart text.lbl{fill:var(--ink-2);font-weight:var(--w-text)}
+          #tab-home .chart text.lbl.strong{fill:var(--ink);font-weight:var(--w-strong)}
+          #tab-home .chart text.delta{fill:var(--fleet-drone);font-weight:var(--w-strong)}
+          #tab-home .chart .halo{stroke:var(--surface);stroke-width:3px;paint-order:stroke;stroke-linejoin:round}
+          #tab-home .chart .front{fill:none;stroke:var(--ink-3);stroke-width:1.25}
+          #tab-home .chart .lead{stroke:var(--ink-3);stroke-width:.75}
+          #tab-home .chart .whisk{stroke:var(--fleet-drone);stroke-width:1.25}
+          #tab-home .chart .mk{fill:var(--fleet-drone);stroke:var(--fleet-drone);stroke-width:1.5}
+          #tab-home .chart .mk.sync{fill:var(--surface)}
+          #tab-home .chart .basept .mk{stroke:var(--ink);fill:var(--surface)}
+          #tab-home .chart .basept .mk.stag{fill:var(--ink)}
+          #tab-home .chart .basept .whisk{stroke:var(--ink)}
+          #tab-home .chart .ring{fill:none;stroke:var(--fleet-drone);stroke-width:1.25}
+          #tab-home .chart .arrow{stroke:var(--fleet-drone);stroke-width:1.5;fill:none}
+          #tab-home .chart .arrowhead{fill:var(--fleet-drone)}
+          #tab-home .chart .pt{cursor:pointer;outline:none}
+          #tab-home .chart .pt .hit{fill:transparent}
+          #tab-home .chart .pt .focus{fill:none;stroke:none}
+          #tab-home .chart .pt:focus-visible .focus,#tab-home .chart .pt:hover .focus{stroke:var(--focus);stroke-width:2}
+          #tab-home .hm-tip{position:absolute;z-index:3;pointer-events:none;background:var(--surface);border:1px solid var(--ink);border-radius:var(--radius-1);padding:var(--space-2) var(--space-3);font-size:var(--text-xs);color:var(--ink-2);line-height:1.45;width:max-content;max-width:min(260px,calc(100% - 16px))}
+          #tab-home .hm-tip b{display:block;color:var(--ink);font-weight:var(--w-strong);font-size:var(--text-sm)}
+          #tab-home .hm-tip span{color:var(--ink)}
+          #tab-home .hm-rangelbl{align-items:baseline}
+        </style>
+        <div class="k" id="heroK">Current configuration</div>
+        <div class="headline">
+          <div class="hm-figs">
+            <div class="hm-fig"><div class="lab">Caught in time</div><div class="big" id="heroBig">No report found</div></div>
+            <div class="hm-fig"><div class="lab">Worst attack found, caught in time</div><div class="big second" id="worstBig"></div></div>
+          </div>
+          <div class="cond"><span class="condlbl">Measured under</span><dl class="hm-cond" id="condList"></dl></div>
+        </div>
+        <div class="s" id="heroS">No report found. Run airtight-sweep, then pitch/build_app.py.</div>
         <div class="range" id="range"></div>
-        <div class="range-lbl"><span id="rangeLo"></span><span id="rangeHi"></span></div>
-        <div class="chips" id="heroChips" style="margin-top:10px"></div>
+        <div class="range-lbl hm-rangelbl"><span id="rangeLo"></span><span id="rangeHi"></span></div>
+        <div class="hm-note" id="condLine"></div>
       </div>
       <div class="card costcard">
-        <div class="costrow"><div><div class="sub">Fleet cost</div><div class="v" id="costBig">–</div></div><div style="text-align:right"><div class="sub">Detection per dollar</div><div class="v" id="ppd">–</div></div></div>
+        <div class="costrow"><div><div class="sub">Fleet cost</div><div class="v" id="costBig"></div></div><div style="text-align:right"><div class="sub">Caught in time per dollar</div><div class="v" id="ppd"></div></div></div>
         <div class="savings" id="savings"></div>
       </div>
       <div class="stats" id="tiles"></div>
       <div class="sect">
-        <h2>Every fleet mix, scored</h2>
-        <div class="card" style="padding:12px 8px 8px"><svg class="chart" id="frontier" viewBox="0 0 360 230" role="img" aria-label="Detection versus cost for every fleet configuration"></svg><div class="legend" style="padding:4px 6px 0;font-size:11px"><span><i style="background:var(--good)"></i>deployed</span><span><i style="background:var(--atk)"></i>baseline</span><span><i style="background:var(--ink3)"></i>other mixes</span></div></div>
-        <div class="sub" id="condLine"></div>
+        <h2>Cost against caught in time, every configuration</h2>
+        <div class="card hm-chartcard" id="frontierCard"><svg class="chart" id="frontier" role="group" aria-label="Cost in dollars per hour against percentage of intrusions caught in time, one point per fleet configuration"></svg><div class="hm-tip" id="frontierTip" hidden></div><div class="legend hm-legend" id="frontierLegend"></div><div class="hm-cap" id="frontierCap"></div></div>
       </div>
       <div class="sect">
         <h2>On the ground tonight</h2>
@@ -43,13 +101,51 @@
     </section>
 
     <section class="page" id="tab-map">
+      <style>
+        #tab-map .viewer{aspect-ratio:16/10;height:auto;min-height:320px;width:100%;background:var(--surface);user-select:none;-webkit-user-select:none;cursor:grab}
+        #tab-map .viewer.dragging{cursor:grabbing}
+        #tab-map .m3-labels{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+        #tab-map .m3-label{position:absolute;left:0;top:0;white-space:nowrap;font-size:11px;line-height:14px;font-weight:600;color:var(--ink);padding:0 4px;border-radius:var(--radius-1,3px);background:color-mix(in srgb,var(--surface) 78%,transparent);will-change:transform}
+        #tab-map .m3-label.quiet{font-weight:500;color:var(--ink-2,var(--ink2))}
+        #tab-map .m3-label.strong{background:var(--ink);color:var(--surface)}
+        #tab-map .viewer .hud{z-index:2}
+        #tab-map .viewer .hud button{padding:5px 10px;border-radius:var(--radius-1,3px);border:1px solid var(--hair);background:var(--surface);color:var(--ink);font:inherit;font-size:12px;font-weight:500;cursor:pointer;min-height:30px}
+        #tab-map .viewer .hud button[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+        #tab-map .m3-scale{position:absolute;left:12px;bottom:12px;font-size:11px;color:var(--ink);pointer-events:none;display:flex;flex-direction:column;gap:2px}
+        #tab-map .m3-scale i{display:block;height:6px;border:1.5px solid var(--ink);border-top:0;box-sizing:border-box}
+        #tab-map .m3-time{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--hair);border-radius:var(--radius-2,4px);padding:8px 12px}
+        #tab-map .m3-time input[type=range]{flex:1 1 160px;min-width:120px;accent-color:var(--ink)}
+        #tab-map .m3-time .m3-play{width:36px;height:36px;border-radius:var(--radius-1,3px);border:0;background:var(--ink);color:var(--surface);cursor:pointer;font-size:13px;flex:none}
+        #tab-map .m3-time output{font-variant-numeric:tabular-nums;font-size:12px;color:var(--ink);min-width:132px}
+        #tab-map .m3-time .seg button{box-shadow:none;border:1px solid var(--hair)}
+        #tab-map .m3-caption{font-size:12px;color:var(--ink-2,var(--ink2));margin:8px 2px}
+        #tab-map .m3-caption b{color:var(--ink);font-weight:600}
+        #tab-map .m3-legend{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:4px 14px;font-size:12px;color:var(--ink-2,var(--ink2));margin:10px 2px}
+        #tab-map .m3-legend span{display:flex;align-items:center;gap:7px}
+        #tab-map .m3-legend .m3-note{grid-column:1/-1;margin-top:6px;color:var(--ink)}
+        #tab-map .m3-legend svg{width:18px;height:18px;flex:none}
+        #tab-map #roundSeg button{border-radius:var(--radius-1,3px);border:1px solid var(--hair);box-shadow:none;background:var(--surface);color:var(--ink)}
+        #tab-map #roundSeg button[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+        #tab-map #roundSeg .m3-layer i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px;outline:1px solid var(--surface)}
+        #tab-map .m3-time .seg button{border-radius:var(--radius-1,3px)}
+        #tab-map .m3-time .seg button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+      </style>
       <div class="sub" id="mapLead"></div>
       <div class="viewer" id="viewer">
+        <div class="m3-labels" id="mapLabels"></div>
         <div class="hud" id="hud"></div>
-        <div class="hint">drag to orbit, pinch to zoom, two fingers to pan</div>
+        <div class="m3-scale" id="mapScale"><span></span><i></i></div>
+        <div class="hint" id="mapHint">Grid lines every 10 m. Drag to orbit, right-drag or two fingers to pan, scroll or pinch to zoom.</div>
       </div>
+      <div class="m3-time" id="mapTime">
+        <button class="m3-play" id="mapPlay" aria-label="Play">▶</button>
+        <input type="range" id="mapScrub" min="0" max="60" step="0.1" value="0" aria-label="Scene time in seconds">
+        <output id="mapClock"></output>
+        <div class="seg" id="mapEp"><button data-ep="miss" aria-pressed="false">Before: missed</button><button data-ep="catch" aria-pressed="true">After: caught</button></div>
+      </div>
+      <div class="m3-caption" id="mapCaption"></div>
       <div class="seg" id="roundSeg"></div>
-      <div class="legend"><span><i style="background:var(--sec)"></i>where the fleet patrolled</span><span><i style="background:var(--atk)"></i>attack paths that still landed</span><span><i style="background:#bbb092"></i>decoy</span></div>
+      <div class="m3-legend" id="mapLegend"></div>
       <div class="sect"><h2>Holes the red team found</h2><div class="list" id="holeList"></div></div>
     </section>
 
@@ -80,12 +176,84 @@
     </section>
 
     <section class="page" id="tab-perception">
-      <div style="display:flex;justify-content:space-between;align-items:center"><div class="sub" id="pLead"></div><span class="rec"><i></i>recorded</span></div>
-      <canvas class="pcanvas" id="pcanvas" width="800" height="480" aria-label="Perception map: fleet positions, sensor footprints and tracks"></canvas>
-      <div class="tl"><span id="pT">t = 0 s</span><div class="bar"><i id="pBar" style="width:0%"></i></div><span id="pEnd"></span></div>
-      <div class="sect"><h2>Track under investigation</h2><div class="card" style="padding:12px 8px 6px"><svg class="spark" id="spark" viewBox="0 0 360 120" role="img" aria-label="Intruder track score over time"></svg></div></div>
-      <div class="sect"><h2>Agents</h2><div class="stats" id="agentCards"></div></div>
-      <div class="sect"><h2>Coverage right now</h2><div class="list" id="coverageList"></div></div>
+      <div class="rp-main">
+      <div class="rp-head">
+        <style>
+          #tab-perception.active{grid-template-rows:auto}
+          #tab-perception>.rp-main{display:flex;flex-direction:column;gap:var(--space-4);min-width:0;grid-column:1;grid-row:1}
+          #tab-perception>.rp-side{grid-column:2;grid-row:1;align-self:start}
+          #tab-perception [hidden]{display:none!important}
+          #tab-perception .rp-head{display:flex;flex-direction:column;gap:var(--space-2);min-width:0}
+          #tab-perception .rp-top{display:flex;justify-content:space-between;align-items:flex-start;gap:var(--space-3)}
+          #tab-perception .rp-modes{display:flex;flex-wrap:wrap;gap:var(--space-2) var(--space-4);align-items:center}
+          #tab-perception .rp-stage{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--space-3);min-width:0;border-radius:var(--radius-2)}
+          #tab-perception .rp-stage.compare{grid-template-columns:repeat(2,minmax(0,1fr))}
+          #tab-perception .rp-stage:focus-visible{outline:2px solid var(--focus);outline-offset:3px}
+          #tab-perception .rp-view{margin:0;min-width:0;display:flex;flex-direction:column;gap:var(--space-1);justify-content:flex-end}
+          #tab-perception .rp-view figcaption{font-size:var(--text-xs);color:var(--ink-2);line-height:1.4}
+          #tab-perception .rp-view figcaption b{color:var(--ink);font-weight:var(--w-strong)}
+          #tab-perception .rp-view figcaption .rp-alarm{color:var(--alarm);font-weight:var(--w-strong)}
+          #tab-perception .pcanvas{aspect-ratio:auto;height:auto;touch-action:pan-y}
+          #tab-perception .rp-empty{border:var(--border);border-radius:var(--radius-2);background:var(--surface);margin:0}
+          #tab-perception .rp-panel{display:flex;flex-direction:column;gap:var(--space-2);min-width:0}
+          #tab-perception .rp-controls{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-3);background:var(--surface);border:var(--border);border-radius:var(--radius-2);padding:var(--space-2) var(--space-3)}
+          #tab-perception .rp-btn{min-height:36px;padding:6px var(--space-3);border:1px solid var(--hair);border-radius:var(--radius-2);background:var(--surface);color:var(--ink);font:inherit;font-size:var(--text-sm);font-weight:var(--w-label);cursor:pointer;white-space:nowrap}
+          #tab-perception .rp-btn:hover{background:var(--surface-2)}
+          #tab-perception .rp-btn.primary{background:var(--ink);border-color:var(--ink);color:var(--surface);min-width:72px}
+          #tab-perception .rp-btn:disabled{color:var(--ink-3);cursor:default;background:var(--surface)}
+          #tab-perception .rp-scrub{display:flex;align-items:center;gap:var(--space-2);flex:1 1 260px;min-width:0;font-size:var(--text-xs);color:var(--ink-2)}
+          #tab-perception .rp-scrub input{flex:1 1 auto;min-width:0;width:100%;accent-color:var(--ink);height:28px;margin:0}
+          #tab-perception .rp-scrub output{font-variant-numeric:tabular-nums lining-nums;white-space:nowrap;color:var(--ink);min-width:44px}
+          #tab-perception .rp-speed{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-xs);color:var(--ink-2)}
+          #tab-perception .rp-keys{font-size:var(--text-xs);color:var(--ink-3);margin:0}
+          #tab-perception .rp-legend{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-4);font-size:var(--text-xs);color:var(--ink-2)}
+          #tab-perception .rp-legend span{display:inline-flex;align-items:center;gap:6px}
+          #tab-perception .rp-legend svg{width:14px;height:14px;flex:none}
+          #tab-perception .rp-lower{display:flex;flex-direction:column;gap:var(--space-5);min-width:0}
+          #tab-perception .rp-chartcard{padding:var(--space-2);min-width:0}
+          #tab-perception .spark{cursor:pointer;overflow:visible}
+          #tab-perception .spark text{font-size:11px}
+          #tab-perception .spark .halo{paint-order:stroke;stroke:var(--surface);stroke-width:3px;stroke-linejoin:round}
+          #tab-perception .rp-note{font-size:var(--text-xs);color:var(--ink-2);margin:var(--space-1) 2px 0}
+          #tab-perception .rp-events{list-style:none;margin:0;padding:0;border:var(--border);border-radius:var(--radius-2);background:var(--surface)}
+          #tab-perception .rp-events li+li{border-top:var(--border)}
+          #tab-perception .rp-events button{display:grid;grid-template-columns:44px minmax(0,1fr);gap:var(--space-2);width:100%;text-align:left;padding:var(--space-2) var(--space-3);border:0;border-left:3px solid transparent;background:none;color:var(--ink);font:inherit;font-size:var(--text-sm);cursor:pointer;min-height:40px;align-items:baseline}
+          #tab-perception .rp-events button:hover{background:var(--surface-2)}
+          #tab-perception .rp-events button[aria-current="true"]{border-left-color:var(--ink);background:var(--surface-2)}
+          #tab-perception .rp-events .when{font-variant-numeric:tabular-nums lining-nums;color:var(--ink-2);text-align:right}
+          #tab-perception .rp-events .rp-tag{color:var(--ink-2);font-weight:var(--w-label)}
+          #tab-perception .rp-events .alarm{color:var(--alarm);font-weight:var(--w-strong)}
+          #tab-perception .rp-side{gap:var(--space-5)}
+          #tab-perception #pEnd{white-space:nowrap}
+          @media (max-width:699px){#tab-perception .rp-stage.compare{grid-template-columns:minmax(0,1fr)}}
+        </style>
+        <div class="rp-top"><div class="sub" id="pLead"></div><span class="rec"><i></i>recorded</span></div>
+        <div class="rp-modes">
+          <div class="seg" id="pMode" role="group" aria-label="Replay layout"><button type="button" data-mode="single" aria-pressed="true">One episode</button><button type="button" data-mode="compare" aria-pressed="false">Before and after</button></div>
+          <div class="seg" id="pEpSeg" role="group" aria-label="Episode shown"><button type="button" data-ep="miss" aria-pressed="false">Before: missed</button><button type="button" data-ep="catch" aria-pressed="true">After: caught</button></div>
+        </div>
+      </div>
+      <div class="rp-stage" id="pStage" tabindex="0" role="group" aria-label="Replay of the recorded attack. Space plays or pauses, left and right arrows step between events, shift with an arrow moves one second.">
+        <figure class="rp-view" id="pViewA"><figcaption id="pCapA"></figcaption><canvas class="pcanvas" id="pcanvas" width="800" height="480" role="img" aria-label="Site plan, north up: fleet positions, sensor footprints and the intruder track"></canvas><p class="empty rp-empty" id="pEmptyA" hidden></p></figure>
+        <figure class="rp-view" id="pViewB" hidden><figcaption id="pCapB"></figcaption><canvas class="pcanvas" id="pcanvas2" width="800" height="480" role="img" aria-label="Site plan, north up: the same attack against the fixed fleet"></canvas><p class="empty rp-empty" id="pEmptyB" hidden></p></figure>
+      </div>
+      <div class="rp-panel">
+        <div class="rp-controls" id="pControls">
+          <button type="button" class="rp-btn primary" id="pPlay">Play</button>
+          <button type="button" class="rp-btn" id="pPrev">Previous event</button>
+          <button type="button" class="rp-btn" id="pNext">Next event</button>
+          <label class="rp-scrub"><span>Time</span><input type="range" id="pScrub" min="0" max="60" step="0.1" value="0"><output id="pT">0.0 s</output><span id="pEnd"></span></label>
+          <div class="rp-speed"><span id="pSpeedLbl">Speed</span><div class="seg" id="pSpeed" role="group" aria-labelledby="pSpeedLbl"></div></div>
+        </div>
+        <p class="rp-keys">With the replay focused: space plays or pauses, left and right arrows step between events, shift with an arrow moves one second.</p>
+        <div class="rp-legend" id="pLegend"></div>
+      </div>
+      <div class="rp-lower">
+        <div class="sect"><h2>Track score over time</h2><div class="card rp-chartcard"><svg class="spark" id="spark" role="img" aria-label="Intruder track score over time"></svg></div><p class="rp-note" id="pChartNote"></p></div>
+        <div class="sect"><h2>What happened</h2><ol class="rp-events" id="pEvents"></ol></div>
+      </div>
+      </div>
+      <div class="sect rp-side"><div class="sect"><h2>Agents</h2><div class="stats" id="agentCards"></div></div><div class="sect"><h2>Coverage right now</h2><div class="list" id="coverageList"></div></div></div>
     </section>
 
     <section class="page" id="tab-logs">
@@ -98,13 +266,17 @@
       </div>
     </section>
   </main>
-  <nav class="tabbar" aria-label="Pages">
-    <button data-tab="tab-home" aria-selected="true"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Home</button>
-    <button data-tab="tab-map" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15M15 6v15"/></svg>Map</button>
-    <button data-tab="tab-swarm" aria-selected="false" class="center"><span class="orb"><svg viewBox="0 0 24 24"><path d="M12 3v4M5 8l3 3M19 8l-3 3M12 21a5 5 0 0 0 5-5v-3H7v3a5 5 0 0 0 5 5z"/></svg></span>Swarm</button>
-    <button data-tab="tab-perception" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>Perception</button>
-    <button data-tab="tab-logs" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M5 4h14v16H5zM9 9h6M9 13h6M9 17h4"/></svg>Logs</button>
-  </nav>
+  <dialog class="gloss" id="gloss" aria-labelledby="glossTitle">
+    <h2 id="glossTitle">Glossary</h2>
+    <dl>
+      <dt>Caught in time</dt><dd>The alarm reached a person early enough for a response to arrive before the intruder reached the asset.</dd>
+      <dt>Operating point</dt><dd>The alarm threshold at which the fleet raises one false alarm per hour on a quiet night; every score here is read at that threshold.</dd>
+      <dt>Worst attack found</dt><dd>The single attack the red team found that this configuration catches least often; the score for it is the floor, not the average.</dd>
+      <dt>Critical detection point</dt><dd>The last moment an alarm still leaves the response time before the intruder reaches the asset; an alarm after it is a miss.</dd>
+    </dl>
+    <form method="dialog"><button type="submit" class="glossclose">Close glossary</button></form>
+  </dialog>
+  <footer class="shellfoot"><a class="powered" href="https://dimensionalos.com" target="_blank" rel="noopener">Powered by dimOS</a></footer>
 </div>
 <div class="scrim" id="scrim" hidden></div>
 <div class="toast" id="toast" hidden></div>
@@ -142,10 +314,12 @@ function showTab(id, push){
   $('#pageTitle').textContent = titles[id] || 'Airtight';
   $('#main').scrollTop = 0;
   if (push) { try { history.replaceState(null, '', '#' + id.replace('tab-','')); } catch(e) {} }
+  if (id === 'tab-swarm') { try { ensureCountdown(); } catch(e) { /* opened by deep link before the approvals block ran; it starts the clock itself below */ } }
   if (id === 'tab-map') { ensureMap(); setTimeout(() => { resizeViewer(); requestRender(); }, 0); }
   if (id === 'tab-perception') { setTimeout(resizePerception, 0); startPerception(); }
 }
 document.querySelectorAll('nav.tabbar button').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab, true)));
+{ const gb = document.getElementById('glossBtn'), gd = document.getElementById('gloss'); if (gb && gd) gb.addEventListener('click', () => { if (gd.showModal) gd.showModal(); else gd.setAttribute('open',''); }); }
 window.addEventListener('hashchange', () => showTab('tab-' + location.hash.slice(1), false));
 if (location.hash.length > 1) showTab('tab-' + location.hash.slice(1), false);
 
@@ -173,7 +347,10 @@ function renderProposal(){ const box=$('#proposalBox'); if(decided){ const last=
 function renderHistory(){ $('#history').innerHTML = decisions.length ? decisions.slice().sort((a,b)=>b.at-a.at).slice(0,12).map(d => `<div class="row ${d.decision==='approved'?'sev-low':'sev-high'}"><div class="dot"></div><div><div class="t">${esc(d.proposal)}</div><div class="s">${new Date(d.at).toLocaleTimeString()}, ${esc(d.source)}</div></div><div class="n" style="font-size:14px">${esc(d.decision)}</div></div>`).join('') : '<div class="empty">No decisions yet. Approve or deny the proposal above and it lands here for everyone who opens this page.</div>'; renderLogs(); }
 async function decide(decision, source){ if(decided) return; decided=true; clearInterval(timer); const rec={proposal: prop.title, decision, at: Date.now(), source: source||'this phone'}; decisions.push(rec); renderProposal(); renderHistory(); addMsg('tool', `<b>${decision === 'approved' ? 'Dispatch approved' : 'Dispatch denied'}</b> by ${esc(rec.source)}. ${decision === 'approved' ? esc(catchEp.responder.replace('_',' ')) + ' is en route.' : 'Holding position.'}`); if(dbNs){ try{ await dbNs.collection('approvals').doc(String(rec.at)).set(rec); }catch(e){ $('#dbNote').textContent = 'Could not save this decision to the shared store: ' + (e.message||e); } } }
 function startCountdown(){ timer=setInterval(() => { countdown -= 1; if(countdown<=0){ decide('denied','silence, deadline reached'); } else if(!decided) { const c=document.querySelector('#proposalBox .count'); if(c) c.textContent=`Denied automatically in ${countdown} s if nobody answers`; } }, 1000); }
-renderProposal(); startCountdown();
+renderProposal();
+// the clock starts when the operator first opens the Swarm page, not when the page loads
+let countdownStarted = false; function ensureCountdown(){ if (!countdownStarted && !decided) { countdownStarted = true; startCountdown(); } }
+if (document.getElementById('tab-swarm').classList.contains('active')) ensureCountdown();
 (async () => { try { dbNs = window.claude && window.claude.use ? await window.claude.use('db') : null; } catch(e) { dbNs=null; } if(!dbNs){ $('#dbNote').textContent='Shared decision store not available in this view; decisions stay on this device.'; renderHistory(); return; } try { dbNs.collection('approvals').orderBy('at','desc').limit(50).onSnapshot(snap => { decisions = snap.docs.map(d => d.data()).filter(Boolean); renderHistory(); }, err => { $('#dbNote').textContent='Live updates stopped (' + err.code + '); decisions made here still save.'; }); $('#dbNote').textContent='Decisions are shared with everyone who opens this page.'; } catch(e){ $('#dbNote').textContent='Shared store connected, but live updates are unavailable: ' + (e.message||e); } renderHistory(); })();
 
 // ---------- swarm: chat with tools ----------
@@ -209,7 +386,7 @@ const usecases = [
 ];
 $('#usecases').innerHTML = usecases.map(u => `<button class="usecase" data-q="${esc(u.q)}"><span class="t">${esc(u.t)}</span><span class="s">${esc(u.s)}</span></button>`).join('');
 $('#usecases').addEventListener('click', e => { const b = e.target.closest('.usecase'); if(b){ $('#main').scrollTop = 0; ask(b.dataset.q); } });
-$('#linkS').textContent = `${fleetAgents.length} agents on one memory · ${catchEp.timely ? 'track caught at ' + fmt(catchEp.t_alarm,0) + ' s' : 'track under watch'} · posture ${posture}`;
+$('#linkS').textContent = `${fleetAgents.length} agents on one memory, ${catchEp.timely ? 'track caught at ' + fmt(catchEp.t_alarm,0) + ' s' : 'track under watch'}, posture ${posture}`;
 $('#hil').innerHTML = `<div class="li"><i>1</i><div><div class="t">The swarm runs itself</div><div class="s">Patrol, charging, tracking and re-tasking happen on the robots, decentralised, on the shared memory.</div></div></div><div class="li"><i>2</i><div><div class="t">The important calls are yours</div><div class="s">Dispatching the responder, changing posture, touching the charge schedule: each one pings this phone with a deadline.</div></div></div><div class="li"><i>3</i><div><div class="t">Silence is a no</div><div class="s">An unanswered proposal is denied when its deadline passes, so a dead phone never moves a robot.</div></div></div>`;
 addMsg('swarm', `Good evening. ${catchEp.timely ? `A ${catchEp.family.replaceAll('_',' ')} track through the ${catchEp.entry.replaceAll('_',' ')} was caught at ${fmt(catchEp.t_alarm,0)} s tonight; the proposal above is the follow-up.` : 'The yard is quiet.'} Ask for status, blind spots, or give an order.`, 'swarm');
 
@@ -219,12 +396,12 @@ const colorFor = {drone:'#2b3157', go2:'#2e6f6b', guard:'#5c6aa3'};
 $('#contacts').innerHTML = [`<div class="contact"><div class="av" style="background:var(--brand)">OP</div><div class="t">Operator</div><div class="s">you, on duty</div><div class="acts"><button type="button" data-act="handover">Handover</button></div></div>`, ...fleetAgents.map((a,i) => `<div class="contact"><div class="av" style="background:${colorFor[a.type]||'#8c8262'}">${a.type==='guard' ? 'G' : a.type==='go2' ? 'Q' : 'D'}${a.id.replace(/\D/g,'')}</div><div class="t">${esc(a.id.replace('_',' '))}</div><div class="s">${a.type==='guard' ? 'radio channel 3 (placeholder)' : a.type==='go2' ? 'telemetry link, go2 dock' : 'telemetry link, ' + (i % 2 ? 'dock se' : 'dock nw')}</div><div class="acts"><button type="button" data-act="ping" data-id="${a.id}">${a.type==='guard' ? 'Call' : 'Ping'}</button><button type="button" data-act="msg" data-id="${a.id}">Message</button></div></div>`)].join('');
 $('#contacts').addEventListener('click', e => { const b = e.target.closest('button[data-act]'); if(!b) return; if (b.dataset.act === 'handover') { showTab('tab-swarm', true); ask('Summarise the shift'); return; } if (b.dataset.act === 'msg') { showTab('tab-swarm', true); $('#ask').value = `Tell ${b.dataset.id.replace('_',' ')} to `; $('#ask').focus(); return; } toast(`${b.dataset.id.replace('_',' ')} pinged: acknowledged`); });
 function buildLogs(){ const L = []; const seedTime = (t) => `t = ${t.toFixed(0)} s`;
-  L.push({kind:'alert', t:`Missed intrusion, ${missEp.entry.replaceAll('_',' ')}`, when: `${prettyFleet(missEp.fleet)} · seed ${missEp.seed}`, outcome:'bad', what:`Alert: ${missEp.family.replaceAll('_',' ')} tactic entered through the ${missEp.entry.replaceAll('_',' ')} at phase ${fmt(missEp.phase)} of the charge cycle. Deadline ${fmt(missEp.t_cdp,0)} s.`, result: missEp.t_alarm==null ? 'No alarm before the deadline; the intruder reached the asset.' : `Alarm at ${fmt(missEp.t_alarm,0)} s, after the ${fmt(missEp.t_cdp,0)} s deadline.`, improve:`The synchronized fleet had every drone on the dock at once. Staggering the charge schedule (the fix that was adopted) lifts the same seeds from ${Math.round(base.pd*100)} to ${Math.round(fixed.pd*100)}.`, order: 3});
-  L.push({kind:'alert', t:`Timely catch, ${catchEp.entry.replaceAll('_',' ')}`, when: `${prettyFleet(catchEp.fleet)} · seed ${catchEp.seed}`, outcome:'good', what:`Alert: the same ${catchEp.family.replaceAll('_',' ')} tactic against the fixed fleet. First look at ${fmt(catchEp.first_detection,0)} s by ${(catchEp.detections.find(d=>d[2]==='intruder')||[,'?'])[1].replace('_',' ')}.`, result:`Alarm at ${fmt(catchEp.t_alarm,0)} s via ${(catchEp.via||'').replace('_',' ')}, ${Math.round(catchEp.t_cdp - catchEp.t_alarm)} s before the ${fmt(catchEp.t_cdp,0)} s deadline. ${catchEp.responder.replace('_',' ')} proposed as responder.`, improve:`Margin was ${Math.round(catchEp.t_cdp - catchEp.t_alarm)} s. The worst tactic against this fleet is still caught only ${pct(fixed.worst_pd)} of the time; the next fix on the list is more coverage at the ${(rounds[rounds.length-1]?.tactic?.entry || 'main gate').replaceAll('_',' ')}.`, order: 2});
+  L.push({kind:'alert', t:`Missed intrusion, ${missEp.entry.replaceAll('_',' ')}`, when: `${prettyFleet(missEp.fleet)}, seed ${missEp.seed}`, outcome:'bad', what:`Alert: ${missEp.family.replaceAll('_',' ')} tactic entered through the ${missEp.entry.replaceAll('_',' ')} at phase ${fmt(missEp.phase)} of the charge cycle. Deadline ${fmt(missEp.t_cdp,0)} s.`, result: missEp.t_alarm==null ? 'No alarm before the deadline; the intruder reached the asset.' : `Alarm at ${fmt(missEp.t_alarm,0)} s, after the ${fmt(missEp.t_cdp,0)} s deadline.`, improve:`The synchronized fleet had every drone on the dock at once. Staggering the charge schedule (the fix that was adopted) lifts the same seeds from ${Math.round(base.pd*100)} to ${Math.round(fixed.pd*100)}.`, order: 3});
+  L.push({kind:'alert', t:`Timely catch, ${catchEp.entry.replaceAll('_',' ')}`, when: `${prettyFleet(catchEp.fleet)}, seed ${catchEp.seed}`, outcome:'good', what:`Alert: the same ${catchEp.family.replaceAll('_',' ')} tactic against the fixed fleet. First look at ${fmt(catchEp.first_detection,0)} s by ${(catchEp.detections.find(d=>d[2]==='intruder')||[,'?'])[1].replace('_',' ')}.`, result:`Alarm at ${fmt(catchEp.t_alarm,0)} s via ${(catchEp.via||'').replace('_',' ')}, ${Math.round(catchEp.t_cdp - catchEp.t_alarm)} s before the ${fmt(catchEp.t_cdp,0)} s deadline. ${catchEp.responder.replace('_',' ')} proposed as responder.`, improve:`Margin was ${Math.round(catchEp.t_cdp - catchEp.t_alarm)} s. The worst tactic against this fleet is still caught only ${pct(fixed.worst_pd)} of the time; the next fix on the list is more coverage at the ${(rounds[rounds.length-1]?.tactic?.entry || 'main gate').replaceAll('_',' ')}.`, order: 2});
   decisions.forEach(d => L.push({kind:'human', t: d.proposal, when: new Date(d.at).toLocaleString(), outcome: d.decision==='approved' ? 'good' : 'neutral', what:`Proposal: ${d.proposal}. ${prop.detail}`, result:`${d.decision} by ${d.source}.`, improve: d.source.startsWith('silence') ? 'Nobody answered before the deadline. Shorten the escalation chain or add a second operator to the page.' : 'Decision made inside the deadline.', order: 1, at: d.at}));
   orders.forEach(o => L.push({kind:'human', t:`Order: ${o.agent.replace('_',' ')} to ${o.zone}`, when: new Date(o.at).toLocaleString(), outcome:'neutral', what:'Given through the swarm link in plain words.', result:'Logged; the swarm planned the route and re-balanced the rest of the yard.', improve:'Orders that pull the responder off the asset are worth a posture change instead.', order: 1, at: o.at}));
   if (D.tokens && D.tokens.ledger) { const l = D.tokens.ledger; L.push({kind:'llm', t:'Red-team proposer, LLM calls', when:`${l.api_calls} real call${l.api_calls===1?'':'s'}, ${l.cached_calls} cached, ${l.mock_calls} mock`, outcome:'neutral', what:`Prompt: propose new intrusion tactics from primitives (enter, wait, move, sprint, drop decoy, cut comms) given the site and the current fleet. ${l.input_tokens} tokens in, ${l.output_tokens} out.`, result:`Cost $${l.usd.toFixed(4)}. Proposals were injected into the search; the search found the winning tactics, so the model proposes and the search attacks, ${Math.round(D.tokens.comparison.ratio)}× cheaper than asking a model per episode.`, improve:'One run with a stronger proposer model is the open question; no proposal has beaten the search elites yet.', order: 4}); }
-  rounds.forEach(r => { const t = r.tactic || {}; L.push({kind:'round', t:`Round ${r.k}: hole at the ${(t.entry||'?').replaceAll('_',' ')}`, when:`${prettyFleet(r.fleet)} · $${r.cost.toFixed(0)}/h`, outcome: r.move ? 'bad' : 'neutral', what:`The red team searched ${prettyFleet(r.fleet)} and the worst tactic was ${(r.worst_family||'').replaceAll('_',' ')} through the ${(t.entry||'?').replaceAll('_',' ')}${t.phase!=null ? ` at phase ${fmt(t.phase)}` : ''}.`, result:`Caught ${pct(r.worst_pd)} of the time${r.worst_pd_schedule_blind!=null ? `, ${pct(r.worst_pd_schedule_blind)} with the schedule hidden` : ''}. ${r.move ? 'Fix chosen: ' + r.move.replaceAll('_',' ') + '.' : 'No affordable fix left under the budget.'}`, improve: r.move ? 'The re-attack number stays near zero while the adversary knows the schedule; hiding it is the cheapest fix.' : 'Raise the budget or change the site: another gate camera at this entry is the next candidate.', order: 5 + r.k}); });
+  rounds.forEach(r => { const t = r.tactic || {}; L.push({kind:'round', t:`Round ${r.k}: hole at the ${(t.entry||'?').replaceAll('_',' ')}`, when:`${prettyFleet(r.fleet)}, $${r.cost.toFixed(0)} per hour`, outcome: r.move ? 'bad' : 'neutral', what:`The red team searched ${prettyFleet(r.fleet)} and the worst tactic was ${(r.worst_family||'').replaceAll('_',' ')} through the ${(t.entry||'?').replaceAll('_',' ')}${t.phase!=null ? ` at phase ${fmt(t.phase)}` : ''}.`, result:`Caught ${pct(r.worst_pd)} of the time${r.worst_pd_schedule_blind!=null ? `, ${pct(r.worst_pd_schedule_blind)} with the schedule hidden` : ''}. ${r.move ? 'Fix chosen: ' + r.move.replaceAll('_',' ') + '.' : 'No affordable fix left under the budget.'}`, improve: r.move ? 'The re-attack number stays near zero while the adversary knows the schedule; hiding it is the cheapest fix.' : 'Raise the budget or change the site: another gate camera at this entry is the next candidate.', order: 5 + r.k}); });
   D.runs.forEach(run => L.push({kind:'run', t:`Archived run ${run.name}`, when: run.archived_at ? new Date(run.archived_at).toLocaleString() : '', outcome: 'neutral', what:`${run.n_files} files at ${run.path}: report, per-configuration detail, tactics and replay logs, with a manifest keyed by git commit ${run.git_commit || '?'}.`, result: run.reproductions && run.reproductions.length ? run.reproductions.map(x => x.note).join(' ') : 'Frozen as archived.', improve:'Everything the phone shows is rebuilt from this folder; nothing lives only on the phone.', order: 20}));
   return L.sort((a,b) => (a.order - b.order) || ((b.at||0) - (a.at||0))); }
 const filterNames = {all:'All', alert:'Alerts', human:'Decisions', llm:'LLM', round:'Red team', run:'Archive'};
