@@ -123,12 +123,12 @@ def build(
             if ba
             else f"# The fix and the re-attack\n\n*Needs a report with at least two configurations.*{watermark}"
         ),
+        *([schedule_slide] if schedule_slide else []),
         (
             f"# Human attention is a cost\n\nHuman decisions per hour: {_fmt(ba['human_decisions_per_hour'][0])} to {_fmt(ba['human_decisions_per_hour'][1])}. Coverage gap: {ba['coverage_gap_s_per_hour'][0]:.0f} to {ba['coverage_gap_s_per_hour'][1]:.0f} s/h.\n\n![height:300px]({charts_rel}/token_cost.png)\n\nAdversary cost per scored configuration: {cmp['ratio']:,.0f}x cheaper than an LLM planning every episode ({cmp['basis']}).{watermark}"
             if ba
             else f"# Human attention is a cost\n\n![height:300px]({charts_rel}/token_cost.png)\n\n{cmp['ratio']:,.0f}x cheaper than an LLM planning every episode ({cmp['basis']}).{watermark}"
         ),
-        *([schedule_slide] if schedule_slide else []),
         *([minmax_slide] if minmax_slide else []),
         f"# What we sell, and what is next\n\n- The score, the vulnerability map, and a re-score after purchase\n- Next: learned adversary, calibrated sensors on more platforms, fleet memory under link loss\n\n<small>{conditions}</small>{watermark}",
     ]

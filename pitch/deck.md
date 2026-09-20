@@ -70,6 +70,14 @@ Clip B, same seed and tactic: d3_go2_guard_stagger alarmed at 24 s, before the 3
 
 ---
 
+# What hiding the schedule is worth
+
+![height:440px](charts/schedule_blind.png)
+
+Same fleets, same worst tactics. The orange point assumes the adversary has the charge schedule to the second; the blue point gives it the site and nothing else. The gap is what a site buys by keeping its schedule private, and the score reports both.
+
+---
+
 # Human attention is a cost
 
 Human decisions per hour: 0.10 to 0.21. Coverage gap: 0 to 0 s/h.
@@ -77,14 +85,6 @@ Human decisions per hour: 0.10 to 0.21. Coverage gap: 0 to 0 s/h.
 ![height:300px](charts/token_cost.png)
 
 Adversary cost per scored configuration: 100x cheaper than an LLM planning every episode (mean of 2 real calls).
-
----
-
-# What hiding the schedule is worth
-
-![height:440px](charts/schedule_blind.png)
-
-Same fleets, same worst tactics. The orange point assumes the adversary has the charge schedule to the second; the blue point gives it the site and nothing else. The gap is what a site buys by keeping its schedule private, and the score reports both.
 
 ---
 
