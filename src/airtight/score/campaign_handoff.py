@@ -19,6 +19,12 @@ under <out> or under --handoff-dir when that is given:
    held-out interval for worst-tactic detection against the baseline excludes zero. What the
    contract cannot say goes to the sidecar and a README, never into a bent field.
 
+When the campaign's optional stage final_strong_nocams is complete, the camera-free
+recommendation gets the same treatment: recommended_without_cameras/, its own pairs in
+replays_without_cameras/, first place in the note (a camera on every entry sees every tactic
+from range 0, so the camera result is an upper bound a tactic search cannot hurt), and its own
+gate for the contract report. Without that stage everything else is unchanged.
+
 The replays are selected ON the final seeds, so they are illustrations. They are not evidence
 and nothing about them is reported as a confirmed number.
 """
@@ -66,6 +72,9 @@ WEIGHT_MODE_ENV = "AIRTIGHT_WEIGHT_MODE"
 POLICY_ENVS = (ENGINE_ENV, PARAMS_JSON_ENV, WEIGHT_MODE_ENV, TASK_TIME_ENV)
 MAX_PAIRS = 5
 STRONG, STANDIN = "final_strong", "final_standin"
+NOCAMS = "final_strong_nocams"
+MAIN_STAGES = (STRONG, STANDIN)
+REC_ROLE, NOCAMS_ROLE = "recommended", "recommended_without_cameras"
 DEFAULT_NOTE_DIR = Path("/Users/rishabghosh/Projects/AirTight-lane-c-note")
 NOTE_NAME = "NOTE_FOR_LANE_C.md"
 ATTACKS_DIR = Path("lane_c_export") / "results" / "attacks_on_recommended"
@@ -118,16 +127,23 @@ def recommended_label(stages: Mapping[str, Any]) -> str | None:
 
 
 def stage_rows(stage: Mapping[str, Any], name: str) -> list[dict[str, Any]]:
-    rows = stage.get("final" if name == STRONG else "rows", [])
+    rows = stage.get("rows" if name == STANDIN else "final", [])
     return list(rows) if stage.get("complete") else []
 
 
+def nocams_label(stages: Mapping[str, Any]) -> str | None:
+    """The camera-free recommendation's label, when its optional stage is complete."""
+    stage = stages.get(NOCAMS, {})
+    label = stage.get("recommended_without_cameras_label")
+    return str(label) if stage.get("complete") and label else None
+
+
 def pick_stage(
-    stages: Mapping[str, Any], labels: Sequence[str]
+    stages: Mapping[str, Any], labels: Sequence[str], names: Sequence[str] = MAIN_STAGES
 ) -> tuple[str, dict[str, dict[str, Any]]] | None:
-    """The strong stage when it is complete and holds every label, else the stand-in stage
-    on the same condition, else None. Returns the stage's name and its rows by label."""
-    for name in (STRONG, STANDIN):
+    """The first of the named stages (by default the strong one, then the stand-in one) that
+    is complete and holds every label, else None. Returns its name and its rows by label."""
+    for name in names:
         by_label = {str(r["label"]): r for r in stage_rows(stages.get(name, {}), name)}
         if all(label in by_label for label in labels):
             return name, by_label
@@ -142,11 +158,13 @@ def baseline_worst_tactic(row: Mapping[str, Any]) -> tuple[str, str]:
     return str(row["worst_naive"]["tactic"]), "worst_naive"
 
 
-def gate(stages: Mapping[str, Any], label: str) -> dict[str, Any]:
+def gate(
+    stages: Mapping[str, Any], label: str, names: Sequence[str] = MAIN_STAGES
+) -> dict[str, Any]:
     """The criterion of fix.verdict_for on the campaign's own paired rows: the recommended
     configuration enters the contract report only if the paired interval for worst-tactic
     detection against the baseline, on final seeds, lies above zero."""
-    for name in (STRONG, STANDIN):
+    for name in names:
         stage = stages.get(name, {})
         if not stage.get("complete"):
             continue
@@ -167,7 +185,7 @@ def gate(stages: Mapping[str, Any], label: str) -> dict[str, Any]:
         "worst_delta": None,
         "worst_delta_ci": None,
         "n_seeds": None,
-        "reason": f"no complete final stage holds a paired row for {label!r}",
+        "reason": f"no complete stage among {list(names)} holds a paired row for {label!r}",
     }
 
 
@@ -361,11 +379,12 @@ def export_replays(
     rec_files: Mapping[str, Any],
     out_dir: Path,
     all_lane_c: Sequence[Tactic] | None = None,
+    names: Sequence[str] = MAIN_STAGES,
 ) -> dict[str, Any]:
-    picked = pick_stage(stages, [campaign.BASELINE_LABEL, label])
+    picked = pick_stage(stages, [campaign.BASELINE_LABEL, label], names)
     if picked is None:
         raise HandoffError(
-            f"neither {STRONG} nor {STANDIN} is complete with both the baseline and {label!r}"
+            f"no stage among {list(names)} is complete with both the baseline and {label!r}"
         )
     name, rows = picked
     base_row, rec_row = rows[campaign.BASELINE_LABEL], rows[label]
@@ -451,50 +470,38 @@ def export_replays(
 
 # ---- 3. the note for lane C ------------------------------------------------------------------
 
+UPPER_BOUND = (
+    "Its result is an UPPER BOUND, not a measurement of what cameras are worth. Each purchased "
+    "camera stands exactly on an entry point, and every tactic starts on an entry point, so "
+    "every intruder is looked at from range 0 at t = 0 whatever route it takes afterwards. The "
+    "engine has 2D footprints, no occlusion, truth association and no way to blind, spoof or "
+    "walk round a camera, so no choice of entry, route, speed or phase can avoid that first "
+    "look. A search over tactics therefore cannot hurt this configuration much, and that says "
+    "more about the model than about the cameras."
+)
 
-def lane_c_note(
-    rec: Mapping[str, Any], campaign_root: Path, scenario_dir: Path, repo_root: Path
-) -> str:
-    data_dir = campaign_root.parent
-    attacks = data_dir / ATTACKS_DIR
+
+def _note_section(
+    role: str, rec: Mapping[str, Any], scenario_dir: Path, repo_root: Path, attacks: Path
+) -> list[str]:
     site = rec["site_variant"] or str(scenario_dir / "site.json")
     cameras = rec["added_fixed_sensors"]
-    rerun_out = campaign_root.with_name(f"{campaign_root.name}_with_attacks")
-    lines = [
-        "# The recommended configuration, for lane C to attack",
-        "",
+    found = attacks / role
+    return [
         f"Label `{rec['label']}`, configuration `{rec['config']}`, hardware `{rec['hardware']}`, "
         f"{rec['cost_per_hour']:.2f} USD per hour.",
         "",
         f"- Fleet file: `{rec['fleet']}`",
         f"- Site file: `{site}`"
         + (
-            f" (a site VARIANT: the scenario's site plus the cameras {', '.join(cameras)})"
+            f" (a site VARIANT: the scenario's site plus the cameras {', '.join(cameras)}; it "
+            "MUST be passed as the site, with the scenario's own site.json the cameras are absent)"
             if rec["site_variant"]
             else " (the scenario's own site; this hardware adds no camera)"
         ),
-        f"- Policy parameters: `{rec['params_json']}`",
-        "",
-        "## Two things that silently give the wrong answer",
-        "",
-        f"1. run_episode applies the patrol policy ONLY when `{PARAMS_JSON_ENV}` is set to the "
-        "file above. The policy is a set of engine parameters, not fleet fields. With the "
-        "variable unset you attack the default patrol with this fleet's charge offsets, which "
-        "is a different and weaker configuration.",
-        "2. "
-        + (
-            "This hardware includes entry cameras, and they exist only in the site variant. "
-            "The site variant above MUST be passed as the site. With the scenario's own "
-            "site.json the cameras are absent."
-            if rec["site_variant"]
-            else "This hardware has no entry cameras, so the scenario's own site.json is right. "
-            "When a recommended hardware does include entry cameras, its site variant must be "
-            "used, because the cameras exist only there."
-        ),
-        "",
-        f"`{WEIGHT_MODE_ENV}` and `{TASK_TIME_ENV}` must be unset.",
-        "",
-        "## Commands",
+        f"- Policy parameters, the value of `{PARAMS_JSON_ENV}`: `{rec['params_json']}`",
+        f"- Environment: `{ENGINE_ENV}={REPLAY_ENGINE}`, `{PARAMS_JSON_ENV}` as above, "
+        f"`{WEIGHT_MODE_ENV}` and `{TASK_TIME_ENV}` unset (also in `env.json` next to the fleet)",
         "",
         "```",
         f"cd {repo_root}",
@@ -504,17 +511,77 @@ def lane_c_note(
         f"export {PARAMS_JSON_ENV}={rec['params_json']}",
         f".venv/bin/airtight-redteam search --engine {REPLAY_ENGINE} --site {site} "
         f"--fleet {rec['fleet']} --curves {scenario_dir / 'sensor_curve.json'} "
-        f"--config {scenario_dir / 'redteam_config.json'} --out {attacks} "
-        f"--log-dir {attacks / 'search_logs'} --workers 2",
+        f"--config {scenario_dir / 'redteam_config.json'} --out {found} "
+        f"--log-dir {found / 'search_logs'} --workers 2",
         "```",
         "",
+    ]
+
+
+def lane_c_note(
+    configs: Mapping[str, Mapping[str, Any]],
+    campaign_root: Path,
+    scenario_dir: Path,
+    repo_root: Path,
+) -> str:
+    """configs maps a role (REC_ROLE, NOCAMS_ROLE) to what write_config_files returned. The
+    camera-free configuration comes first: it is the one a tactic search can hurt."""
+    attacks = campaign_root.parent / ATTACKS_DIR
+    rerun_out = campaign_root.with_name(f"{campaign_root.name}_with_attacks")
+    rec, nocams = configs.get(REC_ROLE), configs.get(NOCAMS_ROLE)
+    rec_has_cameras = rec is not None and bool(rec["added_fixed_sensors"])
+    lines = [
+        "# The campaign's recommended configurations, for lane C to attack",
+        "",
+        "## Two things that silently give the wrong answer",
+        "",
+        f"1. run_episode applies the patrol policy ONLY when `{PARAMS_JSON_ENV}` is set to the "
+        "configuration's params.json. The policy is a set of engine parameters, not fleet "
+        "fields. With the variable unset you attack the default patrol with this fleet's "
+        "charge offsets, which is a different and weaker configuration. Each configuration "
+        "below has its OWN params.json: never reuse one for the other.",
+        "2. When the hardware includes entry cameras, they exist only in the site variant, so "
+        "the site variant MUST be passed as the site. With the scenario's own site.json the "
+        "cameras are absent.",
+        "",
+    ]
+    if nocams is not None:
+        lines += [
+            "## 1. The recommended configuration WITHOUT cameras: attack this one first",
+            "",
+            "This is where a new tactic can change the answer."
+            + (" See below for why the camera configuration is not." if rec_has_cameras else ""),
+            "",
+            *_note_section(NOCAMS_ROLE, nocams, scenario_dir, repo_root, attacks),
+        ]
+    if rec is not None:
+        same = nocams is not None and nocams["label"] == rec["label"]
+        lines += [
+            f"## {'2' if nocams is not None else '1'}. The main recommendation",
+            "",
+            *(
+                ["It is the same configuration as the one above.", ""]
+                if same
+                else [UPPER_BOUND, ""]
+                if rec_has_cameras
+                else ["This hardware adds no camera.", ""]
+            ),
+            *_note_section(REC_ROLE, rec, scenario_dir, repo_root, attacks),
+        ]
+    if nocams is None:
+        lines += [
+            "No camera-free recommendation is on record (the campaign's optional stage "
+            f"`{NOCAMS}` is missing or incomplete), so only the main one is given.",
+            "",
+        ]
+    lines += [
         "## Where to put what you find",
         "",
-        f"`{attacks}/`, any JSON layout. The campaign's loader walks the whole results "
-        "directory, takes every object that has `entry_id` and `waypoints`, validates it "
-        "against the Tactic contract and the limits in redteam_config.json, and notes every "
-        "rejection with its reason. The campaign then scores every tactic itself, on its own "
-        "seeds, against every finalist.",
+        f"`{attacks}/`, any JSON layout, any subfolder (the commands above use one per "
+        "configuration). The campaign's loader walks the whole results directory, takes every "
+        "object that has `entry_id` and `waypoints`, validates it against the Tactic contract "
+        "and the limits in redteam_config.json, and notes every rejection with its reason. The "
+        "campaign then scores every tactic itself, on its own seeds, against every finalist.",
         "",
         "The one command that reruns the campaign with them (a fresh output directory, so no "
         "old checkpoint is resumed; the campaign refuses to start with a policy variable set):",
@@ -551,30 +618,22 @@ def _scores_from_cache(
     return episodes, [QuietScores(**row) for row in nights if row is not None]
 
 
-def contract_report(
+def config_for_report(
     ctx: Ctx,
     stages: Mapping[str, Any],
     label: str,
     verdict: Mapping[str, Any],
-    report_path: Path,
-    detail_path: Path,
+    taken: Sequence[str],
     all_lane_c: Sequence[Tactic] | None = None,
-) -> tuple[Report, dict[str, Any], str]:
-    """data/report.json plus the recommended configuration, scored from the cache on the
-    stage the gate used, the way fix.add_fix_to_report adds a confirmed fix. Returns the
-    report, the sidecar as a plain mapping (its other keys are kept as found) and a README."""
+) -> tuple[ConfigResult, ConfigDetail, dict[str, Any]]:
+    """One configuration as a contract ConfigResult, scored from the cache on the stage its
+    gate used, the way fix.add_fix_to_report adds a confirmed fix. Also its sidecar entry and
+    what the contract cannot say about it. taken holds the names the report already uses."""
     name = str(verdict["stage"])
-    report = Report.model_validate_json(report_path.read_text())
-    detail: dict[str, Any] = json.loads(detail_path.read_text())
-    if report.baseline_config != ctx.baseline.name:
-        raise HandoffError(
-            f"the report's baseline is {report.baseline_config!r}, the campaign's is "
-            f"{ctx.baseline.name!r}"
-        )
     rows = {str(r["label"]): r for r in stage_rows(stages[name], name)}
     entries = entries_of(ctx, stages[name])
     base, rec = entries[campaign.BASELINE_LABEL], entries[label]
-    if any(c.config_name == rec.config.name for c in report.configs):
+    if rec.config.name in taken:
         raise HandoffError(f"the report already holds a configuration named {rec.config.name!r}")
     base_row, rec_row = rows[campaign.BASELINE_LABEL], rows[label]
     tactics = stage_tactics(
@@ -623,13 +682,8 @@ def contract_report(
         human_decisions_per_hour=score.human_decisions_per_hour,
         paired_vs_baseline=deltas,
     )
-    new_report = Report.model_validate(
-        report.model_copy(update={"configs": [*report.configs, result]}).model_dump()
-    )
-
     gaps = fleet_gaps(fleet)
     phases = sorted({t.phase for t in tactics})
-    drones_down_s = sum(b - a for a, b in gaps["drones_down"]) * 3600.0
     config_detail = ConfigDetail(
         operating_threshold=score.tau,
         flag=score.flag,
@@ -639,7 +693,7 @@ def contract_report(
         quiet_hours=score.quiet_hours,
         uncovered_phase_ranges=gaps["uncovered"],
         drones_down_phase_ranges=gaps["drones_down"],
-        drones_down_s_per_hour=drones_down_s,
+        drones_down_s_per_hour=sum(b - a for a, b in gaps["drones_down"]) * 3600.0,
         tactic_phases_in_uncovered=sum(
             any(a <= p < b for a, b in gaps["uncovered"]) for p in phases
         ),
@@ -663,14 +717,19 @@ def contract_report(
             f"Report.site_hash is the scenario's site. This configuration runs on a site "
             f"variant, hash {site.content_hash()}, which adds the cameras {cameras}."
         )
+    if cameras:
+        cannot_say.append(
+            "The contract has no field for 'upper bound'. Every added camera stands on an "
+            "entry point and every tactic starts on one, so the intruder is always looked at "
+            "from range 0 at t = 0, and the engine has no occlusion and no way round a camera: "
+            "this row's detection is an upper bound on what the cameras give."
+        )
     if rec.cost_per_hour != fleet.cost_per_hour():
         cannot_say.append(
             f"cost_per_hour {rec.cost_per_hour} includes purchased hardware that is not in the "
             f"fleet file, whose own cost is {fleet.cost_per_hour()}."
         )
-    detail = dict(detail)
-    detail["configs"] = {**detail.get("configs", {}), rec.config.name: config_detail.model_dump()}
-    detail["campaign_recommended"] = {
+    extra = {
         "label": label,
         "config_name": rec.config.name,
         "hardware": rec.hardware,
@@ -697,27 +756,7 @@ def contract_report(
         "worst_tactic_held_out": rec_row.get("worst_heldout"),
         "what_the_contract_cannot_say": cannot_say,
     }
-    readme = "\n".join(
-        [
-            "# Contract report with the campaign's recommended configuration",
-            "",
-            f"`report.json` is `{report_path}` plus one configuration, `{rec.config.name}` "
-            f"(campaign label `{label}`). `report_detail.json` is its sidecar. The originals "
-            "are untouched.",
-            "",
-            f"It was added because its paired interval for worst-tactic detection against the "
-            f"baseline on final seeds ({name}) is {verdict['worst_delta_ci']}, which excludes "
-            "zero.",
-            "",
-            "## What the contract cannot say about this row",
-            "",
-            *(f"- {line}" for line in cannot_say),
-            "",
-            "The same list, with the numbers, is under `campaign_recommended` in the sidecar.",
-            "",
-        ]
-    )
-    return new_report, detail, readme
+    return result, config_detail, extra
 
 
 def write_contract_report(
@@ -727,43 +766,116 @@ def write_contract_report(
     report_dir: Path,
     out_dir: Path,
     all_lane_c: Sequence[Tactic] | None = None,
+    without_cameras: str | None = None,
 ) -> str:
-    """Writes the report or SKIPPED.md. Returns one line saying which."""
+    """Both candidates (the main recommendation and, when given, the camera-free one) go
+    through their own gate; each that passes is added. Writes the report, or SKIPPED.md when
+    nothing was added. Returns one line saying which."""
     out_dir.mkdir(parents=True, exist_ok=True)
-    verdict = gate(stages, label)
-    owned = ("report.json", "report_detail.json", "README.md", "SKIPPED.md")
-    reason: str | None = None
-    built = None
+    candidates: list[tuple[str, str, Sequence[str]]] = [(REC_ROLE, label, MAIN_STAGES)]
+    if without_cameras is not None and without_cameras != label:
+        candidates.append((NOCAMS_ROLE, without_cameras, (NOCAMS,)))
     report_path, detail_path = report_dir / "report.json", report_dir / "report_detail.json"
-    if not verdict["passed"]:
-        reason = f"{verdict['reason']}: interval {verdict['worst_delta_ci']} ({verdict['stage']})"
-    elif not (report_path.is_file() and detail_path.is_file()):
-        reason = f"{report_path} or {detail_path} does not exist, so there is nothing to add to"
+    have_report = report_path.is_file() and detail_path.is_file()
+    report: Report | None = None
+    detail: dict[str, Any] = {}
+    problem: str | None = None
+    if not have_report:
+        problem = f"{report_path} or {detail_path} does not exist, so there is nothing to add to"
     else:
-        try:
-            built = contract_report(
-                ctx, stages, label, verdict, report_path, detail_path, all_lane_c
+        report = Report.model_validate_json(report_path.read_text())
+        detail = dict(json.loads(detail_path.read_text()))
+        if report.baseline_config != ctx.baseline.name:
+            problem = (
+                f"the report's baseline is {report.baseline_config!r}, the campaign's is "
+                f"{ctx.baseline.name!r}"
             )
-        except (HandoffError, KeyError, ValueError) as err:
-            reason = f"the recommended configuration could not be added: {err}"
-    for name in owned:
+
+    added: dict[str, dict[str, Any]] = {}
+    not_added: dict[str, dict[str, Any]] = {}
+    for role, candidate, names in candidates:
+        verdict = gate(stages, candidate, names)
+        reason: str | None = None
+        if not verdict["passed"]:
+            reason = f"{verdict['reason']}: interval {verdict['worst_delta_ci']}"
+        elif problem is not None or report is None:
+            reason = problem
+        else:
+            try:
+                taken = [c.config_name for c in report.configs]
+                result, config_detail, extra = config_for_report(
+                    ctx, stages, candidate, verdict, taken, all_lane_c
+                )
+            except (HandoffError, KeyError, ValueError) as err:
+                reason = f"it could not be added: {err}"
+            else:
+                report = Report.model_validate(
+                    report.model_copy(update={"configs": [*report.configs, result]}).model_dump()
+                )
+                configs = {
+                    **detail.get("configs", {}),
+                    result.config_name: config_detail.model_dump(),
+                }
+                detail["configs"] = configs
+                added[role] = extra
+        if reason is not None:
+            not_added[role] = {"label": candidate, "reason": reason, "gate": verdict}
+
+    for name in ("report.json", "report_detail.json", "README.md", "SKIPPED.md"):
         (out_dir / name).unlink(missing_ok=True)
-    if built is None:
-        text = (
-            "# Contract report not rebuilt\n\n"
-            f"Recommended configuration: `{label}`.\n\n{reason}\n\n"
-            "Criterion (the same as fix.verdict_for): the lower end of the paired interval for "
-            "worst-tactic detection against the baseline, on final seeds, must be above zero.\n\n"
-            f"Gate: `{json.dumps(verdict, sort_keys=True)}`\n"
-        )
+    criterion = (
+        "Criterion (the same as fix.verdict_for), applied to each candidate in its own stage: "
+        "the lower end of the paired interval for worst-tactic detection against the baseline, "
+        "on final seeds, must be above zero."
+    )
+    refused = [
+        f"- {role}, `{row['label']}`: {row['reason']} (stage {row['gate']['stage']}, interval "
+        f"{row['gate']['worst_delta_ci']})"
+        for role, row in not_added.items()
+    ]
+    if not added or report is None:
+        text = "\n".join(["# Contract report not rebuilt", "", criterion, "", *refused, ""])
         (out_dir / "SKIPPED.md").write_text(text)
-        return f"contract report skipped: {reason}"
-    report, detail, readme = built
+        return "contract report skipped: " + "; ".join(
+            f"{role}: {row['reason']}" for role, row in not_added.items()
+        )
+    detail["campaign_recommended"] = added
+    detail["campaign_not_added"] = not_added
     (out_dir / "report.json").write_text(report.model_dump_json(indent=2) + "\n")
     Report.model_validate_json((out_dir / "report.json").read_text())
     _write_json(out_dir / "report_detail.json", detail)
-    (out_dir / "README.md").write_text(readme)
-    return f"contract report written to {out_dir}"
+    readme = [
+        "# Contract report with the campaign's recommended configurations",
+        "",
+        f"`report.json` is `{report_path}` plus {len(added)} configuration(s). "
+        "`report_detail.json` is its sidecar. The originals are untouched.",
+        "",
+        criterion,
+        "",
+    ]
+    for role, extra in added.items():
+        readme += [
+            f"## Added: {role}, `{extra['config_name']}` (campaign label `{extra['label']}`)",
+            "",
+            f"Its interval in {extra['stage']} is {extra['gate']['worst_delta_ci']}, which "
+            "excludes zero.",
+            "",
+            "What the contract cannot say about this row:",
+            "",
+            *(f"- {line}" for line in extra["what_the_contract_cannot_say"]),
+            "",
+        ]
+    if refused:
+        readme += ["## Not added", "", *refused, ""]
+    readme += [
+        "The same, with the numbers, is under `campaign_recommended` and `campaign_not_added` "
+        "in the sidecar.",
+        "",
+    ]
+    (out_dir / "README.md").write_text("\n".join(readme))
+    return f"contract report written to {out_dir}: added {sorted(added)}" + (
+        f", not added {sorted(not_added)}" if not_added else ""
+    )
 
 
 # ---- driver ----------------------------------------------------------------------------------
@@ -871,28 +983,51 @@ def _handoff(args: argparse.Namespace) -> int:
                 print(f"handoff: no configuration is labelled {wanted!r}; {folder}/ not written")
         if "recommended" not in written:
             return stop(f"the recommended configuration {label!r} is not among the chosen ones")
-        rec_files = written["recommended"]
 
-        try:
-            index = export_replays(ctx, stages, label, rec_files, dest / "replays", all_lane_c)
-        except HandoffError as err:
-            index = {"complete": False, "reason": str(err), "recommended_label": label}
-        _write_json(dest / "replays" / "index.json", index)
-        print(
-            f"handoff: replays: {index.get('pairs_exported', 0)} pairs"
-            + ("" if index["complete"] else f" ({index['reason']})")
-        )
+        def replays(role: str, wanted: str, names: tuple[str, ...], folder: str) -> None:
+            try:
+                index = export_replays(
+                    ctx, stages, wanted, written[role], dest / folder, all_lane_c, names
+                )
+            except HandoffError as err:
+                index = {"complete": False, "reason": str(err), "recommended_label": wanted}
+            _write_json(dest / folder / "index.json", index)
+            print(
+                f"handoff: {folder}: {index.get('pairs_exported', 0)} pairs"
+                + ("" if index["complete"] else f" ({index['reason']})")
+            )
+
+        replays(REC_ROLE, label, MAIN_STAGES, "replays")
+
+        without = nocams_label(stages)
+        nocams_dir, nocams_replays = dest / NOCAMS_ROLE, dest / "replays_without_cameras"
+        if without is None:
+            why = f"the optional stage {NOCAMS} is missing or incomplete"
+            print(f"handoff: {NOCAMS_ROLE}/ not written: {why}")
+            _write_json(nocams_replays / "index.json", {"complete": False, "reason": why})
+        else:
+            try:
+                entry = entries_of(ctx, stages[NOCAMS])[without]
+                written[NOCAMS_ROLE] = write_config_files(entry, ctx.site, nocams_dir)
+                print(f"handoff: {NOCAMS_ROLE} ({without}) written to {nocams_dir}")
+            except (HandoffError, KeyError) as err:
+                why = f"{NOCAMS_ROLE} could not be rebuilt from {NOCAMS}: {err}"
+                print(f"handoff: {why}")
+                _write_json(nocams_replays / "index.json", {"complete": False, "reason": why})
+                without = None
+            else:
+                replays(NOCAMS_ROLE, without, (NOCAMS,), "replays_without_cameras")
 
         args.note_dir.mkdir(parents=True, exist_ok=True)
         repo_root = Path(__file__).resolve().parents[3]
-        note = lane_c_note(rec_files, campaign_root, scenario_dir, repo_root)
+        note = lane_c_note(written, campaign_root, scenario_dir, repo_root)
         (args.note_dir / NOTE_NAME).write_text(note)
         print(f"handoff: note for lane C written to {args.note_dir / NOTE_NAME}")
 
         print(
             "handoff: "
             + write_contract_report(
-                ctx, stages, label, report_dir, dest / "contract_report", all_lane_c
+                ctx, stages, label, report_dir, dest / "contract_report", all_lane_c, without
             )
         )
     return 0

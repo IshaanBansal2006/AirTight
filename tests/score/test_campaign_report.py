@@ -23,7 +23,8 @@ TACTICS = (
     "slow-grid-main_gate-0.0000",
     "gap-rear_fence_gap-0.2972",
 )
-STRICT_STAGES = ("A", "final_standin", "final_strong", "audit")
+STRICT_STAGES = ("A", "final_standin", "final_strong", "final_strong_nocams", "audit")
+FREE = "best:d1_std_nocams"
 
 
 def _row(
@@ -261,6 +262,7 @@ def make_targets(results: Row) -> Row:
         ("strict", "final_standin", "rows"),
         ("task_time_60s_assumption", "assumption60", "rows"),
         ("strict_strong_finalists", "final_strong", "final"),
+        ("strict_strong_without_cameras", "final_strong_nocams", "final"),
     ):
         rows = results["stages"].get(stage, {}).get(key, [])
         if not rows:
@@ -370,9 +372,10 @@ def with_new_fields(results: Row, confirm: bool) -> Row:
 
 def test_new_fields_are_used(tmp_path: Path) -> None:
     text, records = cr.build_report(with_new_fields(make_results(), confirm=True), {}, tmp_path)
-    last = summary(text)[4]
-    assert "confirmed (interval lower end at or above target)" in last
-    assert "same final seeds, so optimistic" in last
+    last = summary(text)[5]
+    assert f"overall confirmed by {REC} at $67.38/h" in last
+    assert "confirmed (interval lower end at or above target)" in section(text, "## Cheapest")
+    assert "same final seeds so optimistic" in last
     assert "NOTE-FROM-RESULTS" in section(text, "## Cheapest configuration")
     assert "KIND-FROM-RESULTS" in text
     assert "2.051 OVER THE BUDGET" in text
@@ -397,9 +400,9 @@ def test_new_fields_are_used(tmp_path: Path) -> None:
 
 def test_reached_is_never_claimed_without_confirmation(tmp_path: Path) -> None:
     results = with_new_fields(make_results(), confirm=False)
-    last = summary(cr.build_report(results, {}, tmp_path)[0])[4]
+    last = summary(cr.build_report(results, {}, tmp_path)[0])[5]
     assert "reached on the point estimate only, not confirmed" in last
-    assert "confirmed (interval lower end" not in last
+    assert "confirmed by" not in last
     assert not cr.target_is_confirmed(results, "strict", "overall", "final_standin")
     old = make_results(rec_pd=0.9991, rec_worst=0.9893)
     assert "confirmed_label" not in old["targets"]["strict"]["overall"]
@@ -410,15 +413,95 @@ def test_reached_is_never_claimed_without_confirmation(tmp_path: Path) -> None:
 def test_the_ceiling_names_the_tactic_with_its_speed(tmp_path: Path) -> None:
     results = with_new_fields(make_results(rec_pd=0.9013, rec_worst=0.8122), confirm=False)
     text, _ = cr.build_report(results, {}, tmp_path)
-    assert "NOT reached" in summary(text)[4]
+    assert "NOT reached" in summary(text)[5].split("Without entry cameras")[0]
     binds = section(text, "## Cheapest configuration")
     assert f"`{TACTICS[2]}`" in binds
     assert "minimum speed (0.8 m/s)" in binds
     assert "speed cap (2 m/s)" in binds
 
 
+def with_nocams(results: Row) -> Row:
+    """The stage that scores the recommendation without entry cameras."""
+    out = copy.deepcopy(results)
+    rows = [
+        _row("baseline", "d2_std_nocams", 55.0, 0.4999, 0.0127, "strong", n_seeds=30, heldout=0.02),
+        _row(FREE, "d1_std_nocams", 48.0, 0.4649, 0.0311, "strong", n_seeds=30, heldout=0.3333),
+    ]
+    out["stages"]["final_strong_nocams"] = {
+        "complete": True,
+        "entries": _entries(rows),
+        "validation": [],
+        "final": rows,
+        "paired_vs_baseline": [_delta(FREE, -0.0351, 0.0184, 30)],
+        "recommended_without_cameras": "d1_std_nocams",
+        "recommended_without_cameras_label": FREE,
+        "rule": "RULE-TEXT restricted to hardware without entry cameras",
+        "wall_s": 12.0,
+    }
+    out["targets"] = make_targets(out)
+    return out
+
+
+def test_the_recommendation_without_cameras(tmp_path: Path) -> None:
+    text, records = cr.build_report(with_nocams(make_results()), {}, tmp_path)
+    line = summary(text)[2]
+    assert line.startswith(f"3. Without entry cameras: {FREE} (1 drone, standard charging docks")
+    assert "$48.00/h" in line
+    assert "0.465 [0.434, 0.494]" in line
+    assert "strict, strong adversary, 30 final seeds" in line
+    assert "paired against the baseline, overall -0.035 [-0.056, -0.014]" in line
+    part = section(text, "## Recommended without entry cameras")
+    assert "RULE-TEXT" in part
+    assert f"| {FREE} | $48.00/h | 0.465" in part
+    assert f"Policy parameters of {FREE}" in part
+    assert "Dock map:" in part
+    assert any(r["stage"] == "final_strong_nocams" and r["strict"] for r in records)
+    assert "the baseline and the recommendation without entry cameras" in text
+
+
+def test_no_cameras_line_degrades(tmp_path: Path) -> None:
+    text, _ = cr.build_report(make_results(), {}, tmp_path)
+    assert "not evaluated against the strong adversary" in summary(text)[2]
+    assert "final_strong_nocams is missing" in summary(text)[2]
+    assert not re.search(r"\d\.\d", summary(text)[2])
+    assert "Stage final_strong_nocams is MISSING" in text
+    results = with_nocams(make_results())
+    results["stages"]["final_strong_nocams"] = {"complete": False, "reason": "cut short"}
+    text, _ = cr.build_report(results, {}, tmp_path)
+    assert "final_strong_nocams is incomplete: cut short" in summary(text)[2]
+    results = make_results()
+    results["stages"]["validation"]["recommended"] = "d2_std_nocams"
+    lines = summary(cr.build_report(results, {}, tmp_path)[0])
+    assert "the main recommendation already has none" in lines[2]
+    assert cr.CAMERA_WARNING not in lines[0]
+
+
+def test_cameras_are_told_apart_and_the_camera_free_target_is_computed(tmp_path: Path) -> None:
+    text, _ = cr.build_report(make_results(), {}, tmp_path)
+    frontier = section(text, "## The frontier")
+    assert f"| {REC} | yes (upper bound) | $67.38/h" in frontier
+    assert "| baseline | no | $55.00/h" in frontier
+    assert "WITHOUT entry cameras only (4 of 5 rows)" in frontier
+    free_table = frontier.split("WITHOUT entry cameras only")[1]
+    assert REC not in free_table
+    free = summary(text)[5].split("Without entry cameras")[1]
+    assert (
+        "overall NOT reached, the ceiling is 0.607 [0.576, 0.636] set by best_free_policy" in free
+    )
+    results = make_results()
+    row = results["stages"]["final_standin"]["rows"][3]
+    row["pd"], row["pd_ci"] = 0.9612, [0.9312, 0.9899]
+    free = summary(cr.build_report(results, {}, tmp_path)[0])[5].split("Without entry cameras")[1]
+    assert "overall reached on the point estimate only, not confirmed" in free
+    row["pd_ci"] = [0.9533, 0.9899]
+    free = summary(cr.build_report(results, {}, tmp_path)[0])[5].split("Without entry cameras")[1]
+    assert "overall confirmed by best_free_policy at $55.00/h" in free
+    assert cr.has_cameras("d3_swap_cams")
+    assert not cr.has_cameras("d2_std_nocams")
+
+
 def summary(text: str) -> list[str]:
-    return [line for line in text.splitlines() if line.strip()][:5]
+    return [line for line in text.splitlines() if line.strip()][:6]
 
 
 def section(text: str, heading: str) -> str:
@@ -444,6 +527,7 @@ def all_numbers(node: Any) -> set[str]:
 VARIANTS = {
     "complete": lambda: make_results(),
     "rescored": lambda: with_new_fields(make_results(), confirm=True),
+    "nocams": lambda: with_nocams(make_results()),
     "ceiling": lambda: make_results(rec_pd=0.9013, rec_worst=0.8122),
     "no_strong": lambda: without_strong(make_results()),
     "incomplete": lambda: with_incomplete(make_results()),
@@ -455,13 +539,16 @@ VARIANTS = {
 def test_the_five_lines_name_the_recommendation_and_the_baseline(name: str, tmp_path: Path) -> None:
     text, _ = cr.build_report(VARIANTS[name](), {}, tmp_path)
     lines = summary(text)
-    assert [line[:2] for line in lines] == ["1.", "2.", "3.", "4.", "5."]
+    assert [line[:2] for line in lines] == ["1.", "2.", "3.", "4.", "5.", "6."]
     assert REC in lines[0]
     assert "3 drones" in lines[0]
+    assert cr.CAMERA_WARNING in lines[0]
     assert "strict" in lines[1].lower()
-    assert "ASSUMPTION" in lines[2]
-    assert "baseline" in lines[3].lower()
-    assert "95 percent" in lines[4]
+    assert lines[2].startswith("3. Without entry cameras:")
+    assert "ASSUMPTION" in lines[3]
+    assert "baseline" in lines[4].lower()
+    assert "95 percent" in lines[5]
+    assert "Without entry cameras (stand-in adversary):" in lines[5]
 
 
 @pytest.mark.parametrize("name", sorted(VARIANTS))
@@ -478,7 +565,7 @@ def test_every_float_in_the_five_lines_comes_from_the_input(name: str, tmp_path:
 def test_the_headline_prefers_the_strong_adversary_and_falls_back(tmp_path: Path) -> None:
     text, _ = cr.build_report(make_results(), {}, tmp_path)
     assert "strong adversary, 30 final seeds" in summary(text)[1]
-    assert "strong adversary" in summary(text)[3] or "same adversary" in summary(text)[3]
+    assert "same adversary" in summary(text)[4]
     text, _ = cr.build_report(without_strong(make_results()), {}, tmp_path)
     assert "stand-in adversary, 40 final seeds" in summary(text)[1]
     assert "final_strong is MISSING" in text
@@ -486,10 +573,10 @@ def test_the_headline_prefers_the_strong_adversary_and_falls_back(tmp_path: Path
 
 def test_target_reached_against_ceiling(tmp_path: Path) -> None:
     text, _ = cr.build_report(make_results(), {}, tmp_path)
-    assert "NOT reached" not in summary(text)[4]
+    assert "NOT reached" not in summary(text)[5].split("Without entry cameras")[0]
     text, _ = cr.build_report(make_results(rec_pd=0.9013, rec_worst=0.8122), {}, tmp_path)
-    last = summary(text)[4]
-    assert "NOT reached" in last
+    last = summary(text)[5]
+    assert "NOT reached" in last.split("Without entry cameras")[0]
     assert "the ceiling is 0.901" in last
     assert REC in last
     assert "What binds" in section(text, "## Cheapest configuration")
@@ -560,7 +647,7 @@ def test_a_run_with_nothing_but_a_probe_still_reports(tmp_path: Path) -> None:
     results["stages"] = {"probe": results["stages"]["probe"]}
     results["targets"] = {}
     text, records = cr.build_report(results, {}, tmp_path)
-    assert len(summary(text)) == 5
+    assert len(summary(text)) == 6
     assert "No recommended configuration" in summary(text)[0]
     assert records == []
     paths = cr.write_charts(results, tmp_path / "charts")

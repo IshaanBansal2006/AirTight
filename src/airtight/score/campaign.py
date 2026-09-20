@@ -75,12 +75,13 @@ TARGET = 0.95
 KNEE = 0.02  # recommended = the cheapest configuration within this of the best objective
 SHARES = {
     "A": 0.10,
-    "search": 0.36,
+    "search": 0.31,
     "validation": 0.13,
     "final_standin": 0.14,
     "final_strong": 0.12,
     "assumption60": 0.06,
     "sensitivity": 0.06,
+    "final_strong_nocams": 0.05,
     "audit": 0.03,
 }
 STAGES = ("probe", *SHARES)
@@ -1124,6 +1125,41 @@ def stage_final_strong(ctx: Ctx, validation: dict[str, Any]) -> dict[str, Any]:
     return strong_evaluate(ctx, finalists(ctx, validation), "final_strong")
 
 
+def recommended_without_cameras(validation: dict[str, Any]) -> str | None:
+    """The recommended-configuration rule applied to the configurations that buy no entry
+    camera, on validation numbers only. Camera configurations see every tactic at range 0 at
+    the moment of entry, so the pitch also needs the best answer that does not lean on that."""
+    chosen = [
+        c for c in validation["chosen"].values() if not _spec_by_name(c["hardware"]).entry_cameras
+    ]
+    if not chosen:
+        return None
+    both = [c for c in chosen if c["pd"] >= TARGET and c["worst_naive"]["pd"] >= TARGET]
+    if not both:
+        best = max(c["objective"] for c in chosen)
+        both = [c for c in chosen if c["objective"] >= best - KNEE]
+    return str(min(both, key=lambda c: (c["cost_per_hour"], c["hardware"]))["hardware"])
+
+
+def stage_final_strong_nocams(ctx: Ctx, validation: dict[str, Any]) -> dict[str, Any]:
+    """The strong adversary against the recommended configuration WITHOUT entry cameras,
+    paired with the baseline."""
+    name = recommended_without_cameras(validation)
+    if name is None:
+        return {"complete": False, "reason": "no configuration without entry cameras"}
+    label = BEST_FREE_LABEL if name == "d2_std_nocams" else f"best:{name}"
+    wanted = {BASELINE_LABEL, label}
+    entries = [e for e in chosen_entries(ctx, validation) if e.label in wanted]
+    data = strong_evaluate(ctx, entries, "final_strong_nocams")
+    data["recommended_without_cameras"] = name
+    data["recommended_without_cameras_label"] = label
+    data["rule"] = (
+        "the recommended-configuration rule restricted to hardware without entry cameras, "
+        "applied to validation numbers"
+    )
+    return data
+
+
 def stage_sensitivity(ctx: Ctx, validation: dict[str, Any]) -> dict[str, Any]:
     """Task time and response time what-ifs for the baseline, the best free policy and the
     recommended configuration. Assumption rows only; nothing here is a headline."""
@@ -1237,7 +1273,12 @@ def stage_audit(ctx: Ctx, results: dict[str, Any]) -> dict[str, Any]:
     # 2. thresholds on the floor, 3. detection above 0.99
     final_rows = [
         {**row, "stage": stage}
-        for stage, key in (("final_standin", "rows"), ("final_strong", "final"), ("A", "final"))
+        for stage, key in (
+            ("final_standin", "rows"),
+            ("final_strong", "final"),
+            ("final_strong_nocams", "final"),
+            ("A", "final"),
+        )
         for row in results.get(stage, {}).get(key, [])
     ]
     out["threshold_flags"] = [
@@ -1532,6 +1573,7 @@ def main(argv: list[str] | None = None) -> int:
                     "assumption60",
                     "final_strong",
                     "sensitivity",
+                    "final_strong_nocams",
                 ) and not validation.get("complete"):
                     ctx.say(f"{stage}: skipped, validation is not complete")
                     continue
@@ -1558,6 +1600,8 @@ def main(argv: list[str] | None = None) -> int:
                         data = stage_final_strong(ctx, validation)
                     elif stage == "sensitivity":
                         data = stage_sensitivity(ctx, validation)
+                    elif stage == "final_strong_nocams":
+                        data = stage_final_strong_nocams(ctx, validation)
                     else:
                         data = stage_audit(ctx, results)
                 except CacheFull:
@@ -1622,6 +1666,7 @@ def _targets(results: dict[str, Any]) -> dict[str, Any]:
         ("strict", strict),
         ("task_time_60s_assumption", assumed),
         ("strict_strong_finalists", strong),
+        ("strict_strong_without_cameras", results.get("final_strong_nocams", {}).get("final", [])),
     ):
         rows = [r for r in rows if not str(r["label"]).startswith(INGREDIENT_PREFIX)]
         if rows:

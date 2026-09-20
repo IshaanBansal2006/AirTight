@@ -51,6 +51,7 @@ class Toy:
     scenario_dir: Path
     ctx: campaign.Ctx
     stages: dict[str, Any]
+    nocams: dict[str, Any]
 
     def argv(self, tmp: Path, *more: str) -> list[str]:
         return [
@@ -135,10 +136,19 @@ def toy(tmp_path_factory: pytest.TempPathFactory) -> Toy:
             "validation": validation,
             "final_standin": campaign.stage_final_standin(ctx, validation),
         }
+        free = [
+            e
+            for e in campaign.chosen_entries(ctx, validation)
+            if e.label in (campaign.BASELINE_LABEL, campaign.BEST_FREE_LABEL)
+        ]
+        nocams = campaign.strong_evaluate(ctx, free, handoff.NOCAMS)
+        nocams["recommended_without_cameras"] = "d2_std_nocams"
+        nocams["recommended_without_cameras_label"] = campaign.BEST_FREE_LABEL
     results = {"stages": stages, "costs": costs, "checkpoint": {}}
     (out / "results.json").write_text(json.dumps(results, sort_keys=True))
     ctx.ev = Evaluator(out / "cache", curves, None, 1)
-    return Toy(out, scenario_dir, ctx, json.loads(json.dumps(stages, sort_keys=True)))
+    plain = json.loads(json.dumps({"stages": stages, "nocams": nocams}, sort_keys=True))
+    return Toy(out, scenario_dir, ctx, plain["stages"], plain["nocams"])
 
 
 class FakeRows:
@@ -347,6 +357,10 @@ def test_main_writes_everything_and_restores_the_environment(
     assert commands and all("#" not in block for block in commands)
     skipped = (dest / "contract_report" / "SKIPPED.md").read_text()
     assert "report.json" in skipped or "does not exclude zero" in skipped
+    nocams = json.loads((dest / "replays_without_cameras" / "index.json").read_text())
+    assert nocams["complete"] is False and handoff.NOCAMS in nocams["reason"]
+    assert not (dest / handoff.NOCAMS_ROLE).exists()
+    assert "No camera-free recommendation is on record" in note
     cache_after = sorted(
         (p, p.stat().st_size) for p in (toy.out / "cache").rglob("*") if p.is_file()
     )
@@ -460,7 +474,8 @@ def test_contract_report_adds_the_recommended_configuration_when_the_gate_passes
     assert {d.metric for d in added.paired_vs_baseline} >= {METRIC_WORST}
     detail = json.loads((out_dir / "report_detail.json").read_text())
     assert detail["fix"] == {"kept": 1} and entry.config.name in detail["configs"]
-    extra = detail["campaign_recommended"]
+    assert detail["campaign_not_added"] == {}
+    extra = detail["campaign_recommended"][handoff.REC_ROLE]
     assert extra["recomputed_from_cache_equals_results_json"]["tau"] is True
     assert extra["recomputed_from_cache_equals_results_json"]["pd"] is True
     assert any("AIRTIGHT_PARAMS_JSON" in line for line in extra["what_the_contract_cannot_say"])
@@ -515,3 +530,154 @@ def test_the_smoke_output_when_present(tmp_path: Path) -> None:
     assert label is not None
     assert handoff.pick_stage(results["stages"], [campaign.BASELINE_LABEL, label]) is not None
     assert handoff.gate(results["stages"], label)["stage"] in ("final_strong", "final_standin")
+
+
+def _with_nocams(toy: Toy, ci: list[float] | None = None) -> dict[str, Any]:
+    """The toy stages plus the real final_strong_nocams stage, its paired interval replaced
+    when ci is given."""
+    stages = json.loads(json.dumps(toy.stages))
+    stages[handoff.NOCAMS] = json.loads(json.dumps(toy.nocams))
+    for delta in stages[handoff.NOCAMS]["paired_vs_baseline"]:
+        if ci is not None:
+            delta["worst_delta_ci"] = ci
+    return stages
+
+
+def test_nocams_label_needs_a_complete_stage(toy: Toy) -> None:
+    assert handoff.nocams_label({}) is None
+    assert handoff.nocams_label(toy.stages) is None
+    stages = _with_nocams(toy)
+    assert handoff.nocams_label(stages) == "best_free_policy"
+    stages[handoff.NOCAMS]["complete"] = False
+    assert handoff.nocams_label(stages) is None
+    assert handoff.gate(stages, "best_free_policy", (handoff.NOCAMS,))["stage"] is None
+
+
+def test_gate_reads_each_candidate_in_its_own_stage(toy: Toy) -> None:
+    stages = _with_nocams(_as_toy(toy, _with_interval(toy, [-0.1, 0.2])), [0.3, 0.4])
+    assert handoff.gate(stages, REC)["passed"] is False
+    verdict = handoff.gate(stages, "best_free_policy", (handoff.NOCAMS,))
+    assert verdict["passed"] is True and verdict["stage"] == handoff.NOCAMS
+    # the stand-in stage also holds a row for that label: it is never the camera-free gate
+    assert handoff.gate(stages, "best_free_policy")["stage"] == "final_standin"
+
+
+def _as_toy(toy: Toy, stages: dict[str, Any]) -> Toy:
+    return dataclasses.replace(toy, stages=stages)
+
+
+def test_skipped_lists_both_intervals_when_neither_passes(toy: Toy, tmp_path: Path) -> None:
+    _toy_report(toy, tmp_path / "reports")
+    stages = _with_nocams(_as_toy(toy, _with_interval(toy, [-0.2, 0.3])), [-0.4, 0.1])
+    line = handoff.write_contract_report(
+        toy.ctx, stages, REC, tmp_path / "reports", tmp_path / "cr", None, "best_free_policy"
+    )
+    assert "skipped" in line
+    text = (tmp_path / "cr" / "SKIPPED.md").read_text()
+    assert "[-0.2, 0.3]" in text and "[-0.4, 0.1]" in text
+    assert handoff.REC_ROLE in text and handoff.NOCAMS_ROLE in text
+
+
+def test_contract_report_adds_each_candidate_that_passes(
+    toy: Toy, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _toy_report(toy, tmp_path / "reports")
+    real = handoff.paired_deltas
+
+    def lifted(*args: Any, **kwargs: Any) -> list[PairedDelta]:
+        return [
+            d.model_copy(update={"ci": (0.2, 0.3)}) if d.metric == METRIC_WORST else d
+            for d in real(*args, **kwargs)
+        ]
+
+    monkeypatch.setattr(handoff, "paired_deltas", lifted)
+    entries = handoff.entries_of(toy.ctx, toy.stages["final_standin"])
+    rec_name, free_name = entries[REC].config.name, entries["best_free_policy"].config.name
+
+    def names(main_ci: list[float], nocams_ci: list[float], out_dir: Path) -> list[str]:
+        stages = _with_nocams(_as_toy(toy, _with_interval(toy, main_ci)), nocams_ci)
+        handoff.write_contract_report(
+            toy.ctx, stages, REC, tmp_path / "reports", out_dir, None, "best_free_policy"
+        )
+        report = Report.model_validate_json((out_dir / "report.json").read_text())
+        return [c.config_name for c in report.configs][1:]
+
+    assert names([0.2, 0.3], [0.2, 0.3], tmp_path / "both") == [rec_name, free_name]
+    detail = json.loads((tmp_path / "both" / "report_detail.json").read_text())
+    assert set(detail["campaign_recommended"]) == {handoff.REC_ROLE, handoff.NOCAMS_ROLE}
+    assert detail["campaign_recommended"][handoff.NOCAMS_ROLE]["stage"] == handoff.NOCAMS
+    assert {rec_name, free_name} <= set(detail["configs"])
+
+    assert names([-0.1, 0.3], [0.2, 0.3], tmp_path / "one") == [free_name]
+    detail = json.loads((tmp_path / "one" / "report_detail.json").read_text())
+    assert list(detail["campaign_not_added"]) == [handoff.REC_ROLE]
+    readme = (tmp_path / "one" / "README.md").read_text()
+    assert "## Not added" in readme and "[-0.1, 0.3]" in readme and free_name in readme
+
+
+def test_main_with_the_nocams_stage_writes_the_second_configuration(
+    toy: Toy, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(campaign, "SMOKE", TOY)
+    out = tmp_path / "data" / "campaign" / "smoke"
+    out.mkdir(parents=True)
+    (out / "cache").symlink_to(toy.out / "cache")
+    (out.parent / "seeds.json").write_text((toy.out.parent / "seeds.json").read_text())
+    stages = _with_nocams(toy)
+    (out / "results.json").write_text(json.dumps({"stages": stages, "costs": toy.ctx.costs}))
+
+    real_find = handoff.find_pairs
+
+    def forced(*args: Any) -> tuple[list[handoff.Pair], int]:
+        pairs, examined = real_find(*args)
+        return pairs or [handoff.Pair(args[4][0], 0.0, 9.0, False, True)], examined
+
+    monkeypatch.setattr(handoff, "find_pairs", forced)
+    argv = toy.argv(tmp_path)
+    argv[1] = str(out)
+    assert handoff.main(argv) == 0
+    dest = tmp_path / "handoff"
+    free = handoff.entries_of(toy.ctx, toy.stages["final_standin"])["best_free_policy"]
+    env = json.loads((dest / handoff.NOCAMS_ROLE / "env.json").read_text())
+    assert env["config"] == free.config.name and env["site_variant"] is None
+    assert not (dest / handoff.NOCAMS_ROLE / "site.json").exists()
+    index = json.loads((dest / "replays_without_cameras" / "index.json").read_text())
+    assert index["complete"] and index["stage"] == handoff.NOCAMS
+    assert index["recommended_label"] == "best_free_policy" and index["pairs_exported"] >= 1
+    for pair in index["pairs"]:
+        assert pair["recommended"]["params_json"] == env["params_json"]
+        assert pair["recommended"]["plan_replay"]["ok"] in (True, None)
+        assert Path(pair["baseline"]["log_path"]).parent.parent == dest / "replays_without_cameras"
+    main_index = json.loads((dest / "replays" / "index.json").read_text())
+    assert main_index["stage"] == "final_standin" and main_index["recommended_label"] == REC
+    note = (tmp_path / "note" / handoff.NOTE_NAME).read_text()
+    assert note.index("WITHOUT cameras") < note.index("The main recommendation")
+    assert env["params_json"] in note
+    assert str((dest / "recommended" / "params.json").resolve()) in note
+    commands = note.split("```")[1::2]
+    assert len(commands) == 3 and all("#" not in block for block in commands)
+
+
+def test_note_says_why_cameras_are_an_upper_bound_and_degrades_without_the_stage() -> None:
+    def files(label: str, cameras: list[str]) -> dict[str, Any]:
+        return {
+            "label": label,
+            "config": f"cfg-{label}",
+            "hardware": "hw",
+            "cost_per_hour": 1.0,
+            "fleet": f"/x/{label}/fleet.json",
+            "site_variant": f"/x/{label}/site.json" if cameras else None,
+            "added_fixed_sensors": cameras,
+            "params_json": f"/x/{label}/params.json",
+        }
+
+    paths = (Path("/d/campaign"), Path("/d/scenario"), Path("/repo"))
+    both = handoff.lane_c_note(
+        {handoff.REC_ROLE: files("cams", ["cam_a"]), handoff.NOCAMS_ROLE: files("plain", [])},
+        *paths,
+    )
+    assert "UPPER BOUND" in both and "range 0" in both
+    assert both.index("/x/plain/params.json") < both.index("/x/cams/params.json")
+    assert "--site /x/cams/site.json" in both and "--site /d/scenario/site.json" in both
+    alone = handoff.lane_c_note({handoff.REC_ROLE: files("cams", ["cam_a"])}, *paths)
+    assert "No camera-free recommendation is on record" in alone and "/x/cams/fleet.json" in alone

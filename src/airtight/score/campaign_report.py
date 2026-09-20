@@ -56,7 +56,10 @@ CAVEAT_WORST = (
     "seeds and reads low; 'held-out' scores the tactic that was worst on validation seeds and "
     "reads at or above the true minimum. The truth lies between."
 )
-ROW_KEYS = {"A": "final", "final_strong": "final"}
+NOCAMS_STAGE = "final_strong_nocams"
+NOCAMS_GROUP = "strict_strong_without_cameras"
+ROW_KEYS = {"A": "final", "final_strong": "final", NOCAMS_STAGE: "final"}
+CAMERA_WARNING = "(camera result is an upper bound: cameras see every tactic at range 0 at entry)"
 REQUIRED_RECORD_KEYS = (
     "label",
     "value",
@@ -73,6 +76,7 @@ REQUIRED_RECORD_KEYS = (
     "stage",
 )
 HARDWARE_RE = re.compile(r"^d(\d+)_(std|swap)_(nocams|cams)$")
+STRONG_TACTIC_RE = re.compile(r"^strong-(.+)-(\d+(?:\.\d+)?)-(\d+\.\d+)$")
 TACTIC_RE = re.compile(r"^(slow-grid|grid|gap)-(.+)-(\d+\.\d+)$")
 
 INK = "#0b0b0b"
@@ -197,8 +201,14 @@ def parse_tactic(tactic_id: str) -> dict[str, Any] | None:
 
 def tactic_words(tactic_id: str, k: Consts | None = None) -> str:
     parsed = parse_tactic(tactic_id)
+    strong = STRONG_TACTIC_RE.match(tactic_id)
+    if parsed is None and strong is not None:
+        return (
+            f"`{tactic_id}` (straight run on the strong adversary's phase grid, entry "
+            f"{strong.group(1)}, at {strong.group(2)} m/s, schedule phase {strong.group(3)})"
+        )
     if parsed is None:
-        return f"`{tactic_id}` (not a grid or gap tactic: a lane C, random or strong-grid tactic)"
+        return f"`{tactic_id}` (a lane C or random multi-waypoint tactic)"
     kind = {
         "grid": "straight run on the phase grid",
         "slow-grid": "slow straight run on the phase grid",
@@ -253,6 +263,16 @@ def recommended_label(results: Row) -> str | None:
     if name is None:
         return None
     return BEST_FREE_LABEL if name == "d2_std_nocams" else f"best:{name}"
+
+
+def has_cameras(hardware: Any) -> bool:
+    return str(hardware).endswith("_cams") and not str(hardware).endswith("_nocams")
+
+
+def nocams_label(results: Row) -> str | None:
+    data = stage_data(results, NOCAMS_STAGE)
+    label = data.get("recommended_without_cameras_label")
+    return str(label) if label is not None else None
 
 
 def is_ingredient(row: Row) -> bool:
@@ -495,40 +515,110 @@ def target_is_confirmed(results: Row, group: str, key: str, stage: str) -> bool:
     return _confirmed_row(results, target, stage, TARGET_METRICS[key]) is not None
 
 
-def _target_clause(book: Book, results: Row, group: str, key: str, stage: str) -> str:
+def _target_clause(
+    book: Book, results: Row, group: str, key: str, stage: str, short: bool = False
+) -> str:
     target = results.get("targets", {}).get(group, {}).get(key)
     if not isinstance(target, dict):
         return "no result"
-    metric = TARGET_METRICS[key]
-    if target.get("label") is None:
+    reach = _group_reach(results, group, key, stage)
+    if reach is None:
         return "no row holds this number"
+    return _reach_words(book, reach, stage, TARGET_METRICS[key], short)
+
+
+def reach_from_rows(rows: Sequence[Row], metric: str, goal: float) -> Row:
+    """The reached / confirmed / ceiling rows of a metric, by campaign.cheapest_to_target's
+    rule, computed here because `targets` does not split by cameras."""
+    known = [(r, got) for r in rows if (got := _metric(r, metric)) is not None]
+
+    def cheapest(found: list[Row]) -> Row | None:
+        return min(found, key=lambda r: (float(r["cost_per_hour"]), str(r["label"])), default=None)
+
+    point = cheapest([r for r, got in known if got[0] >= goal])
+    sure = cheapest([r for r, got in known if got[1] and float(got[1][0]) >= goal])
+    top = max(known, key=lambda rg: (rg[1][0], -float(rg[0]["cost_per_hour"])), default=None)
+    return {"point": point, "confirmed": sure, "ceiling": top[0] if top else None}
+
+
+def _reach_words(book: Book, reach: Row, stage: str, metric: str, short: bool) -> str:
+    point, sure, top = reach.get("point"), reach.get("confirmed"), reach.get("ceiling")
+
+    def where(row: Row) -> str:
+        return f"{row.get('label')} at {money(float(row.get('cost_per_hour', 0.0)))}"
+
+    if top is None:
+        return "no row holds this number"
+    if point is None:
+        return f"NOT reached, the ceiling is {book.pd(top, stage, metric)} set by {where(top)}"
+    if sure is None:
+        text = f"reached on the point estimate only, not confirmed (cheapest is {where(point)}"
+        return text + (")" if short else f" with {book.pd(point, stage, metric)})")
+    if short:
+        text = f"confirmed by {where(sure)}"
+    else:
+        text = (
+            "confirmed (interval lower end at or above target), cheapest confirmed is "
+            f"{where(sure)} with {book.pd(sure, stage, metric)}"
+        )
+    if sure.get("label") != point.get("label"):
+        text += f"; reached on the point estimate, not confirmed, by the cheaper {where(point)}"
+        if not short:
+            text += f" with {book.pd(point, stage, metric)}"
+    return text
+
+
+def _group_reach(results: Row, group: str, key: str, stage: str) -> Row | None:
+    """The same three rows for a `targets` entry the campaign wrote."""
+    target = results.get("targets", {}).get(group, {}).get(key)
+    if not isinstance(target, dict) or target.get("label") is None:
+        return None
     row = find(stage_rows(results, stage), target.get("label"))
-    number = book.pd(row, stage, metric)
-    where = f"{target.get('label')} at {money(float(target.get('cost_per_hour', 0.0)))}"
     if not target.get("reached"):
-        return f"NOT reached, the ceiling is {number} set by {where}"
-    confirmed = _confirmed_row(results, target, stage, metric)
-    if confirmed is None:
-        return (
-            f"reached on the point estimate only, not confirmed (cheapest is {where} with "
-            f"{number}; no interval lower end reaches the target)"
-        )
-    sure = (
-        f"confirmed (interval lower end at or above target), cheapest confirmed is "
-        f"{confirmed.get('label')} at {money(float(confirmed.get('cost_per_hour', 0.0)))} with "
-        f"{book.pd(confirmed, stage, metric)}"
-    )
-    if confirmed.get("label") != target.get("label"):
-        sure += (
-            f"; reached on the point estimate, not confirmed, by the cheaper {where} with {number}"
-        )
-    return sure
+        return {"point": None, "confirmed": None, "ceiling": row}
+    sure = _confirmed_row(results, target, stage, TARGET_METRICS[key])
+    return {"point": row, "confirmed": sure, "ceiling": row}
+
+
+def camera_free_rows(results: Row) -> list[Row]:
+    return [
+        r
+        for r in stage_rows(results, "final_standin")
+        if not is_ingredient(r) and not has_cameras(r.get("hardware"))
+    ]
 
 
 def target_note(results: Row, group: str) -> str:
     cells = results.get("targets", {}).get(group, {})
     notes = [c.get("note") for c in cells.values() if isinstance(c, dict) and c.get("note")]
     return str(notes[0]) if notes else DEFAULT_TARGET_NOTE
+
+
+def _nocams_line(book: Book, results: Row, main_hardware: str | None) -> str:
+    """The best answer that does not lean on entry cameras, from its own stage only."""
+    if main_hardware is not None and not has_cameras(main_hardware):
+        return "Without entry cameras: the main recommendation already has none."
+    label = nocams_label(results)
+    row = find(stage_rows(results, NOCAMS_STAGE), label)
+    if label is None or row is None:
+        status, detail = stage_status(results, NOCAMS_STAGE)
+        return (
+            "Without entry cameras: not evaluated against the strong adversary "
+            f"(stage {NOCAMS_STAGE} is {status}{': ' + detail if detail else ''})."
+        )
+    text = (
+        f"Without entry cameras: {label} ({hardware_words(str(row.get('hardware')))}) at "
+        f"{money(float(row.get('cost_per_hour', 0.0)))}: overall "
+        f"{book.pd(row, NOCAMS_STAGE, 'pd')}; {_worst_clause(book, row, NOCAMS_STAGE)} "
+        f"(strict, {seeds_words(row)})"
+    )
+    deltas = stage_data(results, NOCAMS_STAGE).get("paired_vs_baseline", [])
+    delta = next((d for d in deltas if d.get("a") == label), None)
+    if delta is not None:
+        text += (
+            f"; paired against the baseline, overall {book.delta(delta, 'pd', row, NOCAMS_STAGE)}"
+        )
+    return text + "."
 
 
 def summary_lines(book: Book, results: Row) -> list[str]:
@@ -551,9 +641,10 @@ def summary_lines(book: Book, results: Row) -> list[str]:
         return [
             f"1. No recommended configuration can be named: {why}.",
             "2. No strict detection numbers for a recommendation; see the stage status below.",
-            "3. ASSUMPTION numbers for a recommendation: none.",
-            f"4. Baseline (`{BASELINE_LABEL}`): {base_text}.",
-            f"5. Whether {percent(consts(results).target)} was reached cannot be said from this run.",
+            f"3. {_nocams_line(book, results, None)}",
+            "4. ASSUMPTION numbers for a recommendation: none.",
+            f"5. Baseline (`{BASELINE_LABEL}`): {base_text}.",
+            f"6. Whether {percent(consts(results).target)} was reached cannot be said from this run.",
         ]
     rows = stage_rows(results, stage)
     row = find(rows, rec) or {}
@@ -565,7 +656,8 @@ def summary_lines(book: Book, results: Row) -> list[str]:
     )
     line1 = (
         f"1. Recommended: {rec} (hardware `{hardware}`: {bought}) at "
-        f"{money(float(row.get('cost_per_hour', 0.0)))}."
+        f"{money(float(row.get('cost_per_hour', 0.0)))}"
+        + (f" {CAMERA_WARNING}." if has_cameras(hardware) else ".")
     )
     line2 = (
         f"2. Strict, {seeds_words(row)}: overall {book.pd(row, stage, 'pd')}; "
@@ -575,22 +667,22 @@ def summary_lines(book: Book, results: Row) -> list[str]:
     assumed = find(stage_rows(results, "assumption60"), rec)
     if assumed is None:
         status, detail = stage_status(results, "assumption60")
-        line3 = (
-            f"3. ASSUMPTION ({seconds(consts(results).task_time_s)} task time): no number for {rec}; "
+        line4 = (
+            f"4. ASSUMPTION ({seconds(consts(results).task_time_s)} task time): no number for {rec}; "
             f"stage assumption60 is {status}{' (' + detail + ')' if detail else ''}."
         )
     else:
-        line3 = (
-            f"3. ASSUMPTION ({seconds(consts(results).task_time_s)} task time, not a strict result), "
+        line4 = (
+            f"4. ASSUMPTION ({seconds(consts(results).task_time_s)} task time, not a strict result), "
             f"{seeds_words(assumed)}: overall {book.pd(assumed, 'assumption60', 'pd')}; "
             f"{_worst_clause(book, assumed, 'assumption60')}."
         )
     base = find(rows, BASELINE_LABEL)
     if base is None:
-        line4 = f"4. Baseline (`{BASELINE_LABEL}`): no row in {stage}."
+        line5 = f"5. Baseline (`{BASELINE_LABEL}`): no row in {stage}."
     else:
-        line4 = (
-            f"4. Baseline (`{BASELINE_LABEL}`, the scenario's own fleet and policy) at {money(float(base.get('cost_per_hour', 0.0)))}, "
+        line5 = (
+            f"5. Baseline (`{BASELINE_LABEL}`, the scenario's own fleet and policy) at {money(float(base.get('cost_per_hour', 0.0)))}, "
             f"same adversary and seeds: overall {book.pd(base, stage, 'pd')}; "
             f"{_worst_clause(book, base, stage)}."
         )
@@ -601,15 +693,39 @@ def summary_lines(book: Book, results: Row) -> list[str]:
         if group == "strict"
         else "finalists only, strong adversary"
     )
-    line5 = (
-        f"5. {percent(consts(results).target)}, strict, {scope} (chosen and reported on the same "
-        f"final seeds, so optimistic): overall "
-        f"{_target_clause(book, results, group, 'overall', group_stage)}; worst tactic held-out "
-        f"{_target_clause(book, results, group, 'worst_tactic_heldout', group_stage)}; "
-        f"worst tactic naive "
-        f"{_target_clause(book, results, group, 'worst_tactic_naive', group_stage)}."
+    pairs = (
+        ("overall", "overall"),
+        ("worst_tactic_heldout", "worst held-out"),
+        ("worst_tactic_naive", "worst naive"),
     )
-    return [line1, line2, line3, line4, line5]
+    everyone = "; ".join(
+        f"{words} {_target_clause(book, results, group, key, group_stage, short=True)}"
+        for key, words in pairs
+    )
+    free_rows = camera_free_rows(results)
+    goal = consts(results).target
+    free = (
+        "; ".join(
+            f"{words} "
+            + _reach_words(
+                book,
+                reach_from_rows(free_rows, TARGET_METRICS[key], goal),
+                "final_standin",
+                TARGET_METRICS[key],
+                True,
+            )
+            for key, words in pairs
+        )
+        if free_rows
+        else "no camera-free stand-in rows on record"
+    )
+    line6 = (
+        f"6. {percent(goal)}, strict, {scope}, chosen and reported on the same final seeds so "
+        f"optimistic ('confirmed' means the interval lower end reaches the target). All "
+        f"configurations: {everyone}. Without entry cameras (stand-in adversary): {free}."
+    )
+    line3 = f"3. {_nocams_line(book, results, hardware)}"
+    return [line1, line2, line3, line4, line5, line6]
 
 
 def section_status(results: Row) -> list[str]:
@@ -724,6 +840,7 @@ def section_frontier(book: Book, results: Row) -> list[str]:
         body.append(
             [
                 str(r.get("label")),
+                "yes (upper bound)" if has_cameras(r.get("hardware")) else "no",
                 money(float(r["cost_per_hour"])),
                 book.pd(r, "final_standin", "pd"),
                 book.pd(r, "final_standin", "worst_naive"),
@@ -753,6 +870,7 @@ def section_frontier(book: Book, results: Row) -> list[str]:
     ]
     header = [
         "configuration",
+        "entry cameras",
         "cost",
         "overall pd [95% CI]",
         "worst naive [CI]",
@@ -764,7 +882,14 @@ def section_frontier(book: Book, results: Row) -> list[str]:
     lines += table(header, body)
     lines += ["Best so far at each cost level (same rows, same seeds):", ""]
     lines += _running_best(ordered, book, "final_standin")
-    lines += ["Chart: `charts/frontier.png`.", ""]
+    free = [r for r in ordered if not has_cameras(r.get("hardware"))]
+    lines += [
+        f"Best so far at each cost level, configurations WITHOUT entry cameras only "
+        f"({len(free)} of {len(ordered)} rows). {CAVEAT_CAMERA_BOUND}",
+        "",
+    ]
+    lines += _running_best(free, book, "final_standin")
+    lines += ["Chart: `charts/frontier.png` (squares have entry cameras, circles do not).", ""]
     return lines
 
 
@@ -815,13 +940,44 @@ def section_targets(book: Book, results: Row) -> list[str]:
             "frontier configurations only",
         ),
         ("strict_strong_finalists", "final_strong", "STRICT, strong adversary, finalists only"),
+        (
+            NOCAMS_GROUP,
+            NOCAMS_STAGE,
+            "STRICT, strong adversary, the baseline and the recommendation without entry cameras",
+        ),
     )
+    free_rows = camera_free_rows(results)
+    free: list[str] = ["### STRICT, stand-in adversary, configurations WITHOUT entry cameras", ""]
+    if free_rows:
+        free += [
+            f"Computed in this report from the {len(free_rows)} frontier rows whose hardware has "
+            f"no entry cameras, by the same rule. Rows: {seeds_words(free_rows[0])}, strict. "
+            f"Note: {DEFAULT_TARGET_NOTE}.",
+            "",
+        ]
+        for key, words in (
+            ("overall", "Overall"),
+            ("worst_tactic_heldout", "Worst tactic, held-out"),
+            ("worst_tactic_naive", "Worst tactic, naive"),
+        ):
+            reach = reach_from_rows(free_rows, TARGET_METRICS[key], k.target)
+            text = _reach_words(book, reach, "final_standin", TARGET_METRICS[key], False)
+            line = f"- **{words}:** {text}."
+            if reach["point"] is None and reach["ceiling"] is not None:
+                binds = _what_binds(results, "final_standin", {"label": reach["ceiling"]["label"]})
+                line += f" What binds: {binds}."
+            free.append(line)
+        free.append("")
+    else:
+        status, detail = stage_status(results, "final_standin")
+        free += [f"No answer: no camera-free rows (final_standin is {status}). {detail}", ""]
     for group, stage, title in groups:
         lines += [f"### {title}", ""]
         rows = stage_rows(results, stage)
         if group not in results.get("targets", {}) or not rows:
             status, detail = stage_status(results, stage)
             lines += [f"No answer: stage {stage} is {status.upper()} ({detail or 'no rows'}).", ""]
+            lines += free if group == "strict" else []
             continue
         lines += [
             f"Rows: {seeds_words(rows[0])}, {conditions(rows[0])}. Note: "
@@ -839,6 +995,7 @@ def section_targets(book: Book, results: Row) -> list[str]:
                 text += f" What binds: {_what_binds(results, stage, target)}."
             lines.append(text)
         lines.append("")
+        lines += free if group == "strict" else []
     return lines
 
 
@@ -962,22 +1119,17 @@ def section_finalists(book: Book, results: Row) -> list[str]:
 
 def _entry_records(results: Row) -> dict[str, Row]:
     found: dict[str, Row] = {}
-    for stage in ("final_standin", "final_strong", "A", "assumption60"):
+    for stage in ("final_standin", "final_strong", NOCAMS_STAGE, "A", "assumption60"):
         for entry in stage_data(results, stage).get("entries", []):
             if isinstance(entry, dict) and entry.get("label") is not None:
                 found.setdefault(str(entry["label"]), entry)
     return found
 
 
-def section_duty(results: Row) -> list[str]:
-    lines = ["## Attack window and duty shares", "", CAVEAT_WINDOW, ""]
-    entries = _entry_records(results)
-    wanted = [BASELINE_LABEL, BEST_FREE_LABEL, recommended_label(results)]
-    wanted += [str(e.get("label")) for e in stage_data(results, "final_strong").get("entries", [])]
-    labels = [x for x in dict.fromkeys(wanted) if x is not None and x in entries]
+def _duty_table(entries: dict[str, Row], labels: Sequence[str]) -> list[str]:
     body = []
     for label in labels:
-        duty = entries[label].get("duty")
+        duty = entries.get(label, {}).get("duty")
         if not isinstance(duty, dict):
             continue
         for agent, shares in sorted(duty.items()):
@@ -985,25 +1137,88 @@ def section_duty(results: Row) -> list[str]:
             gap = inside - steady
             flag = f"FLAG: differs by more than {DUTY_FLAG:.2f}" if abs(gap) > DUTY_FLAG else "-"
             body.append([label, agent, fmt(inside), fmt(steady), fmt_delta(gap), flag])
-    if body:
+    if not body:
+        return ["No duty shares on record (results written before the `duty` field).", ""]
+    lines = [
+        "Share of time each charging agent is on duty inside the attack window, next to its "
+        "steady-state share (shares of time, not detection numbers):",
+        "",
+    ]
+    header = [
+        "configuration",
+        "agent",
+        "on duty inside the window",
+        "on duty in steady state",
+        "difference",
+        "flag",
+    ]
+    lines += table(header, body)
+    flagged = sum(1 for cells in body if cells[5] != "-")
+    return [*lines, f"{flagged} of {len(body)} agent rows are flagged.", ""]
+
+
+def section_nocams(book: Book, results: Row) -> list[str]:
+    lines = ["## Recommended without entry cameras (strict, strong adversary)", ""]
+    lines += [
+        "Why this section exists: " + CAVEAT_CAMERA_BOUND + " This is the best answer that does "
+        "not lean on that.",
+        "",
+    ]
+    status, detail = stage_status(results, NOCAMS_STAGE)
+    if status != "complete":
         lines += [
-            "Share of time each charging agent is on duty inside the attack window, next to its "
-            "steady-state share (shares of time, not detection numbers):",
+            f"Stage {NOCAMS_STAGE} is {status.upper()}: {detail}. The configuration without entry "
+            "cameras was not evaluated against the strong adversary; the camera-free sub-table "
+            "of the frontier (stand-in adversary) is the only evidence.",
             "",
         ]
-        header = [
-            "configuration",
-            "agent",
-            "on duty inside the window",
-            "on duty in steady state",
-            "difference",
-            "flag",
-        ]
-        lines += table(header, body)
-        flagged = sum(1 for cells in body if cells[5] != "-")
-        lines += [f"{flagged} of {len(body)} agent rows are flagged.", ""]
-    else:
-        lines += ["No duty shares on record (results written before the `duty` field).", ""]
+        return lines
+    data = stage_data(results, NOCAMS_STAGE)
+    label = nocams_label(results)
+    rows = stage_rows(results, NOCAMS_STAGE)
+    lines += [
+        f"Chosen: {label} (hardware `{data.get('recommended_without_cameras')}`: "
+        f"{hardware_words(str(data.get('recommended_without_cameras')))}). Rule ({SELECTION}): "
+        f"{data.get('rule', 'rule not on record')}.",
+        "",
+    ]
+    rec = recommended_label(results)
+    if rec is not None and rec == label:
+        lines += ["The main recommendation has no entry cameras, so this is the same one.", ""]
+    if not rows:
+        return [*lines, "The stage holds no final rows.", ""]
+    lines += [f"All rows strict: {seeds_words(rows[0])}.", ""]
+    lines += detection_table(book, rows, NOCAMS_STAGE, True)
+    lines += ["Paired against the baseline, same seeds and quiet nights:", ""]
+    lines += _paired_lines(book, results, NOCAMS_STAGE)
+    lines += _strong_extras(book, results, NOCAMS_STAGE)
+    entries = {str(e.get("label")): e for e in data.get("entries", []) if isinstance(e, dict)}
+    lines += _duty_table(entries, [x for x in (BASELINE_LABEL, label) if x is not None])
+    entry = entries.get(str(label), {})
+    policy = entry.get("policy")
+    docks = policy.get("docks") if isinstance(policy, dict) else None
+    lines += [
+        f"Policy parameters of {label}:",
+        "",
+        "```json",
+        json.dumps(policy, indent=1, sort_keys=True),
+        "```",
+        "",
+        "Dock map: "
+        + (json.dumps(docks, sort_keys=True) if docks else "the scenario's own dock assignment")
+        + ".",
+        "",
+    ]
+    return lines
+
+
+def section_duty(results: Row) -> list[str]:
+    lines = ["## Attack window and duty shares", "", CAVEAT_WINDOW, ""]
+    entries = _entry_records(results)
+    wanted = [BASELINE_LABEL, BEST_FREE_LABEL, recommended_label(results), nocams_label(results)]
+    wanted += [str(e.get("label")) for e in stage_data(results, "final_strong").get("entries", [])]
+    labels = [x for x in dict.fromkeys(wanted) if x is not None and x in entries]
+    lines += _duty_table(entries, labels)
     lines += ["Dock maps of the chosen policies:", ""]
     for label, entry in sorted(entries.items()):
         if label.startswith(INGREDIENT_PREFIX):
@@ -1432,6 +1647,7 @@ def build_report(results: Row, notes: Row, out: Path) -> tuple[str, list[Row]]:
     lines += section_targets(book, results)
     lines += section_a(book, results)
     lines += section_finalists(book, results)
+    lines += section_nocams(book, results)
     lines += section_b(book, results)
     lines += section_duty(results)
     lines += section_selection(book, results)
@@ -1526,6 +1742,7 @@ def chart_frontier(results: Row, path: Path) -> None:
         _placeholder(path, "No frontier", f"stage final_standin is {status}: {detail}")
         return
     rec = recommended_label(results)
+    free_rec = nocams_label(results)
     costs = [float(r["cost_per_hour"]) for r in rows]
     fig, axes = plt.subplots(1, 2, figsize=(13, 6.0), sharey=True)
     panels = (("pd", "Overall detection"), ("worst_heldout", "Worst tactic, held-out"))
@@ -1542,13 +1759,21 @@ def chart_frontier(results: Row, path: Path) -> None:
                 continue
             value, ci = got
             label = str(row["label"])
-            special = label in (BASELINE_LABEL, rec)
-            colour = ORANGE if label == BASELINE_LABEL else BLUE if label == rec else CONTEXT
+            special = label in (BASELINE_LABEL, rec, free_rec)
+            colour = (
+                ORANGE
+                if label == BASELINE_LABEL
+                else BLUE
+                if label == rec
+                else AQUA
+                if label == free_rec
+                else CONTEXT
+            )
             ax.errorbar(
                 [float(row["cost_per_hour"])],
                 [value],
                 yerr=_err(value, ci),
-                fmt="o",
+                fmt="s" if has_cameras(row.get("hardware")) else "o",
                 markersize=9 if special else 7,
                 color=colour,
                 markerfacecolor=SURFACE if hollow else colour,
@@ -1565,6 +1790,8 @@ def chart_frontier(results: Row, path: Path) -> None:
                     if label == BASELINE_LABEL
                     else f"{row['hardware']} (recommended)"
                     if label == rec
+                    else f"{row['hardware']} (no-camera pick)"
+                    if label == free_rec
                     else str(row["hardware"])
                     if label != BEST_FREE_LABEL
                     else "best free policy"
@@ -1573,7 +1800,10 @@ def chart_frontier(results: Row, path: Path) -> None:
                 note = ax.annotate(
                     name,
                     (float(row["cost_per_hour"]), value),
-                    xytext=(-9 if right_half else 9, -15 if label == BASELINE_LABEL else 9),
+                    xytext=(
+                        -9 if right_half else 9,
+                        -15 if label == BASELINE_LABEL else 24 if label == free_rec else 9,
+                    ),
                     textcoords="offset points",
                     ha="right" if right_half else "left",
                     fontsize=10,
@@ -1593,12 +1823,13 @@ def chart_frontier(results: Row, path: Path) -> None:
     fig.text(
         0.01,
         0.01,
-        "Hollow marker: naive worst tactic, shown where no held-out value exists (baseline, "
-        "confirmed fix). Grey: other configurations; named where they raise the best so far.",
+        "Squares: entry cameras (an upper bound, cameras see every tactic at entry). Circles: no "
+        "entry cameras.\nHollow: naive worst tactic where no held-out value exists. Grey: other "
+        "configurations, named where they raise the best so far.",
         fontsize=9,
         color=INK_2,
     )
-    fig.tight_layout(rect=(0, 0.04, 1, 0.88))
+    fig.tight_layout(rect=(0, 0.07, 1, 0.88))
     _save(fig, path)
 
 
