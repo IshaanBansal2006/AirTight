@@ -95,9 +95,8 @@ class SquareRootUKF:
         sigma = np.zeros((2 * self.n + 1, self.n))
         sigma[0] = state.x
         offsets = self.gamma * state.S  # columns are the offset vectors
-        for i in range(self.n):
-            sigma[i + 1] = state.x + offsets[:, i]
-            sigma[self.n + i + 1] = state.x - offsets[:, i]
+        sigma[1 : self.n + 1] = state.x + offsets.T
+        sigma[self.n + 1 :] = state.x - offsets.T
         return sigma
 
     def f(self, x: NDArray[np.float64]) -> NDArray[np.float64]:
@@ -130,8 +129,11 @@ class SquareRootUKF:
     # ---------------------------------------------------------------- predict
     def predict(self, state: SRTrackState) -> SRTrackState:
         sigma = self.generate_sigma_points(state)
-        for i in range(2 * self.n + 1):
-            sigma[i] = self.f(sigma[i])
+        dt = self.cfg.dt
+        sigma = sigma.copy()
+        sigma[:, 0] += sigma[:, 3] * dt
+        sigma[:, 1] += sigma[:, 4] * dt
+        sigma[:, 2] += sigma[:, 5] * dt
         x_pred = self.Wm @ sigma
         # Recompose the factor from the non-center deviations + sqrt(Q) columns,
         # then fold in the center deviation.
@@ -148,15 +150,10 @@ class SquareRootUKF:
     ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
         """(z_pred, S) for gating — same contract as UKF.measurement_prediction."""
         sigma = self.generate_sigma_points(state)
-        m = R.shape[0]
-        Z = np.zeros((2 * self.n + 1, m))
-        for i in range(2 * self.n + 1):
-            Z[i] = h(sigma[i])
+        Z = np.vstack([h(s) for s in sigma])
         z_pred = self.Wm @ Z
-        S = R.copy()
-        for i in range(2 * self.n + 1):
-            diff = Z[i] - z_pred
-            S += self.Wc[i] * np.outer(diff, diff)
+        diff = Z - z_pred
+        S = R + (self.Wc[:, None, None] * diff[:, :, None] * diff[:, None, :]).sum(axis=0)
         return z_pred, S
 
     # ----------------------------------------------------------------- update
@@ -185,9 +182,9 @@ class SquareRootUKF:
             self.repairs += 1
             Sy = self._psd_factor(Sy @ Sy.T + np.sign(w0) * np.outer(v0, v0))
 
-        Pxz = np.zeros((self.n, m))
-        for i in range(2 * self.n + 1):
-            Pxz += self.Wc[i] * np.outer(sigma[i] - state.x, Z[i] - z_pred)
+        Pxz = (
+            self.Wc[:, None, None] * (sigma - state.x)[:, :, None] * (Z - z_pred)[:, None, :]
+        ).sum(axis=0)
 
         S_inn = Sy @ Sy.T  # innovation covariance (returned for gating/JPDA)
         K = np.linalg.solve(S_inn, Pxz.T).T

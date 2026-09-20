@@ -11,6 +11,8 @@ import math
 from statistics import median
 from typing import TYPE_CHECKING, NamedTuple
 
+import numpy as np
+
 from airtight.contracts import XY, Tactic, TacticFamily
 from airtight.sim import adapt
 from airtight.sim.coverage import uncovered_intervals
@@ -95,15 +97,15 @@ def snapshot_staleness(
         stale = controller.staleness(t)
         centres = controller.grid.cell_centers()
         weight = controller.weight
+        mask = (weight > 0) & (stale > 0)
+        rows, cols = np.nonzero(mask)
         captured["cells"] = [
             CellNeed(
                 XY(x=float(centres[iy, ix, 0]), y=float(centres[iy, ix, 1])),
                 float(stale[iy, ix]),
                 float(weight[iy, ix]),
             )
-            for iy in range(stale.shape[0])
-            for ix in range(stale.shape[1])
-            if weight[iy, ix] > 0 and stale[iy, ix] > 0
+            for iy, ix in zip(rows, cols, strict=True)
         ]
 
     t0_abs = phase * adapt.reference_cycle_s(fleet)

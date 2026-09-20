@@ -128,14 +128,11 @@ def patrol_weight(
     centers = grid.cell_centers()
     assets = np.asarray(asset_positions, dtype=np.float64).reshape(-1, 2)
     extra: Array = np.zeros(grid.shape, dtype=np.float64)
-    if mode == "asset":
-        for ax, ay in assets:
-            distance = np.hypot(centers[..., 0] - ax, centers[..., 1] - ay)
-            extra += asset_gain * np.exp(-distance / scale_m)
-    elif mode == "band":
-        nearest = np.full(grid.shape, np.inf, dtype=np.float64)
-        for ax, ay in assets:
-            nearest = np.minimum(nearest, np.hypot(centers[..., 0] - ax, centers[..., 1] - ay))
+    if mode == "asset" and len(assets):
+        distance = np.linalg.norm(centers[..., None, :] - assets, axis=-1)
+        extra = asset_gain * np.exp(-distance / scale_m).sum(axis=-1)
+    elif mode == "band" and len(assets):
+        nearest = np.linalg.norm(centers[..., None, :] - assets, axis=-1).min(axis=-1)
         extra = asset_gain * (nearest >= r_c).astype(np.float64)
     weight: Array = inside * (base + extra)
     return weight
@@ -144,7 +141,44 @@ def patrol_weight(
 def polyline_length(points: Array) -> float:
     """Total length of a polyline given as (n, 2). A single point has length 0."""
     pts = np.asarray(points, dtype=np.float64).reshape(-1, 2)
+    if len(pts) < 2:
+        return 0.0
     return float(np.linalg.norm(np.diff(pts, axis=0), axis=1).sum())
+
+
+class Polyline:
+    """Segment lengths and cumulative arc length, built once for repeated position queries.
+
+    Intruder and benign objects ask for a position every look. Rebuilding ``diff`` / ``cumsum``
+    on each call was the whole cost of those queries; the numbers are identical to a fresh
+    ``polyline_position`` on the same vertices.
+    """
+
+    __slots__ = ("pts", "seg", "cum", "total")
+
+    def __init__(self, points: Array) -> None:
+        pts = np.asarray(points, dtype=np.float64).reshape(-1, 2)
+        if len(pts) == 0:
+            raise ValueError("polyline needs at least one point")
+        self.pts = np.ascontiguousarray(pts)
+        if len(pts) == 1:
+            self.seg = np.empty(0, dtype=np.float64)
+            self.cum = np.array([0.0], dtype=np.float64)
+            self.total = 0.0
+            return
+        self.seg = np.linalg.norm(np.diff(self.pts, axis=0), axis=1)
+        self.total = float(self.seg.sum())
+        self.cum = np.concatenate([[0.0], np.cumsum(self.seg)])
+
+    def position(self, speed: float, t: float) -> tuple[Array, bool]:
+        travelled = max(0.0, speed * t)
+        if travelled >= self.total - _EPS:
+            return self.pts[-1].copy(), True
+        i = int(np.searchsorted(self.cum, travelled, side="right")) - 1
+        i = min(max(i, 0), len(self.seg) - 1)
+        frac = (travelled - self.cum[i]) / self.seg[i] if self.seg[i] > 0 else 0.0
+        xy: Array = self.pts[i] + frac * (self.pts[i + 1] - self.pts[i])
+        return xy, False
 
 
 def polyline_position(points: Array, speed: float, t: float) -> tuple[Array, bool]:
@@ -153,20 +187,7 @@ def polyline_position(points: Array, speed: float, t: float) -> tuple[Array, boo
     t <= 0 returns the first point. done is True once the whole length has been travelled, so
     a single-point path is done at every t.
     """
-    pts = np.asarray(points, dtype=np.float64).reshape(-1, 2)
-    if len(pts) == 0:
-        raise ValueError("polyline needs at least one point")
-    seg = np.linalg.norm(np.diff(pts, axis=0), axis=1)
-    total = float(seg.sum())
-    travelled = max(0.0, speed * t)
-    if travelled >= total - _EPS:
-        return pts[-1].copy(), True
-    cum = np.concatenate([[0.0], np.cumsum(seg)])
-    i = int(np.searchsorted(cum, travelled, side="right")) - 1
-    i = min(max(i, 0), len(seg) - 1)
-    frac = (travelled - cum[i]) / seg[i] if seg[i] > 0 else 0.0
-    xy: Array = pts[i] + frac * (pts[i + 1] - pts[i])
-    return xy, False
+    return Polyline(points).position(speed, t)
 
 
 def in_wedge(origin: Array, heading: float, fov_deg: float, points: Array) -> BoolArray:
@@ -175,13 +196,24 @@ def in_wedge(origin: Array, heading: float, fov_deg: float, points: Array) -> Bo
     points is (..., 2); the result has shape points.shape[:-1]. fov_deg >= 360 is always True,
     and so is a point at distance 0, whose bearing is undefined. Range is not checked here.
     """
-    pts = np.asarray(points, dtype=np.float64)
+    pts = points if isinstance(points, np.ndarray) else np.asarray(points, dtype=np.float64)
     if fov_deg >= 360.0:
         return np.ones(pts.shape[:-1], dtype=np.bool_)
+    if pts.ndim == 1:
+        dx = float(pts[0] - origin[0])
+        dy = float(pts[1] - origin[1])
+        if dx == 0.0 and dy == 0.0:
+            return np.bool_(True)
+        delta = math.atan2(dy, dx) - heading
+        off = (delta + math.pi) % (2.0 * math.pi) - math.pi
+        return np.bool_(abs(off) <= math.radians(fov_deg) / 2.0)
     dx = pts[..., 0] - origin[0]
     dy = pts[..., 1] - origin[1]
-    off_axis = np.angle(np.exp(1j * (np.arctan2(dy, dx) - heading)))  # wrapped to [-pi, pi]
-    inside: BoolArray = (np.abs(off_axis) <= math.radians(fov_deg) / 2.0) | ((dx == 0) & (dy == 0))
+    # wrap Δbearing to [-π, π] without allocating a complex exponential
+    delta = np.arctan2(dy, dx) - heading
+    off_axis = np.mod(delta + math.pi, 2.0 * math.pi) - math.pi
+    half = math.radians(fov_deg) / 2.0
+    inside: BoolArray = (np.abs(off_axis) <= half) | ((dx == 0) & (dy == 0))
     return inside
 
 
@@ -198,10 +230,14 @@ def voronoi_mask(
     """
     if own_id in peers:
         raise ValueError(f"own_id {own_id} also appears in peers {sorted(peers)}")
+    if not peers:
+        return np.ones(centres.shape[:2], dtype=np.bool_)
     own = np.asarray(own_xy, dtype=np.float64)
     d_own = ((centres - own) ** 2).sum(axis=-1)  # squared distance keeps ties exact
-    mask = np.ones(centres.shape[:2], dtype=np.bool_)
-    for peer_id, peer_xy in peers.items():
-        d_peer = ((centres - np.asarray(peer_xy, dtype=np.float64)) ** 2).sum(axis=-1)
-        mask &= (d_own < d_peer) | ((d_own == d_peer) & (own_id < peer_id))
+    # AND over peers in 2-D: same predicate as a stacked (rows, cols, n_peers) all-reduce,
+    # without the 3-D temporary. AND is commutative, so dict order does not matter.
+    mask: BoolArray = np.ones(centres.shape[:2], dtype=np.bool_)
+    for pid, pxy in peers.items():
+        d_p = ((centres - np.asarray(pxy, dtype=np.float64)) ** 2).sum(axis=-1)
+        mask &= (d_own < d_p) | ((d_own == d_p) & (own_id < pid))
     return mask

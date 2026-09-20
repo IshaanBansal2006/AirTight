@@ -93,23 +93,17 @@ def linear_sum_assignment(
         while True:  # grow the shortest augmenting path one column at a time
             used[j0] = True
             i0 = parent[j0]
-            delta, j1 = np.inf, -1
-            for j in range(1, m + 1):
-                if used[j]:
-                    continue
-                cur = cost[i0 - 1, j - 1] - u[i0] - v[j]
-                if cur < minv[j]:
-                    minv[j], way[j] = cur, j0
-                if minv[j] < delta:
-                    delta, j1 = minv[j], j
-            # Shift potentials by delta: tight edges stay tight, and the edge to
-            # j1 becomes tight. This is what preserves reduced_cost >= 0.
-            for j in range(m + 1):
-                if used[j]:
-                    u[parent[j]] += delta
-                    v[j] -= delta
-                else:
-                    minv[j] -= delta
+            cur = cost[i0 - 1] - u[i0] - v[1:]
+            unused = ~used[1:]
+            better = unused & (cur < minv[1:])
+            minv[1:] = np.where(better, cur, minv[1:])
+            way[1:] = np.where(better, j0, way[1:])
+            cand = np.where(used, np.inf, minv)
+            j1 = int(np.argmin(cand))
+            delta = float(cand[j1])
+            u[parent[used]] += delta
+            v[used] -= delta
+            minv[~used] -= delta
             j0 = j1
             if parent[j0] == 0:  # reached a free column — the path is complete
                 break

@@ -21,7 +21,7 @@ Every agent has its own pad, the point adapt.start_position gives it. Dock capac
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, NamedTuple
 
 import numpy as np
@@ -44,10 +44,10 @@ class BatteryClock:
     endurance_s: float
     charge_time_s: float
     offset_s: float = 0.0
+    cycle_s: float = field(init=False, compare=False)
 
-    @property
-    def cycle_s(self) -> float:
-        return self.endurance_s + self.charge_time_s
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "cycle_s", self.endurance_s + self.charge_time_s)
 
     def position_s(self, t_abs: float) -> float:
         """u in [0, cycle_s): how far into its cycle the agent is. Fine for negative t_abs."""

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from bisect import bisect_right
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING, Any
 
@@ -101,6 +102,23 @@ def _default_marker_tracks() -> dict[str, list[tuple[float, XY]]]:
     }
 
 
+def pose_at_or_before(
+    track: Sequence[tuple[float, XY]],
+    t: float,
+    times: Sequence[float] | None = None,
+) -> XY | None:
+    """Last logged pose at or before t. Tracks are stored in non-decreasing time.
+
+    A reverse scan per tick was O(T²) for a T-sample log. Bisect on the timestamps is O(log T)
+    per query; pass `times` when the caller already extracted them.
+    """
+    if not track:
+        return None
+    stamps = times if times is not None else [ts for ts, _ in track]
+    i = bisect_right(stamps, t) - 1
+    return track[i][1] if i >= 0 else None
+
+
 def iter_ticks(plan: ReplayPlan) -> list[ReplayTick]:
     """One tick per logged timestamp, plus the alarm instant if needed."""
     times = {t for t, _ in plan.intruder}
@@ -110,11 +128,13 @@ def iter_ticks(plan: ReplayPlan) -> list[ReplayTick]:
         times.add(plan.dispatch_at)
     fired = False
     ticks: list[ReplayTick] = []
+    intruder_t = [ts for ts, _ in plan.intruder]
+    marker_t = {oid: [ts for ts, _ in pts] for oid, pts in plan.markers.items()}
     for t in sorted(times):
-        person = next((p for ts, p in reversed(plan.intruder) if ts <= t), None)
+        person = pose_at_or_before(plan.intruder, t, intruder_t)
         markers: dict[str, XY] = {}
         for oid, pts in plan.markers.items():
-            pos = next((p for ts, p in reversed(pts) if ts <= t), None)
+            pos = pose_at_or_before(pts, t, marker_t[oid])
             if pos is not None:
                 markers[oid] = pos
         dispatch = (

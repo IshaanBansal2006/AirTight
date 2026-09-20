@@ -117,11 +117,17 @@ class LookRngs:
         return sorted(self._rngs)
 
 
-def look_range_m(observer: Observer, obj: SimObject, t: float) -> float | None:
-    """The range if the observer looks at the object at t, else None. The one qualifying rule."""
+def look_range_m(
+    observer: Observer, obj: SimObject, t: float, xy: Array | None = None
+) -> float | None:
+    """The range if the observer looks at the object at t, else None. The one qualifying rule.
+
+    Pass xy when the caller already has obj.position(t); the function otherwise asks again.
+    """
     if not observer.active or not obj.alive(t):
         return None
-    xy = obj.position(t)
+    if xy is None:
+        xy = obj.position(t)
     range_m = float(np.hypot(xy[0] - observer.pos[0], xy[1] - observer.pos[1]))
     if range_m > observer.footprint_radius_m:
         return None
@@ -236,16 +242,30 @@ def do_looks(
     does not commute: a hit then a miss at the floor differs from a miss then a hit.
     """
     looks: list[Look] = []
-    for observer in sorted(observers, key=lambda o: o.agent_id):
-        if not observer.active or not schedule.due(observer.agent_id, t):
-            continue
-        for obj in sorted(objects, key=lambda o: o.object_id):
-            range_m = look_range_m(observer, obj, t)
+    if not objects:
+        return looks
+    due = [
+        observer
+        for observer in sorted(observers, key=lambda o: o.agent_id)
+        if observer.active and schedule.due(observer.agent_id, t)
+    ]
+    if not due:
+        return looks
+    alive = sorted((obj for obj in objects if obj.alive(t)), key=lambda o: o.object_id)
+    if not alive:
+        return looks
+    positions = [obj.position(t) for obj in alive]
+    for observer in due:
+        for obj, xy in zip(alive, positions, strict=True):
+            range_m = look_range_m(observer, obj, t, xy)
             if range_m is None:
                 continue
-            p_hit = hit_probability(sensor_curves, observer.sensor_type, obj.kind, range_m)
+            if obj.kind in TARGET_KINDS:
+                pd = p_hit = adapt.pd_per_look(sensor_curves, observer.sensor_type, range_m)
+            else:
+                p_hit = hit_probability(sensor_curves, observer.sensor_type, obj.kind, range_m)
+                pd = adapt.pd_per_look(sensor_curves, observer.sensor_type, range_m)
             hit = bool(rngs.get(observer.agent_id, obj.object_id).random() < p_hit)
-            pd = adapt.pd_per_look(sensor_curves, observer.sensor_type, range_m)
             score = book.update(obj.object_id, llr_increment(pd, hit), t)
             looks.append(Look(observer.agent_id, obj.object_id, hit, score))
     return looks
