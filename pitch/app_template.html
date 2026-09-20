@@ -4,253 +4,95 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://cdnjs.cloudflare.com">
 <link rel="preload" as="script" href="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;700&family=Barlow+Semi+Condensed:wght@700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;600&display=swap">
 <style>
-:root{
-  --ground:#fff9f2; --ground2:#fff3e6; --surface:#ffffff; --hair:#f0e4d4; --hair2:#e4d6c3;
-  --ink:#2b3157; --ink2:#5d627f; --ink3:#8d90a6;
-  --brand:#2b3157; --brand2:#2e6f6b; --brand-soft:rgba(43,49,87,.08); --on-brand:#fff3e6;
-  --sec:#2b3157; --sec-soft:rgba(43,49,87,.12); --atk:#a07070; --atk-soft:rgba(160,112,112,.16);
-  --good:#2e6f6b; --good-soft:rgba(46,111,107,.14); --warn:#8c8262; --warn-soft:rgba(187,176,146,.3);
-  --shadow:0 10px 30px rgba(43,49,87,.10); --shadow2:0 2px 10px rgba(43,49,87,.07);
-  --r:18px; --r2:14px; --r3:10px;
-  --font:'Barlow',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
-  --display:'Barlow Semi Condensed','Barlow',system-ui,-apple-system,sans-serif;
-  color-scheme:light;
-}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --ground:#171a2e; --ground2:#1b1f36; --surface:#252a47; --hair:#343a5c; --hair2:#404768;
-    --ink:#fff3e6; --ink2:#cfc7b8; --ink3:#9a9db3; --brand:#3f8f8a; --brand2:#2e6f6b; --brand-soft:rgba(63,143,138,.2);
-    --sec:#8f9be0; --sec-soft:rgba(143,155,224,.22); --atk:#c99090; --atk-soft:rgba(201,144,144,.22); --good:#5fb3ad; --good-soft:rgba(95,179,173,.2); --warn:#bbb092; --warn-soft:rgba(187,176,146,.22);
-    --shadow:0 10px 30px rgba(0,0,0,.45); --shadow2:0 2px 10px rgba(0,0,0,.35); color-scheme:dark;
-  }
-}
-:root[data-theme="dark"]{
-  --ground:#171a2e; --ground2:#1b1f36; --surface:#252a47; --hair:#343a5c; --hair2:#404768;
-  --ink:#fff3e6; --ink2:#cfc7b8; --ink3:#9a9db3; --brand:#3f8f8a; --brand2:#2e6f6b; --brand-soft:rgba(63,143,138,.2);
-  --sec:#8f9be0; --sec-soft:rgba(143,155,224,.22); --atk:#c99090; --atk-soft:rgba(201,144,144,.22); --good:#5fb3ad; --good-soft:rgba(95,179,173,.2); --warn:#bbb092; --warn-soft:rgba(187,176,146,.22);
-  --shadow:0 10px 30px rgba(0,0,0,.45); --shadow2:0 2px 10px rgba(0,0,0,.35); color-scheme:dark;
-}
-html,body{height:100%}
-[hidden]{display:none!important}
-body{margin:0;background:var(--ground2);color:var(--ink);font-family:var(--font);font-size:14px;line-height:1.35;-webkit-font-smoothing:antialiased}
-*{box-sizing:border-box}
-button{font:inherit;color:inherit}
-h1,h2,h3{margin:0;text-wrap:balance}
-.app{height:100%;display:flex;flex-direction:column;max-width:480px;margin:0 auto;background:var(--ground2)}
-/* top bar */
-.topbar{display:flex;align-items:center;gap:8px;padding:8px 12px 6px;background:var(--ground2);position:relative;z-index:5}
-.envbtn{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:0;background:var(--surface);box-shadow:var(--shadow2);font-weight:700;font-size:13px;cursor:pointer}
-.envbtn i{width:8px;height:8px;border-radius:50%;background:var(--good);display:inline-block}
-.envbtn svg{width:14px;height:14px;fill:none;stroke:var(--ink2);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
-.topbar .title{flex:1;text-align:center;font-family:var(--display);font-weight:700;font-size:17px;letter-spacing:.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--brand2));color:var(--on-brand);display:grid;place-items:center;font-weight:700;font-size:11px}
-main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:0 12px;padding-block:2px 16px}
-.page{display:none;flex-direction:column;gap:12px}
-.page.active{display:flex}
-.sect{display:flex;flex-direction:column;gap:8px}
-.sect>h2{font-family:var(--display);font-size:17px;font-weight:700}
-.sub{color:var(--ink2);font-size:13px}
-.card{background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow2);padding:14px}
-.card.flat{box-shadow:none;background:var(--ground)}
-.hero{background:linear-gradient(135deg,#232a4f 0%,var(--brand) 55%,var(--brand2) 100%);color:var(--on-brand);border-radius:var(--r);padding:16px;box-shadow:0 14px 34px rgba(43,49,87,.26);position:relative;overflow:hidden}
-.hero::after{content:"";position:absolute;right:-40px;top:-60px;width:220px;height:220px;border-radius:50%;background:rgba(255,255,255,.12)}
-.hero .k{font-size:12px;opacity:.9;font-weight:500}
-.hero .big{font-family:var(--display);font-size:44px;line-height:1;font-weight:700;letter-spacing:-.5px;margin-top:4px;font-variant-numeric:tabular-nums}
-.hero .big small{font-family:var(--font);font-size:13px;font-weight:500;letter-spacing:0;margin-left:6px;opacity:.9}
-.hero .s{font-size:12px;opacity:.92;margin-top:4px;max-width:40ch}
-.range{position:relative;height:8px;border-radius:999px;background:rgba(255,255,255,.28);margin:12px 0 6px}
-.range .fill{position:absolute;left:0;top:0;bottom:0;border-radius:999px;background:rgba(255,255,255,.55)}
-.range .mark{position:absolute;top:50%;width:14px;height:14px;border-radius:50%;transform:translate(-50%,-50%);border:3px solid #fff;background:var(--brand)}
-.range .mark.base{background:rgba(255,255,255,.35);width:11px;height:11px;border-width:2px}
-.range-lbl{display:flex;justify-content:space-between;font-size:11px;opacity:.9}
-.chips{display:flex;gap:6px;flex-wrap:wrap}
-.chip{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:999px;background:rgba(255,255,255,.18);font-size:11px;font-weight:500}
-.chip.on-surface{background:var(--ground2);color:var(--ink)}
-.chip b{font-weight:700}
-.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.stat{background:var(--surface);border-radius:var(--r2);padding:12px;box-shadow:var(--shadow2)}
-.stat .v{font-family:var(--display);font-size:24px;font-weight:700;line-height:1.05;font-variant-numeric:tabular-nums}
-.stat .v small{font-family:var(--font);font-size:11px;font-weight:500;color:var(--ink2);margin-left:3px}
-.stat .k{font-size:12px;color:var(--ink2);margin-top:2px}
-.stat .d{font-size:11px;margin-top:4px;font-weight:500}
-.d.up{color:var(--good)} .d.down{color:var(--atk)} .d.flat{color:var(--ink3)}
-.costcard{display:flex;flex-direction:column;gap:10px}
-.costrow{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
-.costrow .v{font-family:var(--display);font-size:26px;font-weight:700;font-variant-numeric:tabular-nums}
-.costrow .v small{font-family:var(--font);font-size:11px;font-weight:500;color:var(--ink2)}
-.savings{display:flex;flex-direction:column;gap:6px}
-.saving{display:flex;gap:10px;align-items:flex-start;padding:10px;border-radius:var(--r2);background:var(--good-soft)}
-.saving .ico{width:26px;height:26px;font-size:12px;border-radius:50%;background:var(--good);color:#fff3e6;display:grid;place-items:center;flex:none;font-weight:700}
-.saving .t{font-weight:700;font-size:13px}
-.saving .s{font-size:12px;color:var(--ink2)}
-.list{display:flex;flex-direction:column;background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow2);overflow:hidden}
-.row{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:10px 12px;border-top:1px solid var(--hair)}
-.row:first-child{border-top:0}
-.row .dot{width:8px;height:8px;border-radius:50%;background:var(--ink3)}
-.row .t{font-weight:700;font-size:13px}
-.row .s{font-size:12px;color:var(--ink2)}
-.row .n{font-family:var(--display);font-size:18px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
-.row .n span{display:block;font-family:var(--font);font-size:10px;font-weight:500;color:var(--ink2)}
-.sev-high .dot{background:var(--atk)} .sev-med .dot{background:var(--warn)} .sev-low .dot{background:var(--good)}
-.fleetstrip{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
-.fleetstrip::-webkit-scrollbar{display:none}
-.agentchip{flex:none;display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-radius:var(--r2);background:var(--surface);box-shadow:var(--shadow2);min-width:104px}
-.agentchip .t{font-weight:700;font-size:13px}
-.agentchip .s{font-size:11px;color:var(--ink2)}
-.agentchip .b{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--ink2);margin-top:4px}
-.bar{flex:1;height:6px;border-radius:999px;background:var(--hair2);overflow:hidden}
-.bar i{display:block;height:100%;border-radius:999px;background:var(--good)}
-.chart{width:100%;height:auto;display:block}
-.chart text{font-family:var(--font);fill:var(--ink2);font-size:11px}
-.chart .lbl{fill:var(--ink);font-weight:700}
-.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink2)}
-.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px}
-/* map */
-.viewer{position:relative;background:var(--surface);border-radius:var(--r);overflow:hidden;aspect-ratio:1/0.95;max-width:100%;touch-action:none;box-shadow:var(--shadow2)}
-.viewer canvas{width:100%!important;height:100%!important;display:block}
-.viewer .hud{position:absolute;left:12px;top:12px;display:flex;gap:6px;flex-wrap:wrap;max-width:calc(100% - 24px)}
-.viewer .hint{position:absolute;right:12px;bottom:12px;font-size:11px;color:var(--ink2);background:var(--surface);padding:4px 8px;border-radius:999px;opacity:.9}
-.seg{display:flex;gap:6px;flex-wrap:wrap}
-.seg button{padding:6px 11px;border-radius:999px;border:0;background:var(--surface);box-shadow:var(--shadow2);font-weight:500;font-size:12px;cursor:pointer;min-height:32px}
-.seg button[aria-pressed="true"]{background:var(--ink);color:var(--ground)}
-.seg button.atk[aria-pressed="true"]{background:#d7263d;color:#fff}
-.seg button.sec[aria-pressed="true"]{background:#2a78d6;color:#fff}
-/* swarm */
-.link{display:flex;gap:12px;align-items:center}
-.link .ring{width:44px;height:44px;border-radius:50%;background:var(--brand-soft);display:grid;place-items:center;position:relative;flex:none}
-.link .ring::before{content:"";position:absolute;inset:6px;border-radius:50%;border:2px solid var(--brand);opacity:.6;animation:pulse 2.4s ease-out infinite}
-@media (prefers-reduced-motion: reduce){.link .ring::before{animation:none}}
-@keyframes pulse{0%{transform:scale(.7);opacity:.7}100%{transform:scale(1.35);opacity:0}}
-.link .ring svg{width:20px;height:20px;stroke:var(--brand);fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
-.link .t{font-weight:700;font-size:14px}
-.link .s{font-size:12px;color:var(--ink2)}
-.proposal{border-radius:var(--r);padding:14px;background:var(--surface);box-shadow:var(--shadow);border:2px solid var(--brand)}
-.proposal.done{border-color:var(--good)} .proposal.denied{border-color:var(--hair2)}
-.eyebrow{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:.6px}
-.eyebrow i{width:8px;height:8px;border-radius:50%;background:var(--brand);display:inline-block}
-.proposal .t{font-family:var(--display);font-size:18px;font-weight:700;margin-top:6px}
-.proposal .s{color:var(--ink2);font-size:13px;margin-top:3px}
-.proposal .count{font-size:12px;color:var(--atk);margin-top:8px;font-weight:500}
-.actions{display:flex;gap:8px;margin-top:10px}
-.btn{flex:1;padding:11px 14px;border-radius:999px;border:0;font-weight:700;font-size:14px;cursor:pointer;min-height:44px}
-.btn.primary{background:var(--brand);color:var(--on-brand);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 8px 20px rgba(43,49,87,.26)}
-.btn.ghost{background:var(--ground2);color:var(--ink)}
-.btn.danger{background:var(--atk-soft);color:var(--atk)}
-.success{display:flex;align-items:center;gap:8px;margin-top:10px;font-weight:700;font-size:13px}
-.success i{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-style:normal;background:var(--good-soft);color:var(--good)}
-.chat{display:flex;flex-direction:column;gap:8px;background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow2);padding:12px}
-.msgs{display:flex;flex-direction:column;gap:8px;max-height:38vh;overflow-y:auto;padding:2px}
-.msg{max-width:88%;padding:8px 12px;border-radius:16px;font-size:13px;line-height:1.35;white-space:pre-wrap}
-.msg.user{align-self:flex-end;background:var(--brand);color:var(--on-brand);border-bottom-right-radius:6px}
-.msg.swarm{align-self:flex-start;background:var(--ground2);border-bottom-left-radius:6px}
-.msg.tool{align-self:flex-start;background:var(--sec-soft);font-size:12px;border-radius:12px}
-.msg.tool b{color:var(--sec)}
-.msg .meta{display:block;font-size:11px;color:var(--ink3);margin-top:4px}
-.msg.user .meta{color:rgba(255,255,255,.75)}
-.prompts{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
-.prompts::-webkit-scrollbar{display:none}
-.prompts button{flex:none;padding:6px 10px;border-radius:999px;border:0;background:var(--brand-soft);color:var(--brand);font-weight:700;font-size:12px;cursor:pointer;min-height:32px}
-.composer{display:flex;gap:8px;align-items:center}
-.composer input{flex:1;min-width:0;padding:10px 14px;border-radius:999px;border:1px solid var(--hair2);background:var(--ground2);color:var(--ink);font:inherit;font-size:14px;min-height:42px}
-.composer input:focus{outline:2px solid var(--brand);outline-offset:1px}
-.composer button{width:42px;height:42px;border-radius:50%;border:0;background:var(--brand);color:var(--on-brand);display:grid;place-items:center;cursor:pointer}
-.composer button svg{width:20px;height:20px;stroke:var(--on-brand);fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
-.note{font-size:12px;color:var(--ink3)}
-.usecases{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.usecase{text-align:left;padding:11px;border-radius:var(--r2);border:0;background:var(--surface);box-shadow:var(--shadow2);cursor:pointer;display:flex;flex-direction:column;gap:4px;min-height:44px}
-.usecase .t{font-weight:700;font-size:13px}
-.usecase .s{font-size:11px;color:var(--ink2)}
-.hil{display:flex;flex-direction:column;gap:8px}
-.hil .li{display:flex;gap:10px;align-items:flex-start}
-.hil .li i{width:22px;height:22px;border-radius:50%;flex:none;display:grid;place-items:center;font-style:normal;font-weight:700;font-size:12px;background:var(--brand-soft);color:var(--brand)}
-.hil .li .t{font-size:13px;font-weight:700}
-.hil .li .s{font-size:12px;color:var(--ink2)}
-/* perception */
-.pcanvas{width:100%;aspect-ratio:200/120;max-width:100%;display:block;border-radius:var(--r);background:var(--surface);box-shadow:var(--shadow2)}
-.tl{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--ink2)}
-.tl .bar{height:6px}
-.tl .bar i{background:var(--brand)}
-.rec{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--atk)}
-.rec i{width:8px;height:8px;border-radius:50%;background:var(--atk);display:inline-block;animation:blink 1.2s steps(2) infinite}
-@media (prefers-reduced-motion: reduce){.rec i{animation:none}}
-@keyframes blink{to{opacity:.2}}
-.spark{width:100%;height:auto;display:block}
-.spark text{font-family:var(--font);font-size:11px;fill:var(--ink2)}
-/* logs */
-.contacts{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px}
-.contacts::-webkit-scrollbar{display:none}
-.contact{flex:none;width:132px;padding:11px;border-radius:var(--r2);background:var(--surface);box-shadow:var(--shadow2);display:flex;flex-direction:column;gap:4px}
-.contact .av{width:34px;height:34px;font-size:12px;border-radius:50%;display:grid;place-items:center;font-weight:700;color:#fff3e6}
-.contact .t{font-weight:700;font-size:13px}
-.contact .s{font-size:11px;color:var(--ink2)}
-.contact .acts{display:flex;gap:5px;margin-top:3px}
-.contact .acts button{flex:1;padding:6px 0;border-radius:999px;border:0;background:var(--brand-soft);color:var(--brand);font-weight:700;font-size:11px;cursor:pointer;min-height:32px}
-.filters{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
-.filters::-webkit-scrollbar{display:none}
-.log{border-top:1px solid var(--hair)}
-.log:first-child{border-top:0}
-.log summary{list-style:none;display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:10px 12px;cursor:pointer}
-.log summary::-webkit-details-marker{display:none}
-.log summary:focus-visible{outline:2px solid var(--brand);outline-offset:-2px;border-radius:12px}
-.tag{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;font-size:10px;font-weight:700;letter-spacing:.3px}
-.tag.alert{background:var(--atk-soft);color:var(--atk)} .tag.llm{background:var(--brand-soft);color:var(--brand)} .tag.round{background:var(--sec-soft);color:var(--sec)} .tag.run{background:var(--ground2);color:var(--ink2)} .tag.human{background:var(--good-soft);color:var(--good)}
-.log .t{font-weight:700;font-size:13px} .log .s{font-size:11px;color:var(--ink2)}
-.pill{display:inline-block;padding:3px 8px;border-radius:999px;font-size:10px;font-weight:700}
-.pill.good{background:var(--good-soft);color:var(--good)} .pill.bad{background:var(--atk-soft);color:var(--atk)} .pill.neutral{background:var(--ground2);color:var(--ink2)}
-.log .body{padding:0 12px 12px 54px;display:flex;flex-direction:column;gap:6px;font-size:13px}
-.log .body b{display:block;font-size:12px;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
-.empty{padding:12px;color:var(--ink2);font-size:13px}
-/* tab bar */
-nav.tabbar{display:grid;grid-template-columns:repeat(5,1fr);align-items:end;background:var(--surface);border-top:1px solid var(--hair);padding:4px 6px 4px;position:relative}
-nav.tabbar button{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 2px;color:var(--ink3);font-size:10px;font-weight:500;cursor:pointer;min-height:44px;border-radius:12px}
-nav.tabbar button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-nav.tabbar button[aria-selected="true"]{color:var(--brand);font-weight:700}
-nav.tabbar button.center{color:var(--ink3)}
-nav.tabbar button.center span.orb{width:48px;height:48px;border-radius:50%;background:var(--brand);display:grid;place-items:center;margin-top:-22px;box-shadow:0 10px 24px rgba(43,49,87,.34),inset 0 1px 0 rgba(255,255,255,.22)}
-nav.tabbar button.center span.orb svg{stroke:var(--on-brand);width:22px;height:22px}
-nav.tabbar button.center[aria-selected="true"]{color:var(--brand)}
-nav.tabbar button:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
-/* sheet + toast */
-.pop{position:absolute;left:12px;top:calc(100% - 2px);width:min(320px,calc(100vw - 24px));background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);padding:12px;display:flex;flex-direction:column;gap:8px;transform-origin:top left;animation:pop .18s cubic-bezier(.2,.8,.2,1)}
-.pop::before{content:"";position:absolute;left:22px;top:-6px;width:12px;height:12px;background:var(--surface);transform:rotate(45deg);border-radius:2px}
-.pop h3{font-family:var(--display);font-size:15px;padding:2px 4px 0}
-@keyframes pop{from{opacity:0;transform:scale(.92) translate(-8px,-4px)}}
-@media (prefers-reduced-motion: reduce){.pop{animation:none}}
-.scrim{position:fixed;inset:0;z-index:4;background:transparent}
-.envrow{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:10px 12px;border-radius:var(--r2);background:var(--ground2);border:0;text-align:left;cursor:pointer;font:inherit}
-.envrow .t{font-weight:700;font-size:14px} .envrow .s{font-size:12px;color:var(--ink2)}
-.envrow[disabled]{opacity:.7;cursor:default}
-.toast{position:fixed;left:50%;bottom:calc(80px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--ground);padding:10px 16px;border-radius:999px;font-size:13px;font-weight:500;box-shadow:var(--shadow);z-index:30;max-width:calc(100% - 32px)}
+/*__INCLUDE:app.css__*/
 </style>
 
 <div class="app">
   <header class="topbar">
     <button class="envbtn" id="envBtn" aria-haspopup="dialog" aria-expanded="false"><i></i><span id="envName">Logistics yard</span><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
     <div class="title" id="pageTitle">Tonight</div>
+    <button type="button" class="glossbtn" id="glossBtn" aria-haspopup="dialog">Glossary</button>
     <div class="avatar" title="Operator on duty">OP</div>
     <div class="pop" id="envPop" hidden role="dialog" aria-label="Choose an environment"><h3>Environments</h3><div id="envList"></div></div>
   </header>
+  <nav class="tabbar" aria-label="Pages">
+    <button data-tab="tab-home" aria-selected="true"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Home</button>
+    <button data-tab="tab-map" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15M15 6v15"/></svg>Map</button>
+    <button data-tab="tab-swarm" aria-selected="false" class="center"><span class="orb"><svg viewBox="0 0 24 24"><path d="M12 3v4M5 8l3 3M19 8l-3 3M12 21a5 5 0 0 0 5-5v-3H7v3a5 5 0 0 0 5 5z"/></svg></span>Swarm</button>
+    <button data-tab="tab-perception" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>Perception</button>
+    <button data-tab="tab-logs" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M5 4h14v16H5zM9 9h6M9 13h6M9 17h4"/></svg>Logs</button>
+  </nav>
   <main id="main">
     <section class="page active" id="tab-home">
       <div class="hero">
-        <div class="k" id="heroK">Airspace score, timely detection at one false alarm an hour</div>
-        <div class="big" id="heroBig">–</div>
-        <div class="s" id="heroS"></div>
-        <div class="range" id="range"></div>
-        <div class="range-lbl"><span id="rangeLo"></span><span id="rangeHi"></span></div>
-        <div class="chips" id="heroChips" style="margin-top:10px"></div>
+        <style>
+          #tab-home .headline{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr)}
+          #tab-home .hm-figs{display:flex;flex-direction:column;gap:var(--space-4);min-width:0}
+          #tab-home .hm-fig .lab{font-size:var(--text-sm);font-weight:var(--w-label);color:var(--ink-2)}
+          #tab-home .hm-fig .big{margin-top:var(--space-1)}
+          #tab-home .hm-fig .big.second{font-size:var(--text-2xl)}
+          #tab-home .hm-fig .ci{white-space:normal}
+          #tab-home .hm-cond{margin:0;display:grid;grid-template-columns:1fr;gap:var(--space-2)}
+          #tab-home .hm-cond dt{font-size:var(--text-xs);color:var(--ink-3)}
+          #tab-home .hm-cond dd{margin:0;font-size:var(--text-sm);color:var(--ink);line-height:1.3}
+          #tab-home .hm-note{font-size:var(--text-xs);line-height:1.4;color:var(--ink-2);margin-top:var(--space-2)}
+          #tab-home .hm-empty{font-size:var(--text-sm);color:var(--ink-2);padding:var(--space-4);border:1px dashed var(--hair)}
+          #tab-home .hm-chartcard{position:relative;padding:var(--space-3) var(--space-2) var(--space-3)}
+          #tab-home .hm-cap{font-size:var(--text-xs);color:var(--ink-2);line-height:1.4;padding:var(--space-2) var(--space-2) 0;max-width:70ch}
+          #tab-home .hm-legend{padding:var(--space-2) var(--space-2) 0}
+          #tab-home .hm-legend svg{width:14px;height:12px;vertical-align:-2px;margin-right:4px;overflow:visible}
+          #tab-home .chart{overflow:visible}
+          #tab-home .chart .grid{stroke:var(--grid);stroke-width:1}
+          #tab-home .chart .axis{stroke:var(--ink-3);stroke-width:1}
+          #tab-home .chart text{fill:var(--ink-3)}
+          #tab-home .chart text.ttl{fill:var(--ink-2);font-weight:var(--w-label)}
+          #tab-home .chart text.lbl{fill:var(--ink-2);font-weight:var(--w-text)}
+          #tab-home .chart text.lbl.strong{fill:var(--ink);font-weight:var(--w-strong)}
+          #tab-home .chart text.delta{fill:var(--fleet-drone);font-weight:var(--w-strong)}
+          #tab-home .chart .halo{stroke:var(--surface);stroke-width:3px;paint-order:stroke;stroke-linejoin:round}
+          #tab-home .chart .front{fill:none;stroke:var(--ink-3);stroke-width:1.25}
+          #tab-home .chart .lead{stroke:var(--ink-3);stroke-width:.75}
+          #tab-home .chart .whisk{stroke:var(--fleet-drone);stroke-width:1.25}
+          #tab-home .chart .mk{fill:var(--fleet-drone);stroke:var(--fleet-drone);stroke-width:1.5}
+          #tab-home .chart .mk.sync{fill:var(--surface)}
+          #tab-home .chart .basept .mk{stroke:var(--ink);fill:var(--surface)}
+          #tab-home .chart .basept .mk.stag{fill:var(--ink)}
+          #tab-home .chart .basept .whisk{stroke:var(--ink)}
+          #tab-home .chart .ring{fill:none;stroke:var(--fleet-drone);stroke-width:1.25}
+          #tab-home .chart .arrow{stroke:var(--fleet-drone);stroke-width:1.5;fill:none}
+          #tab-home .chart .arrowhead{fill:var(--fleet-drone)}
+          #tab-home .chart .pt{cursor:pointer;outline:none}
+          #tab-home .chart .pt .hit{fill:transparent}
+          #tab-home .chart .pt .focus{fill:none;stroke:none}
+          #tab-home .chart .pt:focus-visible .focus,#tab-home .chart .pt:hover .focus{stroke:var(--focus);stroke-width:2}
+          #tab-home .hm-tip{position:absolute;z-index:3;pointer-events:none;background:var(--surface);border:1px solid var(--ink);border-radius:var(--radius-1);padding:var(--space-2) var(--space-3);font-size:var(--text-xs);color:var(--ink-2);line-height:1.45;width:max-content;max-width:min(260px,calc(100% - 16px))}
+          #tab-home .hm-tip b{display:block;color:var(--ink);font-weight:var(--w-strong);font-size:var(--text-sm)}
+          #tab-home .hm-tip span{color:var(--ink)}
+          #tab-home .hm-rangelbl{align-items:baseline}
+        </style>
+        <div class="k" id="heroK">Current configuration</div>
+        <div class="headline">
+          <div class="hm-figs">
+            <div class="hm-fig"><div class="lab">Caught in time</div><div class="big" id="heroBig">No report found</div></div>
+            <div class="hm-fig"><div class="lab">Worst attack found, caught in time</div><div class="big second" id="worstBig"></div></div>
+          </div>
+          <div class="cond"><span class="condlbl">Measured under</span><dl class="hm-cond" id="condList"></dl></div>
+        </div>
+        <div class="s" id="heroS">No report found. Run airtight-sweep, then pitch/build_app.py.</div>
+        <div class="range" id="range" hidden></div>
+        <div class="range-lbl hm-rangelbl"><span id="rangeLo"></span><span id="rangeHi"></span></div>
+        <div class="hm-note" id="condLine"></div>
       </div>
       <div class="card costcard">
-        <div class="costrow"><div><div class="sub">Fleet cost</div><div class="v" id="costBig">–</div></div><div style="text-align:right"><div class="sub">Detection per dollar</div><div class="v" id="ppd">–</div></div></div>
+        <div class="costrow"><div><div class="sub">Fleet cost</div><div class="v" id="costBig"></div></div><div style="text-align:right"><div class="sub">Caught in time per dollar</div><div class="v" id="ppd"></div></div></div>
         <div class="savings" id="savings"></div>
       </div>
       <div class="stats" id="tiles"></div>
       <div class="sect">
-        <h2>Every fleet mix, scored</h2>
-        <div class="card" style="padding:12px 8px 8px"><svg class="chart" id="frontier" viewBox="0 0 360 230" role="img" aria-label="Detection versus cost for every fleet configuration"></svg><div class="legend" style="padding:4px 6px 0;font-size:11px"><span><i style="background:var(--good)"></i>deployed</span><span><i style="background:var(--atk)"></i>baseline</span><span><i style="background:var(--ink3)"></i>other mixes</span></div></div>
-        <div class="sub" id="condLine"></div>
+        <h2>Cost against caught in time, every configuration</h2>
+        <div class="card hm-chartcard" id="frontierCard"><svg class="chart" id="frontier" role="group" aria-label="Cost in dollars per hour against percentage of intrusions caught in time, one point per fleet configuration"></svg><div class="hm-tip" id="frontierTip" hidden></div><div class="legend hm-legend" id="frontierLegend"></div><div class="hm-cap" id="frontierCap"></div></div>
       </div>
       <div class="sect">
         <h2>On the ground tonight</h2>
@@ -259,13 +101,51 @@ nav.tabbar button:focus-visible{outline:2px solid var(--brand);outline-offset:2p
     </section>
 
     <section class="page" id="tab-map">
+      <style>
+        #tab-map .viewer{aspect-ratio:16/10;height:auto;min-height:320px;width:100%;background:var(--surface);user-select:none;-webkit-user-select:none;cursor:grab}
+        #tab-map .viewer.dragging{cursor:grabbing}
+        #tab-map .m3-labels{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+        #tab-map .m3-label{position:absolute;left:0;top:0;white-space:nowrap;font-size:11px;line-height:14px;font-weight:600;color:var(--ink);padding:0 4px;border-radius:var(--radius-1,3px);background:color-mix(in srgb,var(--surface) 78%,transparent);will-change:transform}
+        #tab-map .m3-label.quiet{font-weight:500;color:var(--ink-2,var(--ink2))}
+        #tab-map .m3-label.strong{background:var(--ink);color:var(--surface)}
+        #tab-map .viewer .hud{z-index:2}
+        #tab-map .viewer .hud button{padding:5px 10px;border-radius:var(--radius-1,3px);border:1px solid var(--hair);background:var(--surface);color:var(--ink);font:inherit;font-size:12px;font-weight:500;cursor:pointer;min-height:30px}
+        #tab-map .viewer .hud button[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+        #tab-map .m3-scale{position:absolute;left:12px;bottom:12px;font-size:11px;color:var(--ink);pointer-events:none;display:flex;flex-direction:column;gap:2px}
+        #tab-map .m3-scale i{display:block;height:6px;border:1.5px solid var(--ink);border-top:0;box-sizing:border-box}
+        #tab-map .m3-time{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--hair);border-radius:var(--radius-2,4px);padding:8px 12px}
+        #tab-map .m3-time input[type=range]{flex:1 1 160px;min-width:120px;accent-color:var(--ink)}
+        #tab-map .m3-time .m3-play{width:36px;height:36px;border-radius:var(--radius-1,3px);border:0;background:var(--ink);color:var(--surface);cursor:pointer;font-size:13px;flex:none}
+        #tab-map .m3-time output{font-variant-numeric:tabular-nums;font-size:12px;color:var(--ink);min-width:132px}
+        #tab-map .m3-time .seg button{box-shadow:none;border:1px solid var(--hair)}
+        #tab-map .m3-caption{font-size:12px;color:var(--ink-2,var(--ink2));margin:8px 2px}
+        #tab-map .m3-caption b{color:var(--ink);font-weight:600}
+        #tab-map .m3-legend{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:4px 14px;font-size:12px;color:var(--ink-2,var(--ink2));margin:10px 2px}
+        #tab-map .m3-legend span{display:flex;align-items:center;gap:7px}
+        #tab-map .m3-legend .m3-note{grid-column:1/-1;margin-top:6px;color:var(--ink)}
+        #tab-map .m3-legend svg{width:18px;height:18px;flex:none}
+        #tab-map #roundSeg button{border-radius:var(--radius-1,3px);border:1px solid var(--hair);box-shadow:none;background:var(--surface);color:var(--ink)}
+        #tab-map #roundSeg button[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+        #tab-map #roundSeg .m3-layer i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px;outline:1px solid var(--surface)}
+        #tab-map .m3-time .seg button{border-radius:var(--radius-1,3px)}
+        #tab-map .m3-time .seg button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+      </style>
       <div class="sub" id="mapLead"></div>
       <div class="viewer" id="viewer">
+        <div class="m3-labels" id="mapLabels"></div>
         <div class="hud" id="hud"></div>
-        <div class="hint">drag to orbit, pinch to zoom, two fingers to pan</div>
+        <div class="m3-scale" id="mapScale"><span></span><i></i></div>
+        <div class="hint" id="mapHint">Grid lines every 10 m. Drag to orbit, right-drag or two fingers to pan, scroll or pinch to zoom.</div>
       </div>
+      <div class="m3-time" id="mapTime">
+        <button class="m3-play" id="mapPlay" aria-label="Play">▶</button>
+        <input type="range" id="mapScrub" min="0" max="60" step="0.1" value="0" aria-label="Scene time in seconds">
+        <output id="mapClock"></output>
+        <div class="seg" id="mapEp"><button data-ep="miss" aria-pressed="false">Before: missed</button><button data-ep="catch" aria-pressed="true">After: caught</button></div>
+      </div>
+      <div class="m3-caption" id="mapCaption"></div>
       <div class="seg" id="roundSeg"></div>
-      <div class="legend"><span><i style="background:#2a78d6"></i>blue team patrol</span><span><i style="background:#d7263d"></i>red team paths</span><span><i style="background:#d7263d;border-radius:2px"></i>hole, sized by miss rate</span><span><i style="background:#eda100"></i>decoy</span></div>
+      <div class="m3-legend" id="mapLegend"></div>
       <div class="sect"><h2>Holes the red team found</h2><div class="list" id="holeList"></div></div>
     </section>
 
@@ -287,7 +167,7 @@ nav.tabbar button:focus-visible{outline:2px solid var(--brand);outline-offset:2p
       </div>
       <div class="sect">
         <h2>Fleet memory</h2>
-        <div class="sub">What every robot knows right now: when each place was last seen, and the evidence behind the current track.</div>
+        <div class="sub">What every robot knows right now: how long ago each place was last seen, and the evidence behind the current track.</div>
         <div class="list" id="memoryList"></div>
         <div class="list" id="evidenceList"></div>
       </div>
@@ -296,12 +176,134 @@ nav.tabbar button:focus-visible{outline:2px solid var(--brand);outline-offset:2p
     </section>
 
     <section class="page" id="tab-perception">
-      <div style="display:flex;justify-content:space-between;align-items:center"><div class="sub" id="pLead"></div><span class="rec"><i></i>recorded</span></div>
-      <canvas class="pcanvas" id="pcanvas" width="800" height="480" aria-label="Perception map: fleet positions, sensor footprints and tracks"></canvas>
-      <div class="tl"><span id="pT">t = 0 s</span><div class="bar"><i id="pBar" style="width:0%"></i></div><span id="pEnd"></span></div>
-      <div class="sect"><h2>Track under investigation</h2><div class="card" style="padding:12px 8px 6px"><svg class="spark" id="spark" viewBox="0 0 360 120" role="img" aria-label="Intruder track score over time"></svg></div></div>
-      <div class="sect"><h2>Agents</h2><div class="stats" id="agentCards"></div></div>
-      <div class="sect"><h2>Coverage right now</h2><div class="list" id="coverageList"></div></div>
+      <div class="rp-main">
+      <div class="rp-head">
+        <style>
+          #tab-perception.active{grid-template-rows:auto}
+          #tab-perception>.rp-main{display:flex;flex-direction:column;gap:var(--space-4);min-width:0;grid-column:1;grid-row:1}
+          #tab-perception>.rp-side{grid-column:2;grid-row:1;align-self:start}
+          #tab-perception [hidden]{display:none!important}
+          #tab-perception .rp-head{display:flex;flex-direction:column;gap:var(--space-2);min-width:0}
+          #tab-perception .rp-top{display:flex;justify-content:space-between;align-items:flex-start;gap:var(--space-3)}
+          #tab-perception .rp-modes{display:flex;flex-wrap:wrap;gap:var(--space-2) var(--space-4);align-items:center}
+          #tab-perception .rp-stage{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--space-3);min-width:0;border-radius:var(--radius-2)}
+          #tab-perception .rp-stage.compare{grid-template-columns:repeat(2,minmax(0,1fr))}
+          #tab-perception .rp-stage:focus-visible{outline:2px solid var(--focus);outline-offset:3px}
+          #tab-perception .rp-view{margin:0;min-width:0;display:flex;flex-direction:column;gap:var(--space-1);justify-content:flex-end}
+          #tab-perception .rp-view figcaption{font-size:var(--text-xs);color:var(--ink-2);line-height:1.4}
+          #tab-perception .rp-view figcaption b{color:var(--ink);font-weight:var(--w-strong)}
+          #tab-perception .rp-view figcaption .rp-alarm{color:var(--alarm);font-weight:var(--w-strong)}
+          #tab-perception .pcanvas{aspect-ratio:auto;height:auto;touch-action:pan-y}
+          #tab-perception .rp-empty{border:var(--border);border-radius:var(--radius-2);background:var(--surface);margin:0}
+          #tab-perception .rp-panel{display:flex;flex-direction:column;gap:var(--space-2);min-width:0}
+          #tab-perception .rp-controls{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-3);background:var(--surface);border:var(--border);border-radius:var(--radius-2);padding:var(--space-2) var(--space-3)}
+          #tab-perception .rp-btn{min-height:36px;padding:6px var(--space-3);border:1px solid var(--hair);border-radius:var(--radius-2);background:var(--surface);color:var(--ink);font:inherit;font-size:var(--text-sm);font-weight:var(--w-label);cursor:pointer;white-space:nowrap}
+          #tab-perception .rp-btn:hover{background:var(--surface-2)}
+          #tab-perception .rp-btn.primary{background:var(--ink);border-color:var(--ink);color:var(--surface);min-width:72px}
+          #tab-perception .rp-btn:disabled{color:var(--ink-3);cursor:default;background:var(--surface)}
+          #tab-perception .rp-scrub{display:flex;align-items:center;gap:var(--space-2);flex:1 1 260px;min-width:0;font-size:var(--text-xs);color:var(--ink-2)}
+          #tab-perception .rp-scrub input{flex:1 1 auto;min-width:0;width:100%;accent-color:var(--ink);height:28px;margin:0}
+          #tab-perception .rp-scrub output{font-variant-numeric:tabular-nums lining-nums;white-space:nowrap;color:var(--ink);min-width:44px}
+          #tab-perception .rp-speed{display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-xs);color:var(--ink-2)}
+          #tab-perception .rp-keys{font-size:var(--text-xs);color:var(--ink-3);margin:0}
+          #tab-perception .rp-legend{display:flex;flex-wrap:wrap;gap:var(--space-1) var(--space-4);font-size:var(--text-xs);color:var(--ink-2)}
+          #tab-perception .rp-legend span{display:inline-flex;align-items:center;gap:6px}
+          #tab-perception .rp-legend svg{width:14px;height:14px;flex:none}
+          #tab-perception .rp-lower{display:flex;flex-direction:column;gap:var(--space-5);min-width:0}
+          #tab-perception .rp-chartcard{padding:var(--space-2);min-width:0}
+          #tab-perception .spark{cursor:pointer;overflow:visible}
+          #tab-perception .spark text{font-size:11px}
+          #tab-perception .spark .halo{paint-order:stroke;stroke:var(--surface);stroke-width:3px;stroke-linejoin:round}
+          #tab-perception .rp-note{font-size:var(--text-xs);color:var(--ink-2);margin:var(--space-1) 2px 0}
+          #tab-perception .rp-events{list-style:none;margin:0;padding:0;border:var(--border);border-radius:var(--radius-2);background:var(--surface)}
+          #tab-perception .rp-events li+li{border-top:var(--border)}
+          #tab-perception .rp-events button{display:grid;grid-template-columns:44px minmax(0,1fr);gap:var(--space-2);width:100%;text-align:left;padding:var(--space-2) var(--space-3);border:0;border-left:3px solid transparent;background:none;color:var(--ink);font:inherit;font-size:var(--text-sm);cursor:pointer;min-height:40px;align-items:baseline}
+          #tab-perception .rp-events button:hover{background:var(--surface-2)}
+          #tab-perception .rp-events button[aria-current="true"]{border-left-color:var(--ink);background:var(--surface-2)}
+          #tab-perception .rp-events .when{font-variant-numeric:tabular-nums lining-nums;color:var(--ink-2);text-align:right}
+          #tab-perception .rp-events .rp-tag{color:var(--ink-2);font-weight:var(--w-label)}
+          #tab-perception .rp-events .alarm{color:var(--alarm);font-weight:var(--w-strong)}
+          #tab-perception .rp-side{gap:var(--space-5)}
+          #tab-perception #pEnd{white-space:nowrap}
+          @media (max-width:699px){#tab-perception .rp-stage.compare{grid-template-columns:minmax(0,1fr)}}
+        </style>
+        <div class="rp-top"><div class="sub" id="pLead"></div></div>
+        <div class="rp-modes">
+          <div class="seg" id="pMode" role="group" aria-label="Replay layout"><button type="button" data-mode="single" aria-pressed="true">One episode</button><button type="button" data-mode="compare" aria-pressed="false">Before and after</button><button type="button" data-mode="perceived" aria-pressed="false">Drone perception</button></div>
+          <div class="seg" id="pEpSeg" role="group" aria-label="Episode shown"><button type="button" data-ep="miss" aria-pressed="false">Before: missed</button><button type="button" data-ep="catch" aria-pressed="true">After: caught</button></div>
+        </div>
+      </div>
+      <div class="rp-stage" id="pStage" tabindex="0" role="group" aria-label="Replay of the recorded attack. Space plays or pauses, left and right arrows step between events, shift with an arrow moves one second.">
+        <figure class="rp-view" id="pViewA"><figcaption id="pCapA"></figcaption><canvas class="pcanvas" id="pcanvas" width="800" height="480" role="img" aria-label="Site plan, north up: fleet positions, sensor footprints and the intruder track"></canvas><p class="empty rp-empty" id="pEmptyA" hidden></p></figure>
+        <figure class="rp-view" id="pViewB" hidden><figcaption id="pCapB"></figcaption><canvas class="pcanvas" id="pcanvas2" width="800" height="480" role="img" aria-label="Site plan, north up: the same attack against the fixed fleet"></canvas><p class="empty rp-empty" id="pEmptyB" hidden></p></figure>
+        <figure class="rp-view pv" id="pvView" hidden>
+          <style>
+            #tab-perception .pv{gap:var(--space-2);justify-content:flex-start}
+            #tab-perception .pv-bar{display:flex;flex-wrap:wrap;gap:var(--space-2) var(--space-4);align-items:center;font-size:var(--text-xs);color:var(--ink-2)}
+            #tab-perception .pv-bar .pv-ctl{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+            #tab-perception .pv-check{display:inline-flex;align-items:center;gap:6px;min-height:36px;font-size:var(--text-sm);color:var(--ink);cursor:pointer}
+            #tab-perception .pv-check input{width:16px;height:16px;accent-color:var(--ink);margin:0}
+            #tab-perception .pv-port{position:relative;background:var(--ground);border:var(--border);border-radius:var(--radius-2);overflow:hidden;aspect-ratio:5/3;min-height:300px;touch-action:pan-y;cursor:grab}
+            #tab-perception .pv-port.dragging{cursor:grabbing}
+            #tab-perception .pv-port:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+            #tab-perception .pv-port canvas{position:absolute;inset:0;width:100%!important;height:100%!important;display:block}
+            #tab-perception .pv-labels{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+            #tab-perception .pv-label{position:absolute;left:0;top:0;white-space:nowrap;font-size:11px;line-height:14px;font-weight:var(--w-strong);color:var(--ink);padding:0 4px;border-radius:var(--radius-1);background:color-mix(in srgb,var(--surface) 82%,transparent)}
+            #tab-perception .pv-label.quiet{font-weight:var(--w-label);color:var(--ink-2)}
+            #tab-perception .pv-label.warm{color:var(--intruder)}
+            #tab-perception .pv-label.num{padding:0 3px;font-size:10px;line-height:12px;background:var(--ink);color:var(--surface)}
+            #tab-perception .pv-hud{position:absolute;left:var(--space-2);top:var(--space-2);display:flex;gap:4px;flex-wrap:wrap;max-width:calc(100% - 16px)}
+            #tab-perception .pv-hud button{padding:4px 10px;min-height:30px;border:1px solid var(--hair);border-radius:var(--radius-1);background:var(--surface);color:var(--ink);font:inherit;font-size:var(--text-xs);font-weight:var(--w-label);cursor:pointer}
+            #tab-perception .pv-hud button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--surface)}
+            #tab-perception .pv-scale{position:absolute;left:var(--space-3);bottom:var(--space-2);font-size:11px;color:var(--ink);pointer-events:none;display:flex;flex-direction:column;gap:2px}
+            #tab-perception .pv-scale i{display:block;height:6px;border:1.5px solid var(--ink);border-top:0;box-sizing:border-box}
+            #tab-perception .pv-read{font-size:var(--text-xs);color:var(--ink-2);margin:0;min-height:34px;font-variant-numeric:tabular-nums lining-nums}
+            #tab-perception .pv-legend{display:flex;flex-wrap:wrap;gap:var(--space-2) var(--space-4);font-size:var(--text-xs);color:var(--ink-2);align-items:center}
+            #tab-perception .pv-legend>span{display:inline-flex;align-items:center;gap:6px}
+            #tab-perception .pv-legend svg{width:16px;height:16px;flex:none}
+            #tab-perception .pv-ramp{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
+            #tab-perception .pv-ramp i{display:inline-flex}
+            #tab-perception .pv-ramp i b{display:block;width:16px;height:10px;border-top:1px solid var(--hair);border-bottom:1px solid var(--hair)}
+            #tab-perception .pv-why h3{font-size:var(--text-sm);font-weight:var(--w-strong);margin:var(--space-2) 0 var(--space-1);color:var(--ink)}
+            #tab-perception .pv-why .pv-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:var(--space-1) var(--space-3);padding:var(--space-2) var(--space-3);border:var(--border);border-radius:var(--radius-2);background:var(--surface);margin-bottom:var(--space-1);font-size:var(--text-xs)}
+            #tab-perception .pv-why .pv-row .k{color:var(--ink-2);display:block}
+            #tab-perception .pv-why .pv-row .v{color:var(--ink);font-size:var(--text-sm);font-variant-numeric:tabular-nums lining-nums;font-weight:var(--w-label)}
+            #tab-perception .pv-why .pv-row .who{font-weight:var(--w-strong);font-size:var(--text-sm);color:var(--ink)}
+            @media (max-width:699px){#tab-perception .pv-port{aspect-ratio:5/4;min-height:260px}#tab-perception .pv #pvCap{order:3}#tab-perception .pv .pv-read{order:4}#tab-perception .pv .pv-legend{order:5}#tab-perception .pv .pv-why{order:6}}
+          </style>
+          <figcaption id="pvCap"></figcaption>
+          <div class="pv-bar" id="pvBar">
+            <div class="pv-ctl"><span id="pvSrcLbl">Map built from</span><div class="seg" id="pvSrc" role="group" aria-labelledby="pvSrcLbl"><button type="button" data-src="drones" aria-pressed="true">Drones only</button><button type="button" data-src="swarm" aria-pressed="false">Whole swarm</button></div></div>
+            <label class="pv-check"><input type="checkbox" id="pvPrio" checked>Patrol priority</label>
+          </div>
+          <div class="pv-port" id="pvPort" tabindex="0" role="img" aria-label="Perceived map of the yard, north up: columns the selected observers have swept, blocks where they saw something standing, the drones and their next waypoints. Drag to orbit, shift and drag to pan, control and wheel or pinch to zoom.">
+            <div class="pv-labels" id="pvLabels"></div>
+            <div class="pv-hud" id="pvHud"><button type="button" data-cam="top" aria-pressed="false">Top</button><button type="button" data-cam="angled" aria-pressed="false">Angled</button><button type="button" data-cam="fit">Fit site</button><button type="button" data-cam="in" aria-label="Zoom in">Zoom in</button><button type="button" data-cam="out" aria-label="Zoom out">Zoom out</button></div>
+            <div class="pv-scale" id="pvScale" hidden><span></span><i></i></div>
+          </div>
+          <p class="empty rp-empty" id="pvEmpty" hidden></p>
+          <p class="pv-read" id="pvRead" aria-live="off"></p>
+          <div class="pv-legend" id="pvLegend"></div>
+          <div class="pv-why" id="pvWhy"></div>
+        </figure>
+      </div>
+      <div class="rp-panel">
+        <div class="rp-controls" id="pControls">
+          <button type="button" class="rp-btn primary" id="pPlay">Play</button>
+          <button type="button" class="rp-btn" id="pPrev">Previous event</button>
+          <button type="button" class="rp-btn" id="pNext">Next event</button>
+          <label class="rp-scrub"><span>Time</span><input type="range" id="pScrub" min="0" max="60" step="0.1" value="0"><output id="pT">0.0 s</output><span id="pEnd"></span></label>
+          <div class="rp-speed"><span id="pSpeedLbl">Speed</span><div class="seg" id="pSpeed" role="group" aria-labelledby="pSpeedLbl"></div></div>
+        </div>
+        <p class="rp-keys">With the replay focused: space plays or pauses, left and right arrows step between events, shift with an arrow moves one second.</p>
+        <div class="rp-legend" id="pLegend"></div>
+      </div>
+      <div class="rp-lower">
+        <div class="sect"><h2>Track score over time</h2><div class="card rp-chartcard"><svg class="spark" id="spark" role="img" aria-label="Intruder track score over time"></svg></div><p class="rp-note" id="pChartNote"></p></div>
+        <div class="sect"><h2>What happened</h2><ol class="rp-events" id="pEvents"></ol></div>
+      </div>
+      </div>
+      <div class="sect rp-side"><div class="sect"><h2>Agents</h2><div class="stats" id="agentCards"></div></div><div class="sect"><h2>Time since each place was last seen</h2><div class="list" id="coverageList"></div></div></div>
     </section>
 
     <section class="page" id="tab-logs">
@@ -314,13 +316,17 @@ nav.tabbar button:focus-visible{outline:2px solid var(--brand);outline-offset:2p
       </div>
     </section>
   </main>
-  <nav class="tabbar" aria-label="Pages">
-    <button data-tab="tab-home" aria-selected="true"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Home</button>
-    <button data-tab="tab-map" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15M15 6v15"/></svg>Map</button>
-    <button data-tab="tab-swarm" aria-selected="false" class="center"><span class="orb"><svg viewBox="0 0 24 24"><path d="M12 3v4M5 8l3 3M19 8l-3 3M12 21a5 5 0 0 0 5-5v-3H7v3a5 5 0 0 0 5 5z"/></svg></span>Swarm</button>
-    <button data-tab="tab-perception" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>Perception</button>
-    <button data-tab="tab-logs" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M5 4h14v16H5zM9 9h6M9 13h6M9 17h4"/></svg>Logs</button>
-  </nav>
+  <dialog class="gloss" id="gloss" aria-labelledby="glossTitle">
+    <h2 id="glossTitle">Glossary</h2>
+    <dl>
+      <dt>Caught in time</dt><dd>The alarm reached a person early enough for a response to arrive before the intruder reached the asset.</dd>
+      <dt>Operating point</dt><dd>The alarm threshold at which the fleet raises one false alarm per hour on a quiet night; every score here is read at that threshold.</dd>
+      <dt>Worst attack found</dt><dd>The single attack the red team found that this configuration catches least often; the score for it is the floor, not the average.</dd>
+      <dt>Critical detection point</dt><dd>The last moment an alarm still leaves the response time before the intruder reaches the asset; an alarm after it is a miss.</dd>
+    </dl>
+    <form method="dialog"><button type="submit" class="glossclose">Close glossary</button></form>
+  </dialog>
+  <footer class="shellfoot"><a class="powered" href="https://dimensionalos.com" target="_blank" rel="noopener">Powered by dimOS</a></footer>
 </div>
 <div class="scrim" id="scrim" hidden></div>
 <div class="toast" id="toast" hidden></div>
@@ -358,11 +364,14 @@ function showTab(id, push){
   $('#pageTitle').textContent = titles[id] || 'Airtight';
   $('#main').scrollTop = 0;
   if (push) { try { history.replaceState(null, '', '#' + id.replace('tab-','')); } catch(e) {} }
+  if (id === 'tab-swarm') { try { ensureCountdown(); } catch(e) { /* opened by deep link before the approvals block ran; it starts the clock itself below */ } }
   if (id === 'tab-map') { ensureMap(); setTimeout(() => { resizeViewer(); requestRender(); }, 0); }
   if (id === 'tab-perception') { setTimeout(resizePerception, 0); startPerception(); }
 }
 document.querySelectorAll('nav.tabbar button').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab, true)));
+{ const gb = document.getElementById('glossBtn'), gd = document.getElementById('gloss'); if (gb && gd) gb.addEventListener('click', () => { if (gd.showModal) gd.showModal(); else gd.setAttribute('open',''); }); }
 window.addEventListener('hashchange', () => showTab('tab-' + location.hash.slice(1), false));
+if (location.hash.length > 1) showTab('tab-' + location.hash.slice(1), false);
 
 // ---------- environment switcher ----------
 const envs = [{id: site.name, name: site.name.replaceAll('-',' ').replace(/^\w/, c => c.toUpperCase()), detail: `${site.bounds[2]-site.bounds[0]} × ${site.bounds[3]-site.bounds[1]} m, ${site.entry_points.length} entries, ${site.fixed_sensors.length} fixed cameras, response ${site.response_time_s} s`, live: true}];
@@ -374,231 +383,11 @@ $('#scrim').addEventListener('click', () => envOpen(false));
 document.addEventListener('keydown', e => { if (e.key === 'Escape') envOpen(false); });
 $('#envList').addEventListener('click', e => { const b = e.target.closest('button[data-env]'); if(!b) return; envOpen(false); toast(`${envs[0].name} selected`); });
 
-// ---------- home ----------
-const pds = configs.map(c => c.pd), lo = Math.min(...pds), hi = Math.max(...pds);
-const cheapest = configs.reduce((a,c) => c.cost < a.cost ? c : a, configs[0]);
-$('#heroBig').innerHTML = `${Math.round(fixed.pd*100)}<small>of 100</small>`;
-$('#heroS').textContent = `${prettyFleet(fixed.name)} at $${fixed.cost.toFixed(0)} an hour. This site scores between ${Math.round(lo*100)} and ${Math.round(hi*100)} across ${configs.length} fleet mixes.`;
-const span = (hi - lo) || 1;
-$('#range').innerHTML = `<div class="fill" style="width:${((fixed.pd-lo)/span*100).toFixed(1)}%"></div><div class="mark base" style="left:${((base.pd-lo)/span*100).toFixed(1)}%" title="baseline"></div><div class="mark" style="left:${((fixed.pd-lo)/span*100).toFixed(1)}%" title="deployed"></div>`;
-$('#rangeLo').textContent = `${Math.round(lo*100)} · cheapest mix $${cheapest.cost.toFixed(0)}/h`;
-$('#rangeHi').textContent = `best mix ${Math.round(hi*100)}`;
-$('#heroChips').innerHTML = [
-  `<span class="chip">worst tactic <b>${pct(fixed.worst_pd)}</b></span>`,
-  fixed.blind_pd == null ? '' : `<span class="chip">schedule hidden <b>${pct(fixed.blind_pd)}</b></span>`,
-  `<span class="chip">was <b>${Math.round(base.pd*100)}</b> before the fix</span>`,
-].join('');
-const ppd = (c) => (c.pd*100)/c.cost;
-$('#costBig').innerHTML = `$${fixed.cost.toFixed(0)}<small>/h</small>`;
-$('#ppd').innerHTML = `${ppd(fixed).toFixed(2)}<small> pts/$</small>`;
-const droneCost = (D.fleet && D.fleet.cost_by_type && D.fleet.cost_by_type.drone) || 7;
-const sameCostStagger = configs.find(c => c.cost === base.cost && c.name !== base.name && c.name.endsWith('stagger'));
-const savings = [];
-if (sameCostStagger) savings.push({t:`+${Math.round((sameCostStagger.pd-base.pd)*100)} points for $0`, s:`Staggering the charge schedule lifted ${prettyFleet(base.name)} from ${Math.round(base.pd*100)} to ${Math.round(sameCostStagger.pd*100)} at the same $${base.cost.toFixed(0)}/h.`});
-if (base.blind_pd != null) savings.push({t:`Worst case ${pct(base.worst_pd)} to ${pct(base.blind_pd)} for $0`, s:`Keeping the charge schedule private is worth about one more drone: $${droneCost.toFixed(0)}/h, $${Math.round(droneCost*8760/1000)}k a year at 24/7.`});
-savings.push({t:`${(ppd(fixed)/ppd(base)).toFixed(1)}× more detection per dollar`, s:`${ppd(base).toFixed(2)} points per dollar before, ${ppd(fixed).toFixed(2)} now, on the same ${report.n_seeds} intrusion seeds.`});
-$('#savings').innerHTML = savings.map(s => `<div class="saving"><div class="ico">$</div><div><div class="t">${esc(s.t)}</div><div class="s">${esc(s.s)}</div></div></div>`).join('');
-const dir = (a,b,higherBetter) => a===b ? 'flat' : ((higherBetter ? a>b : a<b) ? 'up' : 'down');
-const perShift = (fixed.decisions*8);
-const tiles = [
-  {v:fmt(fixed.decisions), unit:'/h', k:'decisions asked of you', d:`about ${perShift < 1 ? 'one' : Math.round(perShift)} per 8-hour shift`, cls:'flat'},
-  {v:report.far, unit:'/h', k:'false alarms at the operating point', d:'the threshold is set on quiet nights', cls:'flat'},
-  {v:fmt(fixed.gap,0), unit:' s/h', k:'nobody on patrol', d:`was ${fmt(base.gap,0)} s/h`, cls:dir(fixed.gap, base.gap, false)},
-  {v:String(D.rounds.length || D.threats.length), unit:'', k:D.rounds.length ? 'attack, fix, re-attack rounds' : 'tactic families searched', d:`${report.n_seeds} shared seeds per fleet`, cls:'flat'},
-];
-$('#tiles').innerHTML = tiles.map(t => `<div class="stat"><div class="v">${t.v}<small>${t.unit||''}</small></div><div class="k">${t.k}</div><div class="d ${t.cls}">${t.d}</div></div>`).join('');
-$('#condLine').textContent = report.conditions;
-// frontier chart
-(function(){
-  const W=360, H=230, L=44, R=16, T=16, B=40; const xs = configs.map(c=>c.cost); const xmin = Math.min(...xs)-4, xmax = Math.max(...xs)+4;
-  const X = (c) => L + (c - xmin)/(xmax-xmin) * (W-L-R), Y = (p) => T + (1-p) * (H-T-B);
-  let s = '';
-  for (let p=0; p<=1; p+=0.25) s += `<line x1="${L}" x2="${W-R}" y1="${Y(p)}" y2="${Y(p)}" stroke="var(--hair)" /><text x="${L-6}" y="${Y(p)+4}" text-anchor="end">${Math.round(p*100)}</text>`;
-  const ticks = [...new Set(xs)].sort((a,b)=>a-b);
-  ticks.forEach(x => s += `<text x="${X(x)}" y="${H-B+16}" text-anchor="middle">$${x.toFixed(0)}</text>`);
-  s += `<text x="${(L+W-R)/2}" y="${H-6}" text-anchor="middle">fleet cost per hour</text>`;
-  // frontier: best detection at each cost or less
-  const sorted = [...configs].sort((a,b)=>a.cost-b.cost || b.pd-a.pd); const front=[]; let best=-1; sorted.forEach(c => { if(c.pd > best){ best=c.pd; front.push(c);} });
-  s += `<path d="${front.map((c,i)=>`${i?'L':'M'}${X(c.cost).toFixed(1)},${Y(c.pd).toFixed(1)}`).join(' ')}" fill="none" stroke="var(--warn)" stroke-width="2" stroke-linejoin="round" opacity=".7"/>`;
-  configs.forEach(c => { const col = c.name===fixed.name ? 'var(--good)' : c.name===base.name ? 'var(--atk)' : 'var(--ink3)'; const r = (c.name===fixed.name||c.name===base.name) ? 7 : 5; s += `<line x1="${X(c.cost)}" x2="${X(c.cost)}" y1="${Y(c.ci[0])}" y2="${Y(c.ci[1])}" stroke="${col}" stroke-width="1.5" opacity=".6"/><circle cx="${X(c.cost)}" cy="${Y(c.pd)}" r="${r}" fill="${col}" stroke="var(--surface)" stroke-width="2"><title>${esc(prettyFleet(c.name))}: ${Math.round(c.pd*100)} at $${c.cost.toFixed(0)}/h</title></circle>`; });
-  [[fixed,'deployed'],[base,'baseline']].forEach(([c,l]) => { const above = c.pd < 0.5; s += `<text class="lbl" x="${X(c.cost)}" y="${Y(c.pd) + (above ? -12 : 20)}" text-anchor="middle">${l} ${Math.round(c.pd*100)}</text>`; });
-  $('#frontier').innerHTML = s;
-})();
-const fleetAgents = (D.fleet && D.fleet.agents) || agentsOf(catchEp).map(id => ({id, type: kindOf(id)}));
-function batteryAt(agent, t){ if(!agent.endurance_s) return null; const cycle = agent.endurance_s + agent.charge_time_s; const off = (D.fleet && D.fleet.stagger && D.fleet.stagger[agent.id]) || 0; const x = ((t + off) % cycle + cycle) % cycle; return x < agent.endurance_s ? {flying:true, frac: 1 - x/agent.endurance_s} : {flying:false, frac: (x - agent.endurance_s)/agent.charge_time_s}; }
-$('#fleetStrip').innerHTML = fleetAgents.map(a => { const b = batteryAt(a, catchEp.t_alarm || 0); const cost = (D.fleet && D.fleet.cost_by_type[a.type]) || null; return `<div class="agentchip"><div class="t">${esc(a.id.replace('_',' '))}</div><div class="s">${a.type === 'go2' ? 'ground robot' : a.type}${cost!=null ? ` · $${cost.toFixed(0)}/h` : ''}</div>${b ? `<div class="b"><span>${b.flying ? 'battery' : 'charging'}</span><div class="bar"><i style="width:${Math.round(b.frac*100)}%${b.flying?'':';background:var(--warn)'}"></i></div><span>${Math.round(b.frac*100)}%</span></div>` : `<div class="b"><span>${a.type==='guard' ? 'on foot, radio' : 'patrolling'}</span></div>`}</div>`; }).join('');
-
-// ---------- vulnerability map (three.js) ----------
-const viewer = $('#viewer'); let renderer, scene, camera, threeOk = false, mapLoading = false, renderQueued = false;
-const cx = (site.bounds[0]+site.bounds[2])/2, cz = (site.bounds[1]+site.bounds[3])/2;
-const toV = (x,y,h) => new THREE.Vector3(x - cx, h, -(y - cz));
-const HOME_VIEW = {theta: -0.72, phi: 1.08, r: 165, tx: 18, tz: -8};
-let orbit = {...HOME_VIEW};
-const layers = {sec: [], atk: [], labels: []}; let roundFilter = 'all';
-const BLUE = {drone: 0x2a78d6, go2: 0x1aa3c4, guard: 0x5aa0e6};
-const RED = 0xd7263d;
-function requestRender(){ if (!threeOk || renderQueued) return; renderQueued = true; requestAnimationFrame(() => { renderQueued = false; if (viewer.closest('.page').classList.contains('active')) renderer.render(scene, camera); }); }
-function ensureMap(){ if (threeOk || mapLoading) return; mapLoading = true; const boot = () => { try { initScene(); applyMapFilter(); } catch(e) { viewer.insertAdjacentHTML('afterbegin', `<p class="empty">3D view unavailable: ${esc(e.message||e)}</p>`); } }; if (window.THREE) { boot(); return; } const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js'; sc.onload = boot; sc.onerror = () => { viewer.insertAdjacentHTML('afterbegin', '<p class="empty">3D view could not load.</p>'); }; document.head.appendChild(sc); }
-function setCam(){ camera.position.set(orbit.tx + orbit.r*Math.sin(orbit.phi)*Math.cos(orbit.theta), orbit.r*Math.cos(orbit.phi), orbit.tz + orbit.r*Math.sin(orbit.phi)*Math.sin(orbit.theta)); camera.lookAt(orbit.tx, 0, orbit.tz); requestRender(); }
-function tube(points, color, radius, opacity){ const curve = new THREE.CatmullRomCurve3(points); const g = new THREE.TubeGeometry(curve, Math.max(8, points.length*2), radius, 6, false); const m = new THREE.Mesh(g, new THREE.MeshLambertMaterial({color, transparent: opacity < 1, opacity, depthWrite: opacity >= 1})); return m; }
-function label(text, x, y, h, color){ const c = document.createElement('canvas'); c.width = 128; c.height = 64; const ctx = c.getContext('2d'); ctx.fillStyle = color; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(8, 8, 112, 48, 24) : ctx.rect(8,8,112,48); ctx.fill(); ctx.fillStyle = '#fff'; ctx.font = 'bold 26px Barlow, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(text, 64, 33); const tex = new THREE.CanvasTexture(c); const s = new THREE.Sprite(new THREE.SpriteMaterial({map: tex, depthTest: false})); s.scale.set(14, 7, 1); s.position.copy(toV(x, y, h)); return s; }
-function noiseTex(rgb, amp, repeat, size){
-  size = size || 128; const c=document.createElement('canvas'); c.width=c.height=size; const ctx=c.getContext('2d'); const img=ctx.createImageData(size,size);
-  for (let i=0;i<size*size;i++){ const n=(Math.random()*2-1)*amp; img.data[i*4]=Math.max(0,Math.min(255,rgb[0]+n)); img.data[i*4+1]=Math.max(0,Math.min(255,rgb[1]+n)); img.data[i*4+2]=Math.max(0,Math.min(255,rgb[2]+n)); img.data[i*4+3]=255; }
-  ctx.putImageData(img,0,0); const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(repeat,repeat); return t;
-}
-function mat(color, map){ return new THREE.MeshLambertMaterial(map ? {color, map} : {color}); }
-function place(x,y){ const g=new THREE.Group(); g.position.copy(toV(x,y,0)); scene.add(g); return g; }
-function addBox(g, m, x,y,z, w,h,d){ const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d), m); o.position.set(x,y,z); o.castShadow=o.receiveShadow=true; g.add(o); return o; }
-function addCyl(g, m, x,y,z, r1,r0,h,n){ const o=new THREE.Mesh(new THREE.CylinderGeometry(r1,r0,h,n||8), m); o.position.set(x,y,z); o.castShadow=o.receiveShadow=true; g.add(o); return o; }
-function makePerson(col){
-  const g=new THREE.Group(); const cloth=mat(col), skin=mat(0xe2c4a8), dark=mat(0x2a2a2a);
-  addCyl(g, dark, -0.14, 0.28, 0.02, 0.09, 0.11, 0.55, 6); addCyl(g, dark, 0.14, 0.28, 0.02, 0.09, 0.11, 0.55, 6);
-  addBox(g, cloth, 0, 0.95, 0, 0.52, 0.62, 0.28); addCyl(g, skin, 0, 1.42, 0, 0.14, 0.15, 0.26, 8);
-  addBox(g, cloth, -0.34, 0.92, 0, 0.11, 0.5, 0.11); addBox(g, cloth, 0.34, 0.92, 0, 0.11, 0.5, 0.11);
-  return g;
-}
-function makeDrone(col){
-  const g=new THREE.Group(); const body=mat(col), arm=mat(0x1a1a1a), rotor=mat(0x333333);
-  addBox(g, body, 0, 0, 0, 0.7, 0.22, 0.7);
-  [[-0.7,-0.7],[0.7,-0.7],[-0.7,0.7],[0.7,0.7]].forEach(([x,z]) => { addBox(g, arm, x*0.5, 0, z*0.5, 0.7, 0.06, 0.08); addCyl(g, rotor, x, 0.08, z, 0.38, 0.38, 0.04, 12); });
-  addCyl(g, mat(0x88ccee), 0, 0.18, 0, 0.12, 0.12, 0.1, 8);
-  g.position.y = 8; return g;
-}
-function makeGo2(col){
-  const g=new THREE.Group(); const body=mat(col), dark=mat(0x222222);
-  addBox(g, body, 0, 0.55, 0, 0.95, 0.32, 0.48); addBox(g, dark, 0.42, 0.58, 0, 0.28, 0.18, 0.36);
-  [[-0.32,-0.16],[-0.32,0.16],[0.28,-0.16],[0.28,0.16]].forEach(([x,z]) => addCyl(g, dark, x, 0.28, z, 0.06, 0.08, 0.5, 6));
-  return g;
-}
-function makeTruck(){
-  const g=new THREE.Group(); const cab=mat(0x3d5a80), crate=mat(0xd8d0c4), tire=mat(0x1a1a1a), win=mat(0x88aacc);
-  addBox(g, cab, -3.2, 1.5, 0, 2.4, 1.8, 2.2); addBox(g, win, -2.6, 1.85, 0, 0.08, 0.7, 1.8);
-  addBox(g, crate, 1.4, 1.7, 0, 6.4, 2.4, 2.4);
-  [[-3.4,-0.9],[-3.4,0.9],[0.2,-0.9],[0.2,0.9],[3.6,-0.9],[3.6,0.9]].forEach(([x,z]) => { const wh=addCyl(g, tire, x, 0.42, z, 0.42, 0.42, 0.28, 10); wh.rotation.z = Math.PI/2; });
-  return g;
-}
-function initScene(){
-  renderer = new THREE.WebGLRenderer({antialias:true, powerPreference:'low-power'}); renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, 1.5));
-  renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-  viewer.insertBefore(renderer.domElement, viewer.firstChild);
-  const dark = matchMedia('(prefers-color-scheme: dark)').matches && document.documentElement.dataset.theme !== 'light' || document.documentElement.dataset.theme === 'dark';
-  const sky = dark ? 0x141a28 : 0xc5d4df;
-  scene = new THREE.Scene(); scene.background = new THREE.Color(sky); scene.fog = new THREE.Fog(sky, 220, 520);
-  camera = new THREE.PerspectiveCamera(42, 1, 1, 2500); setCam();
-  scene.add(new THREE.HemisphereLight(dark ? 0x8899aa : 0xe8f0f8, dark ? 0x334422 : 0x6a7a4a, dark ? 0.55 : 0.85));
-  const sun = new THREE.DirectionalLight(dark ? 0xc8d4e8 : 0xfff1d6, dark ? 0.65 : 0.9); sun.position.set(120, 180, 80); sun.castShadow = true;
-  sun.shadow.mapSize.set(512,512); const sc=sun.shadow.camera; sc.left=sc.bottom=-160; sc.right=sc.top=160; sc.near=10; sc.far=420; scene.add(sun);
-  const w = site.bounds[2]-site.bounds[0], dep = site.bounds[3]-site.bounds[1];
-  const grass = new THREE.Mesh(new THREE.PlaneGeometry(w+80, dep+80), mat(dark ? 0x1c2a1c : 0x5d7a45, noiseTex(dark ? [28,42,28] : [93,122,69], 18, 18))); grass.rotation.x=-Math.PI/2; grass.position.y=-0.22; grass.receiveShadow=true; scene.add(grass);
-  const yard = new THREE.Mesh(new THREE.PlaneGeometry(w, dep), mat(dark ? 0x2a2d32 : 0x5c5f66, noiseTex(dark ? [42,45,50] : [92,95,102], 14, 14))); yard.rotation.x=-Math.PI/2; yard.position.y=0.01; yard.receiveShadow=true; scene.add(yard);
-  const lineM = mat(0xd8c98a);
-  for (let x=20;x<w;x+=20){ const ln=new THREE.Mesh(new THREE.PlaneGeometry(0.18, dep-8), lineM); ln.rotation.x=-Math.PI/2; ln.position.copy(toV(site.bounds[0]+x, (site.bounds[1]+site.bounds[3])/2, 0.04)); scene.add(ln); }
-  const corr = (function(){ const c=document.createElement('canvas'); c.width=64; c.height=64; const ctx=c.getContext('2d'); ctx.fillStyle='#b8733a'; ctx.fillRect(0,0,64,64); ctx.fillStyle='#9a5c2c'; for(let i=0;i<64;i+=6) ctx.fillRect(i,0,2,64); const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(8,3); return t; })();
-  const wallM = mat(0xc47a3a, corr), roofM = mat(0x6a4332), doorM = mat(0x2b3157), concM = mat(0x8a8d92);
-  const wh = place(site.asset.x, site.asset.y);
-  addBox(wh, wallM, 0, 4.4, 0, 28, 8.8, 16); addBox(wh, roofM, 0, 9.05, 0, 30, 0.5, 18);
-  addBox(wh, roofM, 0, 9.4, 0, 8, 1.2, 4);
-  [-8,0,8].forEach(x => addBox(wh, doorM, x, 2.2, 8.15, 5.2, 4.4, 0.2));
-  addBox(wh, mat(0xd8cfc2), -16, 2.6, 2, 6, 5.2, 10); addBox(wh, mat(0x88aacc), -16, 3.6, 6.9, 4.2, 1.6, 0.12);
-  addBox(wh, concM, 0, 0.12, 12, 30, 0.24, 10);
-  scene.add(label('asset', site.asset.x, site.asset.y, 12, '#c45a28'));
-  const cans = [0x2a6aa3, 0xb84a32, 0xc9a227, 0x3d7a4a, 0x8a3d1c];
-  [[18,-4],[18,4],[18,12],[24,-4],[24,4],[24,12],[18,20]].forEach((p,i) => { const c=place(site.asset.x+p[0], site.asset.y+p[1]); addBox(c, mat(cans[i%cans.length]), 0, 1.3, 0, 6.1, 2.6, 2.44); addBox(c, mat(0x1a1a1a), 0, 2.62, 0, 6.1, 0.08, 2.44); });
-  const truck = makeTruck(); truck.position.copy(toV(160, 50, 0)); truck.rotation.y = Math.PI/2; scene.add(truck);
-  const fork = place(128, 42); addBox(fork, mat(0xc9a227), 0, 0.7, 0, 1.4, 0.7, 0.9); addBox(fork, mat(0x333333), 0.9, 0.25, 0, 1.6, 0.08, 0.12); addBox(fork, mat(0x333333), 0.9, 0.25, 0.28, 1.6, 0.08, 0.12);
-  const link = (function(){ const c=document.createElement('canvas'); c.width=32; c.height=32; const ctx=c.getContext('2d'); ctx.clearRect(0,0,32,32); ctx.strokeStyle='rgba(180,190,200,.85)'; ctx.lineWidth=1.2; ctx.strokeRect(1,1,14,14); ctx.strokeRect(16,16,14,14); const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; return t; })();
-  const linkM = new THREE.MeshLambertMaterial({map:link, transparent:true, opacity:0.55, side:THREE.DoubleSide, depthWrite:false});
-  const postM = mat(0x4a5060), railM = mat(0x6a7380);
-  const nearGate = (x,y) => site.entry_points.some(e => Math.hypot(e.position.x-x, e.position.y-y) < 7);
-  const Per = site.perimeter;
-  for (let i=0;i<Per.length;i++){
-    const a=Per[i], b=Per[(i+1)%Per.length]; const len=Math.hypot(b.x-a.x,b.y-a.y); const ang=-Math.atan2(b.y-a.y,b.x-a.x);
-    const nPost = Math.max(2, Math.round(len/6));
-    for (let k=0;k<=nPost;k++){
-      const t=k/nPost, x=a.x+(b.x-a.x)*t, y=a.y+(b.y-a.y)*t; if (nearGate(x,y)) continue;
-      const g=place(x,y); g.rotation.y=ang; addCyl(g, postM, 0, 1.35, 0, 0.08, 0.09, 2.7, 6);
-    }
-    const mx=(a.x+b.x)/2, my=(a.y+b.y)/2; if (!nearGate(mx,my)){
-      const g=place(mx,my); g.rotation.y=ang;
-      addBox(g, railM, 0, 0.7, 0, len-1, 0.06, 0.06); addBox(g, railM, 0, 1.5, 0, len-1, 0.06, 0.06); addBox(g, railM, 0, 2.3, 0, len-1, 0.06, 0.06);
-      const mesh=new THREE.Mesh(new THREE.PlaneGeometry(len-1.2, 2.2), linkM); mesh.position.set(0,1.4,0); g.add(mesh);
-    }
-  }
-  site.entry_points.forEach(e => {
-    const g=place(e.position.x, e.position.y);
-    if (e.kind==='fence_gap'){ addBox(g, mat(0x8c8262), -2.4, 1.1, 0, 0.18, 2.2, 0.18); addBox(g, mat(0x8c8262), 2.4, 1.1, 0, 0.18, 2.2, 0.18); addBox(g, mat(0xeda100), 0, 1.8, 0, 4.6, 0.08, 0.08); }
-    else if (e.kind==='pedestrian_gate'){ addBox(g, postM, -1.1, 1.4, 0, 0.22, 2.8, 0.22); addBox(g, postM, 1.1, 1.4, 0, 0.22, 2.8, 0.22); addBox(g, mat(0x3d5a80), 0, 1.1, 0, 1.7, 2.0, 0.12); }
-    else { addBox(g, postM, -3.4, 1.7, 0, 0.4, 3.4, 0.4); addBox(g, postM, 3.4, 1.7, 0, 0.4, 3.4, 0.4); addBox(g, mat(0x2b3157), 0, 2.9, 0, 6.6, 0.35, 0.35); addBox(g, mat(0xd9400a), 1.6, 1.15, 0, 3.2, 0.12, 0.28); }
-    scene.add(label(e.id.replaceAll('_',' '), e.position.x, e.position.y, 5.5, '#2b3157'));
-  });
-  site.docks.forEach(dk => {
-    const g=place(dk.position.x, dk.position.y); const drone = dk.id.startsWith('drone');
-    addCyl(g, concM, 0, 0.12, 0, 4.2, 4.2, 0.24, 20);
-    addBox(g, mat(drone?0x2a78d6:0x1aa3c4), 0, 0.26, 0, drone?2.4:1.6, 0.04, drone?2.4:1.6);
-    [[-3.2,-3.2],[3.2,-3.2],[-3.2,3.2],[3.2,3.2]].forEach(([x,z]) => addCyl(g, postM, x, 1.6, z, 0.08, 0.08, 3.2, 6));
-    addBox(g, roofM, 0, 3.3, 0, 7.2, 0.12, 7.2);
-  });
-  site.fixed_sensors.forEach(s => {
-    const c=D.curves[s.sensor_type]||{fov_deg:60,range:30}; const g=place(s.position.x, s.position.y);
-    addCyl(g, postM, 0, 3.2, 0, 0.12, 0.16, 6.4, 8); addBox(g, mat(0x1a1a1a), 0.28, 6.2, 0, 0.55, 0.28, 0.22);
-    const wedge=new THREE.Mesh(new THREE.CircleGeometry(c.range, 24, THREE.MathUtils.degToRad(s.heading_deg - c.fov_deg/2), THREE.MathUtils.degToRad(c.fov_deg)), new THREE.MeshBasicMaterial({color:0x2a78d6, transparent:true, opacity:0.12, side:THREE.DoubleSide, depthWrite:false}));
-    wedge.rotation.x=-Math.PI/2; wedge.position.copy(toV(s.position.x,s.position.y,0.08)); scene.add(wedge);
-  });
-  [[15,60],[100,8],[185,60],[100,112],[40,40],[160,90]].forEach(([x,y]) => { const g=place(x,y); addCyl(g, postM, 0, 3.6, 0, 0.1, 0.14, 7.2, 6); addCyl(g, mat(0xf2e6b8), 0, 7.15, 0, 0.45, 0.12, 0.2, 8); });
-  [[0,30],[0,90],[50,0],[150,0],[200,40],[200,90],[50,120],[150,120]].forEach(([x,y]) => { const g=place(Math.max(2,Math.min(198,x)), Math.max(2,Math.min(118,y))); addCyl(g, mat(0x5a3a22), 0, 0.7, 0, 0.18, 0.28, 1.4, 6); addCyl(g, mat(0x3d6a32), 0, 2.4, 0, 0.2, 1.6, 2.6, 8); });
-  const tMark = catchEp.t_alarm != null ? catchEp.t_alarm : (catchEp.t_end || 0) * 0.5;
-  agentsOf(catchEp).forEach(id => {
-    const tr = catchEp.tracks[id]; if (!tr || tr.length < 3) return;
-    const k=kindOf(id); const pts=[]; for (let i=0;i<tr.length;i+= Math.max(1, Math.floor(tr.length/60))) pts.push(toV(tr[i][1], tr[i][2], k==='drone' ? 8 : 0.35));
-    if (pts.length > 2) { const m = tube(pts, BLUE[k] || 0x2a78d6, k==='drone' ? 0.35 : 0.28, 0.72); layers.sec.push(m); scene.add(m); }
-    const p = positionAt(tr, tMark); const hold=place(p[1], p[2]);
-    const model = k==='drone' ? makeDrone(BLUE.drone) : k==='go2' ? makeGo2(BLUE.go2) : makePerson(BLUE.guard);
-    hold.add(model); layers.sec.push(hold);
-    const tag = label(id.replace('_',' '), p[1], p[2], k==='drone' ? 11 : 3.2, '#2a78d6'); layers.sec.push(tag); scene.add(tag);
-  });
-  D.rounds.forEach(r => {
-    if(!r.tactic || !r.tactic.path.length) return;
-    const miss = r.tactic.miss || 0;
-    const pts = [...r.tactic.path.map(p => toV(p[0], p[1], 0.4)), toV(site.asset.x, site.asset.y, 0.4)];
-    const m = tube(pts, RED, 0.38, 0.85); m.userData.round = r.k; layers.atk.push(m); scene.add(m);
-    const start = r.tactic.path[0];
-    const disc = new THREE.Mesh(new THREE.CircleGeometry(6 + 9*miss, 28), new THREE.MeshBasicMaterial({color:RED, transparent:true, opacity:0.2 + 0.4*miss, side:THREE.DoubleSide, depthWrite:false}));
-    disc.rotation.x = -Math.PI/2; disc.position.copy(toV(start[0], start[1], 0.08)); disc.userData.round = r.k; layers.atk.push(disc); scene.add(disc);
-    const hold=place(start[0], start[1]); const person=makePerson(RED); hold.add(person); hold.userData.round=r.k; layers.atk.push(hold);
-    const lb = label('R' + r.k + '  ' + Math.round(miss*100) + '%', start[0], start[1], 3.4, '#d7263d'); lb.userData.round = r.k; layers.labels.push(lb); scene.add(lb);
-    if (r.tactic.decoy) {
-      const ring = new THREE.Mesh(new THREE.RingGeometry(1.6, 2.4, 24), new THREE.MeshBasicMaterial({color:0xeda100, side:THREE.DoubleSide}));
-      ring.rotation.x = -Math.PI/2; ring.position.copy(toV(r.tactic.decoy[0], r.tactic.decoy[1], 0.1)); ring.userData.round = r.k; layers.atk.push(ring); scene.add(ring);
-    }
-  });
-  $('#hud').innerHTML = `<span class="chip on-surface" style="background:#2a78d6;color:#fff">blue team</span><span class="chip on-surface" style="background:#d7263d;color:#fff">red team</span><span class="chip on-surface">holes sized by miss rate</span>`;
-  threeOk = true; resizeViewer(); requestRender();
-}
-function applyMapFilter(){ const on = (o) => roundFilter === 'all' || o.userData.round === roundFilter; layers.atk.forEach(o => o.visible = toggles.atk && on(o)); layers.labels.forEach(o => o.visible = toggles.atk && on(o)); layers.sec.forEach(o => o.visible = toggles.sec); requestRender(); }
-const toggles = {sec: true, atk: true};
-function resizeViewer(){ if(!renderer) return; const r = viewer.getBoundingClientRect(); if(r.width<10) return; renderer.setSize(r.width, r.height, false); camera.aspect = r.width/r.height; camera.updateProjectionMatrix(); requestRender(); }
-window.addEventListener('resize', resizeViewer);
-let drag = null, pinch = null;
-viewer.addEventListener('pointerdown', e => { drag = {x:e.clientX, y:e.clientY, pan: e.shiftKey || e.button === 1}; viewer.setPointerCapture(e.pointerId); });
-viewer.addEventListener('pointermove', e => { if(!drag) return; const dx = e.clientX-drag.x, dy = e.clientY-drag.y; drag.x = e.clientX; drag.y = e.clientY; if (drag.pan) { pan(dx, dy); } else { orbit.theta += dx*0.006; orbit.phi = Math.min(1.45, Math.max(0.2, orbit.phi - dy*0.006)); } setCam(); });
-viewer.addEventListener('pointerup', () => { drag=null; }); viewer.addEventListener('pointercancel', () => { drag=null; });
-viewer.addEventListener('dblclick', () => { orbit = {...HOME_VIEW}; setCam(); });
-viewer.addEventListener('wheel', e => { e.preventDefault(); orbit.r = Math.min(600, Math.max(50, orbit.r * (1 + Math.sign(e.deltaY)*0.08))); setCam(); }, {passive:false});
-function pan(dx, dy){ const k = orbit.r/600; const fx = Math.cos(orbit.theta), fz = Math.sin(orbit.theta); orbit.tx -= (dx * -fz + dy * fx) * k * 0.9; orbit.tz -= (dx * fx + dy * fz) * k * 0.9; orbit.tx = Math.max(-120, Math.min(120, orbit.tx)); orbit.tz = Math.max(-80, Math.min(80, orbit.tz)); }
-viewer.addEventListener('touchstart', e => { if (e.touches.length === 2) { drag = null; pinch = {d: Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY), x: (e.touches[0].clientX+e.touches[1].clientX)/2, y: (e.touches[0].clientY+e.touches[1].clientY)/2}; } }, {passive:true});
-viewer.addEventListener('touchmove', e => { if(e.touches.length===2 && pinch){ const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY); const x=(e.touches[0].clientX+e.touches[1].clientX)/2, y=(e.touches[0].clientY+e.touches[1].clientY)/2; orbit.r = Math.min(600, Math.max(50, orbit.r * pinch.d/d)); pan(x-pinch.x, y-pinch.y); pinch = {d, x, y}; setCam(); } }, {passive:true});
-viewer.addEventListener('touchend', () => { pinch=null; });
-const rounds = D.rounds;
-$('#mapLead').textContent = rounds.length ? `Yard map: blue is ${prettyFleet(fixed.name)} on the recorded night, red is the red-team path that still landed after each round of fixes, discs are holes sized by miss rate.` : `Yard map: blue is the fleet on the recorded night. Red paths and hole discs appear once the attack, fix, re-attack rounds are on disk.`;
-$('#roundSeg').innerHTML = `<button data-round="all" aria-pressed="true">All rounds</button>` + rounds.map(r => `<button data-round="${r.k}" aria-pressed="false">Round ${r.k}</button>`).join('') + `<button class="sec" data-layer="sec" aria-pressed="true">Fleet trails</button><button class="atk" data-layer="atk" aria-pressed="true">Attack paths</button>`;
-$('#roundSeg').addEventListener('click', e => { const b = e.target.closest('button'); if(!b) return; if (b.dataset.round != null) { roundFilter = b.dataset.round === 'all' ? 'all' : parseInt(b.dataset.round); $('#roundSeg').querySelectorAll('button[data-round]').forEach(x => x.setAttribute('aria-pressed', x===b ? 'true' : 'false')); } else { toggles[b.dataset.layer] = !toggles[b.dataset.layer]; b.setAttribute('aria-pressed', String(toggles[b.dataset.layer])); } applyMapFilter(); });
-$('#holeList').innerHTML = rounds.length ? rounds.map(r => { const t = r.tactic || {}; const miss = t.miss == null ? (1 - r.worst_pd) : t.miss; return `<div class="row ${miss >= 0.9 ? 'sev-high' : miss >= 0.5 ? 'sev-med' : 'sev-low'}" data-round="${r.k}"><div class="dot"></div><div><div class="t">Round ${r.k}: ${esc((r.worst_family||'').replaceAll('_',' '))} through the ${esc((t.entry||'?').replaceAll('_',' '))}</div><div class="s">${esc(prettyFleet(r.fleet))} at $${r.cost.toFixed(0)}/h${t.phase!=null ? `, enters at phase ${fmt(t.phase)} of the charge cycle` : ''}${r.worst_pd_schedule_blind != null ? `, ${pct(r.worst_pd_schedule_blind)} caught with the schedule hidden` : ''} → ${r.move ? 'fix: ' + r.move.replaceAll('_',' ') : 'budget reached'}</div></div><div class="n">${Math.round(miss*100)}%<span>still missed</span></div></div>`; }).join('') : D.threats.map(t => `<div class="row ${t.miss >= 0.9 ? 'sev-high' : t.miss >= 0.5 ? 'sev-med' : 'sev-low'}"><div class="dot"></div><div><div class="t">${esc(t.family.replaceAll('_',' '))} through the ${esc(t.entry.replaceAll('_',' '))}</div><div class="s">phase ${fmt(t.phase)} of the charge cycle at ${fmt(t.speed,1)} m/s, found by ${esc(t.origin)}</div></div><div class="n">${Math.round(t.miss*100)}%<span>missed</span></div></div>`).join('');
-$('#holeList').addEventListener('click', e => { const row = e.target.closest('.row[data-round]'); if(!row) return; const r = rounds.find(x => x.k === parseInt(row.dataset.round)); if(!r || !r.tactic) return; orbit.tx = r.tactic.path[0][0] - cx; orbit.tz = -(r.tactic.path[0][1] - cz); orbit.r = 120; setCam(); roundFilter = r.k; $('#roundSeg').querySelectorAll('button[data-round]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.round == r.k))); applyMapFilter(); showTab('tab-map', true); });
-
+/*__INCLUDE:home.js__*/
+/*__INCLUDE:scene3d.js__*/
 // ---------- fleet memory (derived from the recorded night) ----------
 function memoryAt(ep, t){ const zones = [...site.entry_points.map(e => [e.id.replaceAll('_',' '), e.position]), ['the asset', site.asset], ...site.docks.map(d => [d.id.replaceAll('_',' '), d.position])]; return zones.map(([name, z]) => { let seen=null, by=null; for (const id of agentsOf(ep)) { const range = (D.curves[(fleetAgents.find(a=>a.id===id)||{}).sensor_type] || {range: 25}).range; for (const p of ep.tracks[id]) { if (p[0] > t) break; if (Math.hypot(p[1]-z.x, p[2]-z.y) <= Math.min(range, 40) && (seen==null || p[0] > seen)) { seen = p[0]; by = id; } } } return {name, seen, by, stale: seen==null ? null : t - seen}; }); }
-function renderMemory(t){ const rows = memoryAt(catchEp, t); $('#memoryList').innerHTML = rows.map(r => `<div class="row ${r.seen==null ? 'sev-high' : (r.stale > 30 ? 'sev-med' : 'sev-low')}"><div class="dot"></div><div><div class="t">${esc(r.name)}</div><div class="s">${r.seen==null ? 'not seen yet tonight' : 'last seen by ' + esc(r.by.replace('_',' '))}</div></div><div class="n">${r.seen==null ? '—' : r.stale.toFixed(0) + ' s'}<span>ago</span></div></div>`).join(''); const ev = catchEp.detections.filter(d => d[0] <= t).slice(-6).reverse(); $('#evidenceList').innerHTML = ev.length ? ev.map(d => `<div class="row ${d[3] ? 'sev-high' : 'sev-low'}"><div class="dot"></div><div><div class="t">${esc(d[1].replace('_',' '))} saw ${esc(d[2])}</div><div class="s">${d[3] ? 'confirmed on the intruder track' : 'benign, dismissed by the tracker'}, near ${esc(zoneOf(...positionAt(catchEp.tracks[d[2]] || catchEp.tracks.intruder, d[0]).slice(1)))}</div></div><div class="n">${d[0].toFixed(0)} s<span>evidence</span></div></div>`).join('') : '<div class="empty">No evidence yet: nobody has seen the track.</div>'; }
+function renderMemory(t){ const rows = memoryAt(catchEp, t); $('#memoryList').innerHTML = rows.map(r => `<div class="row ${r.seen==null ? 'sev-high' : (r.stale > 30 ? 'sev-med' : 'sev-low')}"><div class="dot"></div><div><div class="t">${esc(r.name)}</div><div class="s">${r.seen==null ? 'not seen yet tonight' : 'last seen by ' + esc(r.by.replace('_',' '))}</div></div><div class="n">${r.seen==null ? 'never' : (r.stale < 1 ? 'now' : r.stale.toFixed(0) + ' s')}</div></div>`).join(''); const ev = catchEp.detections.filter(d => d[0] <= t).slice(-6).reverse(); $('#evidenceList').innerHTML = ev.length ? ev.map(d => `<div class="row ${d[3] ? 'sev-high' : 'sev-low'}"><div class="dot"></div><div><div class="t">${esc(d[1].replace('_',' '))} saw ${esc(d[2])}</div><div class="s">${d[3] ? 'confirmed on the intruder track' : 'benign, dismissed by the tracker'}, near ${esc(zoneOf(...positionAt(catchEp.tracks[d[2]] || catchEp.tracks.intruder, d[0]).slice(1)))}</div></div><div class="n">${d[0].toFixed(0)} s<span>evidence</span></div></div>`).join('') : '<div class="empty">No evidence yet: nobody has seen the track.</div>'; }
 renderMemory(catchEp.t_alarm || 0);
 
 // ---------- swarm: approvals ----------
@@ -608,7 +397,10 @@ function renderProposal(){ const box=$('#proposalBox'); if(decided){ const last=
 function renderHistory(){ $('#history').innerHTML = decisions.length ? decisions.slice().sort((a,b)=>b.at-a.at).slice(0,12).map(d => `<div class="row ${d.decision==='approved'?'sev-low':'sev-high'}"><div class="dot"></div><div><div class="t">${esc(d.proposal)}</div><div class="s">${new Date(d.at).toLocaleTimeString()}, ${esc(d.source)}</div></div><div class="n" style="font-size:14px">${esc(d.decision)}</div></div>`).join('') : '<div class="empty">No decisions yet. Approve or deny the proposal above and it lands here for everyone who opens this page.</div>'; renderLogs(); }
 async function decide(decision, source){ if(decided) return; decided=true; clearInterval(timer); const rec={proposal: prop.title, decision, at: Date.now(), source: source||'this phone'}; decisions.push(rec); renderProposal(); renderHistory(); addMsg('tool', `<b>${decision === 'approved' ? 'Dispatch approved' : 'Dispatch denied'}</b> by ${esc(rec.source)}. ${decision === 'approved' ? esc(catchEp.responder.replace('_',' ')) + ' is en route.' : 'Holding position.'}`); if(dbNs){ try{ await dbNs.collection('approvals').doc(String(rec.at)).set(rec); }catch(e){ $('#dbNote').textContent = 'Could not save this decision to the shared store: ' + (e.message||e); } } }
 function startCountdown(){ timer=setInterval(() => { countdown -= 1; if(countdown<=0){ decide('denied','silence, deadline reached'); } else if(!decided) { const c=document.querySelector('#proposalBox .count'); if(c) c.textContent=`Denied automatically in ${countdown} s if nobody answers`; } }, 1000); }
-renderProposal(); startCountdown();
+renderProposal();
+// the clock starts when the operator first opens the Swarm page, not when the page loads
+let countdownStarted = false; function ensureCountdown(){ if (!countdownStarted && !decided) { countdownStarted = true; startCountdown(); } }
+if (document.getElementById('tab-swarm').classList.contains('active')) ensureCountdown();
 (async () => { try { dbNs = window.claude && window.claude.use ? await window.claude.use('db') : null; } catch(e) { dbNs=null; } if(!dbNs){ $('#dbNote').textContent='Shared decision store not available in this view; decisions stay on this device.'; renderHistory(); return; } try { dbNs.collection('approvals').orderBy('at','desc').limit(50).onSnapshot(snap => { decisions = snap.docs.map(d => d.data()).filter(Boolean); renderHistory(); }, err => { $('#dbNote').textContent='Live updates stopped (' + err.code + '); decisions made here still save.'; }); $('#dbNote').textContent='Decisions are shared with everyone who opens this page.'; } catch(e){ $('#dbNote').textContent='Shared store connected, but live updates are unavailable: ' + (e.message||e); } renderHistory(); })();
 
 // ---------- swarm: chat with tools ----------
@@ -644,66 +436,29 @@ const usecases = [
 ];
 $('#usecases').innerHTML = usecases.map(u => `<button class="usecase" data-q="${esc(u.q)}"><span class="t">${esc(u.t)}</span><span class="s">${esc(u.s)}</span></button>`).join('');
 $('#usecases').addEventListener('click', e => { const b = e.target.closest('.usecase'); if(b){ $('#main').scrollTop = 0; ask(b.dataset.q); } });
-$('#linkS').textContent = `${fleetAgents.length} agents on one memory · ${catchEp.timely ? 'track caught at ' + fmt(catchEp.t_alarm,0) + ' s' : 'track under watch'} · posture ${posture}`;
+$('#linkS').textContent = `${fleetAgents.length} agents on one memory, ${catchEp.timely ? 'track caught at ' + fmt(catchEp.t_alarm,0) + ' s' : 'track under watch'}, posture ${posture}`;
 $('#hil').innerHTML = `<div class="li"><i>1</i><div><div class="t">The swarm runs itself</div><div class="s">Patrol, charging, tracking and re-tasking happen on the robots, decentralised, on the shared memory.</div></div></div><div class="li"><i>2</i><div><div class="t">The important calls are yours</div><div class="s">Dispatching the responder, changing posture, touching the charge schedule: each one pings this phone with a deadline.</div></div></div><div class="li"><i>3</i><div><div class="t">Silence is a no</div><div class="s">An unanswered proposal is denied when its deadline passes, so a dead phone never moves a robot.</div></div></div>`;
 addMsg('swarm', `Good evening. ${catchEp.timely ? `A ${catchEp.family.replaceAll('_',' ')} track through the ${catchEp.entry.replaceAll('_',' ')} was caught at ${fmt(catchEp.t_alarm,0)} s tonight; the proposal above is the follow-up.` : 'The yard is quiet.'} Ask for status, blind spots, or give an order.`, 'swarm');
 
-// ---------- perception (recorded, non-interactive) ----------
-const pc = $('#pcanvas'); const pctx = pc.getContext('2d'); let pt = 0, plast = performance.now(), pRunning = false, pLastDraw = 0; const pep = catchEp;
-$('#pLead').textContent = `${prettyFleet(pep.fleet)} · seed ${pep.seed}`; $('#pEnd').textContent = `${pep.t_end.toFixed(0)} s`;
-function resizePerception(){ const r = pc.getBoundingClientRect(); if (r.width < 10) return; const dpr = Math.min(window.devicePixelRatio||1, 1.5); pc.width = Math.round(r.width*dpr); pc.height = Math.round(r.width*dpr*120/200); }
-const PAD = 8; const P2 = (x,y) => [pc.width * (x - site.bounds[0] + PAD)/(site.bounds[2]-site.bounds[0] + 2*PAD), pc.height * (1 - (y - site.bounds[1] + PAD)/(site.bounds[3]-site.bounds[1] + 2*PAD))];
-const scoreAt = (t) => { let v = null; for (const s of pep.scores) { if (s[0] <= t) v = s[1]; else break; } return v; };
-const pstatic = document.createElement('canvas'); let pstaticKey = '';
-function drawStatic(){ const W = pc.width, H = pc.height, s = W/200; const key = W + 'x' + H + document.documentElement.dataset.theme; if (key === pstaticKey) return; pstaticKey = key; pstatic.width = W; pstatic.height = H; const g = pstatic.getContext('2d'); const cs = getComputedStyle(document.documentElement); const ink = cs.getPropertyValue('--ink').trim(), hair = cs.getPropertyValue('--hair2').trim(), surf = cs.getPropertyValue('--surface').trim();
-  g.fillStyle = surf; g.fillRect(0,0,W,H);
-  g.strokeStyle = hair; g.lineWidth = 1; for (let x=0;x<=200;x+=20){ const [px]=P2(x,0); g.beginPath(); g.moveTo(px,0); g.lineTo(px,H); g.stroke(); } for (let y=0;y<=120;y+=20){ const [,py]=P2(0,y); g.beginPath(); g.moveTo(0,py); g.lineTo(W,py); g.stroke(); }
-  g.strokeStyle = ink; g.lineWidth = 2*s; g.beginPath(); site.perimeter.forEach((p,i) => { const [x,y]=P2(p.x,p.y); i ? g.lineTo(x,y) : g.moveTo(x,y); }); g.closePath(); g.stroke();
-  site.fixed_sensors.forEach(sn => { const c = D.curves[sn.sensor_type]||{fov_deg:60,range:30}; const [x,y]=P2(sn.position.x, sn.position.y); g.fillStyle = 'rgba(43,49,87,.12)'; g.beginPath(); g.moveTo(x,y); g.arc(x,y,c.range*s, -(sn.heading_deg + c.fov_deg/2)*Math.PI/180, -(sn.heading_deg - c.fov_deg/2)*Math.PI/180); g.closePath(); g.fill(); });
-  site.docks.forEach(d => { const [x,y]=P2(d.position.x,d.position.y); g.fillStyle='rgba(46,111,107,.35)'; g.beginPath(); g.arc(x,y,4*s,0,7); g.fill(); });
-  site.entry_points.forEach(e => { const [x,y]=P2(e.position.x,e.position.y); g.fillStyle = ink; g.fillRect(x-3*s,y-3*s,6*s,6*s); });
-  const [ax,ay]=P2(site.asset.x, site.asset.y); g.fillStyle='#2b3157'; g.fillRect(ax-4*s,ay-4*s,8*s,8*s); }
-let pSec = -1;
-function drawPerception(){ const W = pc.width, H = pc.height, s = W/200; const cs = getComputedStyle(document.documentElement); const ink = cs.getPropertyValue('--ink').trim(), ink3 = cs.getPropertyValue('--ink3').trim();
-  drawStatic(); pctx.drawImage(pstatic, 0, 0);
-  if (false) { pctx.strokeStyle = ink; pctx.lineWidth = 1; for (let x=0;x<=200;x+=20){ const [px]=P2(x,0); pctx.beginPath(); pctx.moveTo(px,0); pctx.lineTo(px,H); pctx.stroke(); } for (let y=0;y<=120;y+=20){ const [,py]=P2(0,y); pctx.beginPath(); pctx.moveTo(0,py); pctx.lineTo(W,py); pctx.stroke(); }
-  pctx.strokeStyle = ink; pctx.lineWidth = 2*s; pctx.beginPath(); site.perimeter.forEach((p,i) => { const [x,y]=P2(p.x,p.y); i ? pctx.lineTo(x,y) : pctx.moveTo(x,y); }); pctx.closePath(); pctx.stroke();
-  site.fixed_sensors.forEach(sn => { const c = D.curves[sn.sensor_type]||{fov_deg:60,range:30}; const [x,y]=P2(sn.position.x, sn.position.y); pctx.fillStyle = 'rgba(43,49,87,.12)'; pctx.beginPath(); pctx.moveTo(x,y); pctx.arc(x,y,c.range*s, -(sn.heading_deg + c.fov_deg/2)*Math.PI/180, -(sn.heading_deg - c.fov_deg/2)*Math.PI/180); pctx.closePath(); pctx.fill(); });
-  site.docks.forEach(d => { const [x,y]=P2(d.position.x,d.position.y); pctx.fillStyle='rgba(46,111,107,.35)'; pctx.beginPath(); pctx.arc(x,y,4*s,0,7); pctx.fill(); });
-  site.entry_points.forEach(e => { const [x,y]=P2(e.position.x,e.position.y); pctx.fillStyle = ink; pctx.fillRect(x-3*s,y-3*s,6*s,6*s); });
-  const [ax,ay]=P2(site.asset.x, site.asset.y); pctx.fillStyle='#2b3157'; pctx.fillRect(ax-4*s,ay-4*s,8*s,8*s); }
-  agentsOf(pep).forEach(id => { const p = positionAt(pep.tracks[id], pt); const [x,y]=P2(p[1],p[2]); const a = fleetAgents.find(z=>z.id===id)||{}; const c = D.curves[a.sensor_type] || {range: kindOf(id)==='drone'?40:kindOf(id)==='go2'?30:60, fov_deg: 360}; const docked = isDocked(id,p[1],p[2]); if(!docked){ pctx.fillStyle = 'rgba(43,49,87,.10)'; pctx.beginPath(); pctx.arc(x,y,c.range*s,0,7); pctx.fill(); } const tr = pep.tracks[id]; pctx.strokeStyle='rgba(43,49,87,.5)'; pctx.lineWidth=1.5*s; pctx.beginPath(); let started=false; for(const q of tr){ if(q[0]>pt) break; if(q[0] < pt-40) continue; const [qx,qy]=P2(q[1],q[2]); started ? pctx.lineTo(qx,qy) : pctx.moveTo(qx,qy); started=true; } pctx.stroke(); pctx.fillStyle = docked ? '#8c8262' : '#2b3157'; pctx.beginPath(); pctx.arc(x,y,3.2*s,0,7); pctx.fill(); pctx.fillStyle = ink; pctx.font = `${Math.round(9*s)}px Barlow, sans-serif`; pctx.fillText(id.replace('_',' '), x+5*s, kindOf(id)==='drone' ? y-4*s : y+11*s); });
-  const itr = pep.tracks.intruder; if (itr) { const p = positionAt(itr, pt); if (pt >= itr[0][0] && pt <= itr[itr.length-1][0] + 1) { const [x,y]=P2(p[1],p[2]); const sc = scoreAt(pt); const conf = sc==null ? 0 : Math.max(0, Math.min(1, (sc + 2)/6)); pctx.strokeStyle = `rgba(160,112,112,${0.35+0.6*conf})`; pctx.lineWidth = 1.5*s; pctx.beginPath(); let st=false; for(const q of itr){ if(q[0]>pt) break; const [qx,qy]=P2(q[1],q[2]); st ? pctx.lineTo(qx,qy) : pctx.moveTo(qx,qy); st=true; } pctx.stroke(); pctx.fillStyle = sc==null ? ink3 : `rgba(160,112,112,${0.45+0.55*conf})`; pctx.beginPath(); pctx.arc(x,y,3.6*s,0,7); pctx.fill(); pctx.fillStyle = ink; pctx.fillText(sc==null ? 'unknown object' : `track ${sc.toFixed(1)}`, x+5*s, y+10*s); } }
-  pep.detections.filter(d => pt-1.5 <= d[0] && d[0] <= pt && pep.tracks[d[2]]).forEach(d => { const p = positionAt(pep.tracks[d[2]], pt); const [x,y]=P2(p[1],p[2]); pctx.strokeStyle = d[3] ? '#a07070' : '#bbb092'; pctx.lineWidth = 2*s; pctx.beginPath(); pctx.arc(x,y,(6 + 4*(pt-d[0]))*s,0,7); pctx.stroke(); });
-  if (pep.t_alarm != null && pt >= pep.t_alarm) { pctx.fillStyle = '#a07070'; pctx.font = `bold ${Math.round(11*s)}px Barlow, sans-serif`; pctx.fillText(`ALARM ${pep.t_alarm.toFixed(0)} s via ${(pep.via||'').replace('_',' ')}`, 8*s, 14*s); }
-  const sec = Math.floor(pt); if (sec !== pSec) { pSec = sec; $('#pT').textContent = `t = ${sec} s`; $('#pBar').style.width = `${(pt/pep.t_end*100).toFixed(0)}%`; }
-}
-function perceptionLoop(now){ if (!$('#tab-perception').classList.contains('active') || document.hidden) { pRunning = false; return; } const dt = Math.min(0.1, (now - plast)/1000); plast = now; pt += dt*2.5; if (pt > pep.t_end + 2) { pt = 0; } if (now - pLastDraw >= 32) { pLastDraw = now; drawPerception(); renderAgentCards(); } requestAnimationFrame(perceptionLoop); }
-function startPerception(){ if (pRunning) return; pRunning = true; plast = performance.now(); requestAnimationFrame(perceptionLoop); }
-document.addEventListener('visibilitychange', () => { if (!document.hidden) { startPerception(); requestRender(); } });
-let cardsAt = -10, cardsSig = '', coverSig = '';
-function renderAgentCards(){ if (Math.abs(pt - cardsAt) < 4) return; cardsAt = pt; const cardsHtml = agentsOf(pep).map(id => { const p = positionAt(pep.tracks[id], pt); const a = fleetAgents.find(z=>z.id===id)||{id, type:kindOf(id)}; const b = batteryAt(a, pt); const docked = isDocked(id,p[1],p[2]); const seen = pep.detections.filter(d => d[1]===id && d[0] <= pt); return `<div class="stat"><div class="v" style="font-size:17px">${esc(id.replace('_',' '))}</div><div class="k">${docked ? 'charging at the dock' : 'patrolling near the ' + esc(zoneOf(p[1],p[2]))}</div><div class="d ${docked ? 'flat' : 'up'}">${b ? (docked ? (b.flying ? 'topping up' : 'charge ' + Math.round(b.frac*100) + '%') : (b.flying ? 'battery ' + Math.round(b.frac*100) + '%' : 'airborne')) : (a.type==='guard' ? 'on foot' : 'ground robot')} · ${seen.length} look${seen.length===1?'':'s'} on the track</div></div>`; }).join(''); if (cardsHtml !== cardsSig) { cardsSig = cardsHtml; $('#agentCards').innerHTML = cardsHtml; } const rows = memoryAt(pep, pt); const coverHtml = rows.slice(0,6).map(r => `<div class="row ${r.seen==null ? 'sev-high' : (r.stale > 30 ? 'sev-med' : 'sev-low')}"><div class="dot"></div><div><div class="t">${esc(r.name)}</div><div class="s">${r.seen==null ? 'not seen yet' : 'by ' + esc(r.by.replace('_',' '))}</div></div><div class="n">${r.seen==null ? '—' : r.stale.toFixed(0) + ' s'}<span>ago</span></div></div>`).join(''); if (coverHtml !== coverSig) { coverSig = coverHtml; $('#coverageList').innerHTML = coverHtml; } }
-(function(){ const W=360,H=120,L=30,R=12,T=12,B=22; const sc = pep.scores; if(!sc.length){ $('#spark').innerHTML = `<text x="${W/2}" y="${H/2}" text-anchor="middle">no score series in this log</text>`; return; } const vals = sc.map(s=>s[1]); const ymin = Math.min(-2, ...vals), ymax = Math.max(5, ...vals); const X = (t) => L + t/pep.t_end*(W-L-R), Y = (v) => T + (1-(v-ymin)/(ymax-ymin))*(H-T-B); let s = `<line x1="${L}" x2="${W-R}" y1="${Y(4)}" y2="${Y(4)}" stroke="var(--atk)" stroke-dasharray="4 4" opacity=".7"/><text x="${W-R}" y="${Y(4)-4}" text-anchor="end">alarm at 4.0</text>`; s += `<path d="${sc.map((p,i)=>`${i?'L':'M'}${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join(' ')}" fill="none" stroke="var(--brand)" stroke-width="2.2" stroke-linejoin="round"/>`; sc.forEach(p => { s += `<circle cx="${X(p[0])}" cy="${Y(p[1])}" r="3" fill="var(--brand)"/>`; }); if (pep.t_alarm != null) s += `<line x1="${X(pep.t_alarm)}" x2="${X(pep.t_alarm)}" y1="${T}" y2="${H-B}" stroke="var(--atk)" stroke-width="1.5"/>`; s += `<line x1="${X(pep.t_cdp)}" x2="${X(pep.t_cdp)}" y1="${T}" y2="${H-B}" stroke="var(--ink3)" stroke-dasharray="3 3"/><text x="${X(pep.t_cdp)}" y="${H-6}" text-anchor="middle">deadline ${pep.t_cdp.toFixed(0)} s</text><text x="${L}" y="${H-6}">0 s</text><text x="${L-6}" y="${Y(ymax)+4}" text-anchor="end">${ymax.toFixed(0)}</text><text x="${L-6}" y="${Y(ymin)+4}" text-anchor="end">${ymin.toFixed(0)}</text>`; $('#spark').innerHTML = s; })();
-resizePerception(); drawPerception(); renderAgentCards(); if (location.hash === '#perception') startPerception(); window.addEventListener('resize', () => { resizePerception(); pstaticKey = ''; drawPerception(); });
-
+/*__INCLUDE:replay.js__*/
+/*__INCLUDE:perceived.js__*/
 // ---------- logs ----------
 const colorFor = {drone:'#2b3157', go2:'#2e6f6b', guard:'#5c6aa3'};
 $('#contacts').innerHTML = [`<div class="contact"><div class="av" style="background:var(--brand)">OP</div><div class="t">Operator</div><div class="s">you, on duty</div><div class="acts"><button type="button" data-act="handover">Handover</button></div></div>`, ...fleetAgents.map((a,i) => `<div class="contact"><div class="av" style="background:${colorFor[a.type]||'#8c8262'}">${a.type==='guard' ? 'G' : a.type==='go2' ? 'Q' : 'D'}${a.id.replace(/\D/g,'')}</div><div class="t">${esc(a.id.replace('_',' '))}</div><div class="s">${a.type==='guard' ? 'radio channel 3 (placeholder)' : a.type==='go2' ? 'telemetry link, go2 dock' : 'telemetry link, ' + (i % 2 ? 'dock se' : 'dock nw')}</div><div class="acts"><button type="button" data-act="ping" data-id="${a.id}">${a.type==='guard' ? 'Call' : 'Ping'}</button><button type="button" data-act="msg" data-id="${a.id}">Message</button></div></div>`)].join('');
 $('#contacts').addEventListener('click', e => { const b = e.target.closest('button[data-act]'); if(!b) return; if (b.dataset.act === 'handover') { showTab('tab-swarm', true); ask('Summarise the shift'); return; } if (b.dataset.act === 'msg') { showTab('tab-swarm', true); $('#ask').value = `Tell ${b.dataset.id.replace('_',' ')} to `; $('#ask').focus(); return; } toast(`${b.dataset.id.replace('_',' ')} pinged: acknowledged`); });
 function buildLogs(){ const L = []; const seedTime = (t) => `t = ${t.toFixed(0)} s`;
-  L.push({kind:'alert', t:`Missed intrusion, ${missEp.entry.replaceAll('_',' ')}`, when: `${prettyFleet(missEp.fleet)} · seed ${missEp.seed}`, outcome:'bad', what:`Alert: ${missEp.family.replaceAll('_',' ')} tactic entered through the ${missEp.entry.replaceAll('_',' ')} at phase ${fmt(missEp.phase)} of the charge cycle. Deadline ${fmt(missEp.t_cdp,0)} s.`, result: missEp.t_alarm==null ? 'No alarm before the deadline; the intruder reached the asset.' : `Alarm at ${fmt(missEp.t_alarm,0)} s, after the ${fmt(missEp.t_cdp,0)} s deadline.`, improve:`The synchronized fleet had every drone on the dock at once. Staggering the charge schedule (the fix that was adopted) lifts the same seeds from ${Math.round(base.pd*100)} to ${Math.round(fixed.pd*100)}.`, order: 3});
-  L.push({kind:'alert', t:`Timely catch, ${catchEp.entry.replaceAll('_',' ')}`, when: `${prettyFleet(catchEp.fleet)} · seed ${catchEp.seed}`, outcome:'good', what:`Alert: the same ${catchEp.family.replaceAll('_',' ')} tactic against the fixed fleet. First look at ${fmt(catchEp.first_detection,0)} s by ${(catchEp.detections.find(d=>d[2]==='intruder')||[,'?'])[1].replace('_',' ')}.`, result:`Alarm at ${fmt(catchEp.t_alarm,0)} s via ${(catchEp.via||'').replace('_',' ')}, ${Math.round(catchEp.t_cdp - catchEp.t_alarm)} s before the ${fmt(catchEp.t_cdp,0)} s deadline. ${catchEp.responder.replace('_',' ')} proposed as responder.`, improve:`Margin was ${Math.round(catchEp.t_cdp - catchEp.t_alarm)} s. The worst tactic against this fleet is still caught only ${pct(fixed.worst_pd)} of the time; the next fix on the list is more coverage at the ${(rounds[rounds.length-1]?.tactic?.entry || 'main gate').replaceAll('_',' ')}.`, order: 2});
+  L.push({kind:'alert', t:`Missed intrusion, ${missEp.entry.replaceAll('_',' ')}`, when: `${prettyFleet(missEp.fleet)}, seed ${missEp.seed}`, outcome:'bad', what:`Alert: ${missEp.family.replaceAll('_',' ')} tactic entered through the ${missEp.entry.replaceAll('_',' ')} at phase ${fmt(missEp.phase)} of the charge cycle. Deadline ${fmt(missEp.t_cdp,0)} s.`, result: missEp.t_alarm==null ? 'No alarm before the deadline; the intruder reached the asset.' : `Alarm at ${fmt(missEp.t_alarm,0)} s, after the ${fmt(missEp.t_cdp,0)} s deadline.`, improve:`The synchronized fleet had every drone on the dock at once. Staggering the charge schedule (the fix that was adopted) lifts the same seeds from ${Math.round(base.pd*100)} to ${Math.round(fixed.pd*100)}.`, order: 3});
+  L.push({kind:'alert', t:`Timely catch, ${catchEp.entry.replaceAll('_',' ')}`, when: `${prettyFleet(catchEp.fleet)}, seed ${catchEp.seed}`, outcome:'good', what:`Alert: the same ${catchEp.family.replaceAll('_',' ')} tactic against the fixed fleet. First look at ${fmt(catchEp.first_detection,0)} s by ${(catchEp.detections.find(d=>d[2]==='intruder')||[,'?'])[1].replace('_',' ')}.`, result:`Alarm at ${fmt(catchEp.t_alarm,0)} s via ${(catchEp.via||'').replace('_',' ')}, ${Math.round(catchEp.t_cdp - catchEp.t_alarm)} s before the ${fmt(catchEp.t_cdp,0)} s deadline. ${catchEp.responder.replace('_',' ')} proposed as responder.`, improve:`Margin was ${Math.round(catchEp.t_cdp - catchEp.t_alarm)} s. The worst tactic against this fleet is still caught only ${pct(fixed.worst_pd)} of the time; the next fix on the list is more coverage at the ${(rounds[rounds.length-1]?.tactic?.entry || 'main gate').replaceAll('_',' ')}.`, order: 2});
   decisions.forEach(d => L.push({kind:'human', t: d.proposal, when: new Date(d.at).toLocaleString(), outcome: d.decision==='approved' ? 'good' : 'neutral', what:`Proposal: ${d.proposal}. ${prop.detail}`, result:`${d.decision} by ${d.source}.`, improve: d.source.startsWith('silence') ? 'Nobody answered before the deadline. Shorten the escalation chain or add a second operator to the page.' : 'Decision made inside the deadline.', order: 1, at: d.at}));
   orders.forEach(o => L.push({kind:'human', t:`Order: ${o.agent.replace('_',' ')} to ${o.zone}`, when: new Date(o.at).toLocaleString(), outcome:'neutral', what:'Given through the swarm link in plain words.', result:'Logged; the swarm planned the route and re-balanced the rest of the yard.', improve:'Orders that pull the responder off the asset are worth a posture change instead.', order: 1, at: o.at}));
   if (D.tokens && D.tokens.ledger) { const l = D.tokens.ledger; L.push({kind:'llm', t:'Red-team proposer, LLM calls', when:`${l.api_calls} real call${l.api_calls===1?'':'s'}, ${l.cached_calls} cached, ${l.mock_calls} mock`, outcome:'neutral', what:`Prompt: propose new intrusion tactics from primitives (enter, wait, move, sprint, drop decoy, cut comms) given the site and the current fleet. ${l.input_tokens} tokens in, ${l.output_tokens} out.`, result:`Cost $${l.usd.toFixed(4)}. Proposals were injected into the search; the search found the winning tactics, so the model proposes and the search attacks, ${Math.round(D.tokens.comparison.ratio)}× cheaper than asking a model per episode.`, improve:'One run with a stronger proposer model is the open question; no proposal has beaten the search elites yet.', order: 4}); }
-  rounds.forEach(r => { const t = r.tactic || {}; L.push({kind:'round', t:`Round ${r.k}: hole at the ${(t.entry||'?').replaceAll('_',' ')}`, when:`${prettyFleet(r.fleet)} · $${r.cost.toFixed(0)}/h`, outcome: r.move ? 'bad' : 'neutral', what:`The red team searched ${prettyFleet(r.fleet)} and the worst tactic was ${(r.worst_family||'').replaceAll('_',' ')} through the ${(t.entry||'?').replaceAll('_',' ')}${t.phase!=null ? ` at phase ${fmt(t.phase)}` : ''}.`, result:`Caught ${pct(r.worst_pd)} of the time${r.worst_pd_schedule_blind!=null ? `, ${pct(r.worst_pd_schedule_blind)} with the schedule hidden` : ''}. ${r.move ? 'Fix chosen: ' + r.move.replaceAll('_',' ') + '.' : 'No affordable fix left under the budget.'}`, improve: r.move ? 'The re-attack number stays near zero while the adversary knows the schedule; hiding it is the cheapest fix.' : 'Raise the budget or change the site: another gate camera at this entry is the next candidate.', order: 5 + r.k}); });
+  rounds.forEach(r => { const t = r.tactic || {}; L.push({kind:'round', t:`Round ${r.k}: hole at the ${(t.entry||'?').replaceAll('_',' ')}`, when:`${prettyFleet(r.fleet)}, $${r.cost.toFixed(0)} per hour`, outcome: r.move ? 'bad' : 'neutral', what:`The red team searched ${prettyFleet(r.fleet)} and the worst tactic was ${(r.worst_family||'').replaceAll('_',' ')} through the ${(t.entry||'?').replaceAll('_',' ')}${t.phase!=null ? ` at phase ${fmt(t.phase)}` : ''}.`, result:`Caught ${pct(r.worst_pd)} of the time${r.worst_pd_schedule_blind!=null ? `, ${pct(r.worst_pd_schedule_blind)} with the schedule hidden` : ''}. ${r.move ? 'Fix chosen: ' + r.move.replaceAll('_',' ') + '.' : 'No affordable fix left under the budget.'}`, improve: r.move ? 'The re-attack number stays near zero while the adversary knows the schedule; hiding it is the cheapest fix.' : 'Raise the budget or change the site: another gate camera at this entry is the next candidate.', order: 5 + r.k}); });
   D.runs.forEach(run => L.push({kind:'run', t:`Archived run ${run.name}`, when: run.archived_at ? new Date(run.archived_at).toLocaleString() : '', outcome: 'neutral', what:`${run.n_files} files at ${run.path}: report, per-configuration detail, tactics and replay logs, with a manifest keyed by git commit ${run.git_commit || '?'}.`, result: run.reproductions && run.reproductions.length ? run.reproductions.map(x => x.note).join(' ') : 'Frozen as archived.', improve:'Everything the phone shows is rebuilt from this folder; nothing lives only on the phone.', order: 20}));
   return L.sort((a,b) => (a.order - b.order) || ((b.at||0) - (a.at||0))); }
 const filterNames = {all:'All', alert:'Alerts', human:'Decisions', llm:'LLM', round:'Red team', run:'Archive'};
 $('#logFilters').innerHTML = Object.entries(filterNames).map(([k,v]) => `<button data-f="${k}" aria-pressed="${k==='all'}">${v}</button>`).join('');
 $('#logFilters').addEventListener('click', e => { const b = e.target.closest('button[data-f]'); if(!b) return; logFilter = b.dataset.f; $('#logFilters').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x===b))); renderLogs(); });
-function renderLogs(){ const all = buildLogs(); const L = all.filter(l => logFilter==='all' || l.kind===logFilter); const tagText = {alert:'ALERT', human:'YOU', llm:'LLM', round:'RED', run:'ARCH'}; $('#logList').innerHTML = L.length ? L.map(l => `<details class="log"><summary><span class="tag ${l.kind}">${tagText[l.kind]}</span><span><span class="t">${esc(l.t)}</span><br><span class="s">${esc(l.when)}</span></span><span class="pill ${l.outcome}">${l.outcome === 'good' ? 'good' : l.outcome === 'bad' ? 'bad' : 'noted'}</span></summary><div class="body"><div><b>What happened</b>${esc(l.what)}</div><div><b>Result</b>${esc(l.result)}</div><div><b>What we would improve</b>${esc(l.improve)}</div></div></details>`).join('') : '<div class="empty">Nothing in this filter yet.</div>'; $('#retention').innerHTML = `<div class="sub"><b style="color:var(--ink)">Where the record lives.</b> This phone keeps the last 200 entries. Everything older, and every raw episode log, is in the results archive by run (${D.runs.map(r => r.path).join(', ') || 'results/'}) with a manifest that names the commit, the site and the sensor curve it came from. Airtight tightens the airspace one night at a time: every alert, decision and red-team round above feeds the next fix.</div>`; }
+function renderLogs(){ const all = buildLogs(); const L = all.filter(l => logFilter==='all' || l.kind===logFilter); const tagText = {alert:'ALERT', human:'YOU', llm:'LLM', round:'RED', run:'ARCH'}; $('#logList').innerHTML = L.length ? L.map(l => `<details class="log"><summary><span class="tag ${l.kind}">${tagText[l.kind]}</span><span><span class="t">${esc(l.t)}</span><br><span class="s">${esc(l.when)}</span></span><span class="pill ${l.outcome}">${l.outcome === 'good' ? 'caught in time' : l.outcome === 'bad' ? (l.kind === 'round' ? 'hole found' : 'missed') : ''}</span></summary><div class="body"><div><b>What happened</b>${esc(l.what)}</div><div><b>Result</b>${esc(l.result)}</div><div><b>What we would improve</b>${esc(l.improve)}</div></div></details>`).join('') : '<div class="empty">Nothing in this filter yet.</div>'; $('#retention').innerHTML = `<div class="sub"><b style="color:var(--ink)">Where the record lives.</b> This phone keeps the last 200 entries. Everything older, and every raw episode log, is in the results archive by run (${D.runs.map(r => r.path).join(', ') || 'results/'}) with a manifest that names the commit, the site and the sensor curve it came from. Airtight tightens the airspace one night at a time: every alert, decision and red-team round above feeds the next fix.</div>`; }
 renderLogs();
-if (location.hash.length > 1) showTab('tab-' + location.hash.slice(1), false);
 })();
 </script>
