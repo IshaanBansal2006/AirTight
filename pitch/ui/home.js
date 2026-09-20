@@ -17,7 +17,7 @@ hmPanel('#heroS', 'No report found.', () => {
   const loC = configs.find(c => c.pd === lo), hiC = configs.find(c => c.pd === hi);
   $('#heroK').textContent = `Current configuration: ${prettyFleet(fixed.name)}, ${hmUsd(fixed.cost)} per hour`;
   $('#heroBig').innerHTML = `${Math.round(fixed.pd*100)}<small>%</small>` + (hmHasCi(fixed) ? `<span class="ci">(${hmRange(fixed)}) of intrusions</span>` : `<span class="ci">of intrusions; no interval in the report</span>`);
-  $('#worstBig').innerHTML = fixed.worst_pd == null ? `<span class="ci">Not in the report. Run airtight-redteam, then airtight-sweep.</span>` : `${Math.round(fixed.worst_pd*100)}<small>%</small><span class="ci">${fixed.blind_pd == null ? '' : `${hmPct(fixed.blind_pd)} when the charge schedule is hidden. `}Baseline ${base.worst_pd == null ? 'not in the report' : hmPct(base.worst_pd)}.</span>`;
+  $('#worstBig').innerHTML = fixed.worst_pd == null ? `<span class="ci">Not in the report. Run airtight-redteam, then airtight-sweep.</span>` : fixed.blind_pd != null ? `${Math.round(fixed.blind_pd*100)}<small>%</small><span class="ci">with the charge schedule private; ${hmPct(fixed.worst_pd)} if the adversary has the schedule too. Baseline's worst attack: ${base.worst_pd == null ? 'not in the report' : hmPct(base.worst_pd)}.</span>` : `${Math.round(fixed.worst_pd*100)}<small>%</small><span class="ci">Baseline ${base.worst_pd == null ? 'not in the report' : hmPct(base.worst_pd)}.</span>`;
   $('#heroS').textContent = base.name === fixed.name ? `This site ranges from ${hmPct(lo)} to ${hmPct(hi)} across ${configs.length} configurations.` : `The baseline, ${prettyFleet(base.name)} at ${hmUsd(base.cost)} per hour, caught ${hmPd(base)}. Across ${configs.length} configurations this site ranges from ${hmPct(lo)} to ${hmPct(hi)}.`;
   const span = (hi - lo) || 1;
   $('#range').innerHTML = `<div class="fill" style="width:${((fixed.pd-lo)/span*100).toFixed(1)}%"></div><div class="mark base" style="left:${((base.pd-lo)/span*100).toFixed(1)}%" title="baseline"></div><div class="mark" style="left:${((fixed.pd-lo)/span*100).toFixed(1)}%" title="current configuration"></div>`;
@@ -28,7 +28,7 @@ hmPanel('#heroS', 'No report found.', () => {
 hmPanel('#condList', 'No conditions found in the report.', () => {
   const rows = [];
   rows.push(['False alarms per hour', report.far == null ? 'Not in the report.' : `${Number(report.far).toFixed(report.far % 1 ? 1 : 0)} per hour`]);
-  rows.push(['Adversary knowledge', hmOk && fixed.worst_pd != null ? 'Worst attack found knows the site and the charge schedule' : 'Not in the payload.']);
+  rows.push(['Adversary knowledge', hmOk && fixed.worst_pd != null ? (fixed.blind_pd != null ? 'Worst attack found knows the site; the headline keeps the charge schedule private' : 'Worst attack found knows the site and the charge schedule') : 'Not in the payload.']);
   const tail = String(report.conditions || '').split(/,\s*/).slice(2);
   rows.push(['Sensor calibration', tail.length ? tail[0].replace(/^\w/, c => c.toUpperCase()) : 'Not in the payload.']);
   rows.push(['Seeds', report.n_seeds == null ? 'Not in the report.' : `${report.n_seeds}, shared by every configuration`]);

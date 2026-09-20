@@ -172,6 +172,11 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--fleets-dir", type=Path, default=SCEN / "fleets")
     ap.add_argument("--template", type=Path, default=REPO / "pitch" / "app_template.html")
     ap.add_argument("--clip-logs", type=Path, default=REPO / "data" / "clip_logs")
+    ap.add_argument(
+        "--deployed",
+        default=None,
+        help="configuration shown as current on the console; default: the deck's fixed configuration",
+    )
     ap.add_argument("--out", type=Path, default=REPO / "pitch" / "app.html")
     args = ap.parse_args(argv)
 
@@ -180,7 +185,11 @@ def main(argv: list[str] | None = None) -> int:
     curves = SensorCurves.model_validate_json((SCEN / "sensor_curve.json").read_text())
     numbers = json.loads((args.charts / "numbers.json").read_text())
     clips = json.loads(args.clips.read_text())
-    fixed_name = numbers.get("before_after", {}).get("fixed") or report.baseline_config
+    fixed_name = (
+        args.deployed or numbers.get("before_after", {}).get("fixed") or report.baseline_config
+    )
+    if not any(c.config_name == fixed_name for c in report.configs):
+        raise SystemExit(f"{fixed_name} is not a configuration in {args.report}")
     fleet_path = args.fleets_dir / f"{fixed_name}.json"
     fleet = FleetConfig.model_validate_json(fleet_path.read_text()) if fleet_path.exists() else None
     cond = report.conditions
