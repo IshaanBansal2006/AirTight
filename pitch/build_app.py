@@ -133,6 +133,7 @@ def main(argv: list[str] | None = None) -> int:
                     "cost": c.cost_per_hour,
                     "pd": c.pd_at_operating_point,
                     "worst_pd": c.worst_tactic_pd,
+                    "blind_pd": c.worst_tactic_pd_schedule_blind,
                     "decisions": c.human_decisions_per_hour,
                     "gap": c.coverage_gap_s_per_hour,
                 }

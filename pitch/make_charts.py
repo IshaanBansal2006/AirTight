@@ -375,7 +375,7 @@ def chart_before_after(r: Report, fixed: str | None, p: Palette, out: Path, numb
             False,
         ),
     ]
-    fig, axes = plt.subplots(1, len(metrics), figsize=(11, 4.2))
+    fig, axes = plt.subplots(1, len(metrics), figsize=(2.75 * len(metrics), 4.2))
     for ax, (name, b, a, bci, aci, higher_is_better) in zip(axes, metrics, strict=True):
         ax.plot([0, 1], [b, a], color=p.axis, linewidth=1.2, zorder=1)
         for x, v, ci, color in ((0, b, bci, p.muted), (1, a, aci, p.series[0])):

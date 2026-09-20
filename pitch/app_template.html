@@ -189,6 +189,7 @@ $('#scoreLead').textContent = `Every number here comes from ${D.report.n_seeds} 
 const dir = (a,b,higherBetter) => a===b ? 'flat' : ((higherBetter ? a>b : a<b) ? 'up' : 'down');
 const tiles = [
   {v:fmt(fixed.worst_pd), k:'detection against the worst tactic', d:`was ${fmt(base.worst_pd)}`, cls:dir(fixed.worst_pd, base.worst_pd, true)},
+  ...(fixed.blind_pd == null || base.blind_pd == null ? [] : [{v:fmt(fixed.blind_pd), k:'worst tactic, schedule hidden', d:`was ${fmt(base.blind_pd)}`, cls:dir(fixed.blind_pd, base.blind_pd, true)}]),
   {v:'$'+fixed.cost.toFixed(0), unit:'/h', k:'fleet cost', d:`was $${base.cost.toFixed(0)}`, cls:dir(fixed.cost, base.cost, false)},
   {v:fmt(fixed.decisions), unit:'/h', k:'human decisions', d:`was ${fmt(base.decisions)}`, cls:dir(fixed.decisions, base.decisions, false)},
   {v:fmt(fixed.gap,0), unit:' s/h', k:'nobody on patrol', d:`was ${fmt(base.gap,0)} s/h`, cls:dir(fixed.gap, base.gap, false)},

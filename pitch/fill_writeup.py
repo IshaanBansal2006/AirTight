@@ -10,6 +10,11 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 
 
+def _blind(ba: dict, i: int) -> str:
+    pair = ba.get("worst_tactic_pd_schedule_blind") or [None, None]
+    return f"{pair[i]:.2f}" if pair[i] is not None else "?"
+
+
 def values(numbers: dict, tokens: dict) -> dict[str, str]:
     ba = numbers.get("before_after") or {}
     cvd = numbers.get("cost_vs_detection") or {}
@@ -22,6 +27,8 @@ def values(numbers: dict, tokens: dict) -> dict[str, str]:
         "pd_fixed": f"{ba['pd'][1]:.2f}" if ba else "?",
         "worst_baseline": f"{ba['worst_tactic_pd'][0]:.2f}" if ba else "?",
         "worst_fixed": f"{ba['worst_tactic_pd'][1]:.2f}" if ba else "?",
+        "blind_baseline": _blind(ba, 0),
+        "blind_fixed": _blind(ba, 1),
         "decisions_baseline": f"{ba['human_decisions_per_hour'][0]:.1f}" if ba else "?",
         "decisions_fixed": f"{ba['human_decisions_per_hour'][1]:.1f}" if ba else "?",
         "cost": f"{cost:.0f}" if cost is not None else "?",

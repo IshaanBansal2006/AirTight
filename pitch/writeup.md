@@ -27,7 +27,7 @@ Airtight is a security-posture engine. You give it a site twin: perimeter, entry
 
 ## Accomplishments
 
-- A quantified score with its conditions stated, not a demo: timely detection [pd_baseline] to [pd_fixed] and [worst_baseline] to [worst_fixed] against the worst tactic, from [baseline_config] at [cost] dollars per hour to [fixed_config], on [n_seeds] shared seeds; human decisions per hour [decisions_baseline] to [decisions_fixed].
+- A quantified score with its conditions stated, not a demo: timely detection [pd_baseline] to [pd_fixed] and [worst_baseline] to [worst_fixed] against the worst tactic, from [baseline_config] at [cost] dollars per hour to [fixed_config], on [n_seeds] shared seeds; human decisions per hour [decisions_baseline] to [decisions_fixed]. The worst tactic assumes the adversary knows the charge schedule; against one that knows the site but not the schedule, the same tactics land [blind_baseline] to [blind_fixed].
 - The fix loop closes: stagger, re-attack, re-score, on the same seeds.
 - Everything reproducible from one command per stage.
 
