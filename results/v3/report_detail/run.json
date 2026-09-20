@@ -1,0 +1,41 @@
+{
+  "engine": "v0",
+  "site": "/home/ishaan/projects/AirTight/scenarios/logistics_yard/site.json",
+  "curves": "/home/ishaan/projects/AirTight/scenarios/logistics_yard/sensor_curve.json",
+  "tactics_dir": "data/v3/tactics",
+  "per_family": 2,
+  "n_seeds": 200,
+  "quiet_seeds": [
+    9174769,
+    9218745,
+    9235399,
+    9239732,
+    9250068,
+    9341936,
+    9350720,
+    9383443,
+    9401743,
+    9520243,
+    9562293,
+    9593711,
+    9629022,
+    9637442,
+    9661709,
+    9819949,
+    9835952,
+    9842473,
+    9844696,
+    9880977
+  ],
+  "far_target": 1.0,
+  "tactic_ids": [
+    "blind_spot-823883722",
+    "blind_spot-848705593",
+    "charging_window-439068210",
+    "charging_window-435918065",
+    "comms_cut-685633756",
+    "comms_cut-350976884",
+    "decoy-556745041",
+    "decoy-094277310"
+  ]
+}
