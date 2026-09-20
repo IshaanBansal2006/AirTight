@@ -1,0 +1,31 @@
+{
+  "speed_min_mps": 0.8,
+  "speed_cap_mps": 2.0,
+  "max_waypoints": 6,
+  "perimeter_tol_m": 1.5,
+  "asset_tol_m": 1.0,
+  "min_leg_m": 2.0,
+  "waypoint_jitter_m": 3.0,
+  "coverage_cell_m": 5.0,
+  "dock_halo_m": 15.0,
+  "decoy_lead_s": [
+    10.0,
+    120.0
+  ],
+  "decoy_offset_m": 8.0,
+  "search": {
+    "n_random": 200,
+    "n_elite": 10,
+    "n_rounds": 3,
+    "n_children": 4,
+    "n_seeds": 20,
+    "margin_weight": 0.1
+  },
+  "llm": {
+    "model": "gpt-4.1-nano",
+    "budget_usd": 0.5,
+    "n_proposals": 6,
+    "max_output_tokens": 1200,
+    "temperature": 0.8
+  }
+}

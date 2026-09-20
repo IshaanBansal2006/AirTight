@@ -1,0 +1,101 @@
+{
+  "source": "hand-written stub for the logistics yard; drone camera is a 360-degree ground disc because the sim is 2D; replaced by lane A's calibrated curve",
+  "curves": {
+    "go2_camera": {
+      "sensor_type": "go2_camera",
+      "range_bins_m": [
+        2,
+        4,
+        6,
+        8,
+        12,
+        16,
+        20,
+        30
+      ],
+      "pd_per_look": [
+        0.98,
+        0.96,
+        0.92,
+        0.85,
+        0.65,
+        0.4,
+        0.2,
+        0.05
+      ],
+      "pfa_per_look_by_class": {
+        "person": 0.02,
+        "vehicle": 0.01
+      },
+      "fov_deg": 90,
+      "look_rate_hz": 2
+    },
+    "drone_camera": {
+      "sensor_type": "drone_camera",
+      "range_bins_m": [
+        5,
+        10,
+        15,
+        20,
+        30,
+        40
+      ],
+      "pd_per_look": [
+        0.95,
+        0.9,
+        0.8,
+        0.6,
+        0.3,
+        0.1
+      ],
+      "pfa_per_look_by_class": {
+        "person": 0.03,
+        "vehicle": 0.02
+      },
+      "fov_deg": 360,
+      "look_rate_hz": 2
+    },
+    "human_eye": {
+      "sensor_type": "human_eye",
+      "range_bins_m": [
+        10,
+        20,
+        40,
+        60
+      ],
+      "pd_per_look": [
+        0.95,
+        0.85,
+        0.5,
+        0.2
+      ],
+      "pfa_per_look_by_class": {
+        "person": 0.005,
+        "vehicle": 0.002
+      },
+      "fov_deg": 120,
+      "look_rate_hz": 0.5
+    },
+    "fixed_camera": {
+      "sensor_type": "fixed_camera",
+      "range_bins_m": [
+        5,
+        10,
+        20,
+        30
+      ],
+      "pd_per_look": [
+        0.95,
+        0.85,
+        0.5,
+        0.2
+      ],
+      "pfa_per_look_by_class": {
+        "person": 0.02,
+        "vehicle": 0.01
+      },
+      "fov_deg": 60,
+      "look_rate_hz": 2
+    }
+  }
+}

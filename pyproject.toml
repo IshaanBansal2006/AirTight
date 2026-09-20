@@ -22,6 +22,10 @@ dev = [
     "mypy>=1.10",
 ]
 
+[project.scripts]
+airtight-redteam = "airtight.redteam.cli:main"
+airtight-sweep = "airtight.score.report.cli:main"
+
 [project.entry-points."dimos.blueprints"]
 airtight-site = "airtight.dimos_lane.blueprint:airtight_site"
 airtight-site-modules = "airtight.dimos_lane.blueprint:airtight_site_modules"

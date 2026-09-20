@@ -1,0 +1,191 @@
+{
+  "report": "pitch/report.json",
+  "conditions": {
+    "far_per_hour_operating_point": 1.0,
+    "adversary_knowledge": "open-loop adversary with full knowledge of the patrol policy and charge schedule; search plus LLM proposals",
+    "sensor_calibration": "hand-written stub curve with a 360-degree drone disc",
+    "detection_model_note": "reduced-order per-look Bernoulli model, truth association, engine v0",
+    "seed_list_hash": "74cf1e274166",
+    "n_seeds": 200
+  },
+  "n_configs": 12,
+  "cost_vs_detection": {
+    "d1_go2_guard_sync": {
+      "cost_per_hour": 48.0,
+      "pd": 0.26875,
+      "ci": [
+        0.244375,
+        0.29064062500000004
+      ]
+    },
+    "d1_go2_guard_stagger": {
+      "cost_per_hour": 48.0,
+      "pd": 0.26875,
+      "ci": [
+        0.25179687500000003,
+        0.288125
+      ]
+    },
+    "d2_go2_guard_sync": {
+      "cost_per_hour": 55.0,
+      "pd": 0.16875,
+      "ci": [
+        0.15185937500000002,
+        0.185015625
+      ]
+    },
+    "d2_go2_guard_stagger": {
+      "cost_per_hour": 55.0,
+      "pd": 0.355625,
+      "ci": [
+        0.33246875000000004,
+        0.37634375
+      ]
+    },
+    "d3_go2_guard_sync": {
+      "cost_per_hour": 62.0,
+      "pd": 0.64125,
+      "ci": [
+        0.6155468749999999,
+        0.66125
+      ]
+    },
+    "d3_go2_guard_stagger": {
+      "cost_per_hour": 62.0,
+      "pd": 0.581875,
+      "ci": [
+        0.5380937499999999,
+        0.603125
+      ]
+    },
+    "d4_go2_guard_sync": {
+      "cost_per_hour": 69.0,
+      "pd": 0.67375,
+      "ci": [
+        0.6442656250000001,
+        0.696890625
+      ]
+    },
+    "d4_go2_guard_stagger": {
+      "cost_per_hour": 69.0,
+      "pd": 0.6175,
+      "ci": [
+        0.58875,
+        0.659375
+      ]
+    },
+    "d2_nogo2_guard_stagger": {
+      "cost_per_hour": 46.0,
+      "pd": 0.33625,
+      "ci": [
+        0.315578125,
+        0.38501562500000003
+      ]
+    },
+    "d2_go2_noguard_stagger": {
+      "cost_per_hour": 23.0,
+      "pd": 0.08875,
+      "ci": [
+        0.07684375,
+        0.105640625
+      ]
+    },
+    "d2_nogo2_noguard_stagger": {
+      "cost_per_hour": 14.0,
+      "pd": 0.13375,
+      "ci": [
+        0.116859375,
+        0.157515625
+      ]
+    },
+    "d0_go2_guard_sync": {
+      "cost_per_hour": 41.0,
+      "pd": 0.084375,
+      "ci": [
+        0.0705625,
+        0.09626562500000001
+      ]
+    }
+  },
+  "frontier": [
+    "d2_nogo2_noguard_stagger",
+    "d2_nogo2_guard_stagger",
+    "d2_go2_guard_stagger",
+    "d3_go2_guard_sync",
+    "d4_go2_guard_sync"
+  ],
+  "roc_configs": [
+    "d2_go2_guard_sync",
+    "d4_go2_guard_sync",
+    "d3_go2_guard_sync",
+    "d4_go2_guard_stagger"
+  ],
+  "worst_tactics": {
+    "charging_window": {
+      "id": "charging_window-439068210",
+      "entry": "rear_fence_gap",
+      "phase": 0.9952998033878611,
+      "speed_mps": 1.8301223906650246,
+      "origin": "random"
+    },
+    "decoy": {
+      "id": "decoy-556745041",
+      "entry": "main_gate",
+      "phase": 0.9780456893193393,
+      "speed_mps": 1.6543569796661126,
+      "origin": "random"
+    },
+    "blind_spot": {
+      "id": "blind_spot-823883722",
+      "entry": "rear_fence_gap",
+      "phase": 0.3345602565126827,
+      "speed_mps": 2.0,
+      "origin": "search"
+    },
+    "comms_cut": {
+      "id": "comms_cut-350976884",
+      "entry": "service_gate",
+      "phase": 0.5182731455593876,
+      "speed_mps": 2.0,
+      "origin": "search"
+    }
+  },
+  "before_after": {
+    "baseline": "d2_go2_guard_sync",
+    "fixed": "d3_go2_guard_stagger",
+    "pd": [
+      0.16875,
+      0.581875
+    ],
+    "worst_tactic_pd": [
+      0.065,
+      0.445
+    ],
+    "human_decisions_per_hour": [
+      12.036584276773839,
+      41.027927050938786
+    ],
+    "coverage_gap_s_per_hour": [
+      0.0,
+      0.0
+    ],
+    "paired_deltas": [
+      {
+        "metric": "pd_at_operating_point",
+        "delta": 0.413125,
+        "ci": [
+          0.388125,
+          0.44259375
+        ]
+      },
+      {
+        "metric": "human_decisions_per_hour",
+        "delta": 28.99134277416495,
+        "ci": [
+          28.99134277416495,
+          28.99134277416495
+        ]
+      }
+    ]
+  }
+}

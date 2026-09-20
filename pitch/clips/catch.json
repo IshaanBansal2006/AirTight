@@ -4,5 +4,5 @@
   "tactic_id": "hand_charging_window_north",
   "timely_detected": true,
   "t_alarm": 14.0,
-  "dispatch_result": "task=verify-60-74 winner=guard_1 auction={'guard_1': ['verify-60-74']} proposal=p-de8d4ffb"
+  "dispatch_result": "task=verify-60-74 winner=guard_1 auction={'guard_1': ['verify-60-74']} proposal=p-a92718e8"
 }

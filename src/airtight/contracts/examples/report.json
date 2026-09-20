@@ -15,15 +15,143 @@
       "config_name": "2drone_go2_sync",
       "fleet_hash": "0000000000bb",
       "n_episodes": 40,
-      "roc": [{"threshold": 2.0, "pd": 0.9, "pd_ci": [0.78, 0.96], "far_per_hour": 4.0}, {"threshold": 4.0, "pd": 0.7, "pd_ci": [0.55, 0.82], "far_per_hour": 1.0}],
+      "roc": [
+        {
+          "threshold": 2.0,
+          "pd": 0.9,
+          "pd_ci": [
+            0.78,
+            0.96
+          ],
+          "far_per_hour": 4.0
+        },
+        {
+          "threshold": 4.0,
+          "pd": 0.7,
+          "pd_ci": [
+            0.55,
+            0.82
+          ],
+          "far_per_hour": 1.0
+        }
+      ],
       "pd_at_operating_point": 0.7,
-      "pd_at_operating_point_ci": [0.55, 0.82],
+      "pd_at_operating_point_ci": [
+        0.55,
+        0.82
+      ],
       "worst_tactic_id": "hand_charging_window_north",
       "worst_tactic_pd": 0.4,
       "cost_per_hour": 53.0,
       "coverage_gap_s_per_hour": 410.0,
       "human_decisions_per_hour": 2.5,
       "paired_vs_baseline": []
+    },
+    {
+      "config_name": "2drone_go2_stagger",
+      "fleet_hash": "0000000000bd",
+      "n_episodes": 40,
+      "roc": [
+        {
+          "threshold": 2.0,
+          "pd": 0.95,
+          "pd_ci": [
+            0.85,
+            0.99
+          ],
+          "far_per_hour": 4.0
+        },
+        {
+          "threshold": 4.0,
+          "pd": 0.85,
+          "pd_ci": [
+            0.71,
+            0.93
+          ],
+          "far_per_hour": 1.0
+        }
+      ],
+      "pd_at_operating_point": 0.85,
+      "pd_at_operating_point_ci": [
+        0.71,
+        0.93
+      ],
+      "worst_tactic_id": "hand_decoy_loading_dock",
+      "worst_tactic_pd": 0.7,
+      "cost_per_hour": 53.0,
+      "coverage_gap_s_per_hour": 120.0,
+      "human_decisions_per_hour": 2.1,
+      "paired_vs_baseline": [
+        {
+          "metric": "pd_at_operating_point",
+          "delta": 0.15,
+          "ci": [
+            0.04,
+            0.26
+          ]
+        },
+        {
+          "metric": "worst_tactic_pd",
+          "delta": 0.3,
+          "ci": [
+            0.12,
+            0.48
+          ]
+        },
+        {
+          "metric": "human_decisions_per_hour",
+          "delta": -0.4,
+          "ci": [
+            -0.9,
+            0.1
+          ]
+        }
+      ]
+    },
+    {
+      "config_name": "3drone_go2_stagger",
+      "fleet_hash": "0000000000be",
+      "n_episodes": 40,
+      "roc": [
+        {
+          "threshold": 2.0,
+          "pd": 0.97,
+          "pd_ci": [
+            0.88,
+            0.99
+          ],
+          "far_per_hour": 4.5
+        },
+        {
+          "threshold": 4.0,
+          "pd": 0.9,
+          "pd_ci": [
+            0.77,
+            0.96
+          ],
+          "far_per_hour": 1.0
+        }
+      ],
+      "pd_at_operating_point": 0.9,
+      "pd_at_operating_point_ci": [
+        0.77,
+        0.96
+      ],
+      "worst_tactic_id": "hand_blind_spot_east",
+      "worst_tactic_pd": 0.78,
+      "cost_per_hour": 59.0,
+      "coverage_gap_s_per_hour": 60.0,
+      "human_decisions_per_hour": 2.8,
+      "paired_vs_baseline": [
+        {
+          "metric": "pd_at_operating_point",
+          "delta": 0.2,
+          "ci": [
+            0.08,
+            0.32
+          ]
+        }
+      ]
     }
   ]
 }

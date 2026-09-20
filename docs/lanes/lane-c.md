@@ -2,6 +2,41 @@
 
 You own `src/airtight/redteam/`, `src/airtight/memory/`, `pitch/`. You also lead the syncs. Everything below that is an algorithm you write yourself; the scaffolding around it (loaders, CLI, caching, logging, plotting) can be requested from Claude at any point.
 
+## Status (2026-09-19, branch `lane-c`)
+
+Built and tested on the stub simulator, with the design recorded in decisions 004 to 007:
+
+| Step | State | Where |
+|---|---|---|
+| C0 | done | `contracts/examples/tactic_decoy.json`, `tactic_blind_spot.json` |
+| C1 | done | `redteam/families.py`, `redteam/validate.py`, `redteam/geometry.py`, `redteam/coverage.py` |
+| C2 | done on the stub | `redteam/search.py`, `redteam/objective.py`; `airtight-redteam search` |
+| C4a | done, one live call verified ($0.00015) | `redteam/proposer.py`, `primitives.py`, `llm.py`; `airtight-redteam propose` |
+| C3 | done on the part 2 engine: scenario frozen at cap 2.0 m/s, response 20 s, mean Pd 0.68, charging window 0.40 on sync (decision 008); full search on `data/v2/` | `airtight-redteam difficulty --engine v0`, `search --engine v0` |
+| C4b | after the v2 search: one live call then `search --inject` | `airtight-redteam propose --prior data/v2/tactics` |
+| C5 | done, property tests pass | `memory/store.py`, `memory/items.py`; `tests/memory/` |
+| C6 | pipeline done; numbers from the ledger | `redteam/accounting.py`; `airtight-redteam ledger`; `pitch/make_token_chart.py` |
+| C7 | done as the `comms_cut` family | `redteam/families.py` |
+| C8 | charts, deck and write-up draft built from the real 200-seed report (`pitch/report.json`); video pending lane A's clips, MP4 fallback exists | `pitch/make_charts.py`, `make_token_chart.py`, `build_deck.py`, `render_deck.sh`, `render_replay.py`, `writeup.md` |
+| B5-B7, B10 (taken by C) | done: offline scorer, `airtight-sweep`, 12 configs x 8 tactics x 200 seeds, paired deltas. Moved to `score/report/` so lane B's own scorer (quiet nights, coverage intervals, on `lane-b-part3`) can land beside it; pick one at the next sync | `src/airtight/score/report/`, `data/v2/report.json` |
+| C4b | done: the injected re-search kept no LLM-origin tactic in any family's elites; the nano model's single proposal was outcompeted by search. Slide 3 says so | `data/v2/tactics_llm/` |
+
+Commands that matter:
+
+```bash
+uv run airtight-redteam search --workers 8                 # data/tactics/top_<family>.json + summary.json
+uv run airtight-redteam propose --mock --prior data/tactics # free; --mock off makes one real call under the cap
+uv run airtight-redteam search --inject data/tactics/llm_proposals.json
+uv run airtight-redteam ledger
+uv run airtight-redteam difficulty --workers 8              # hour-10 gate, before freezing the scenario
+uv run airtight-redteam campaign --mock --workers 8          # C3 + C4b in one go; drop --mock for one live call
+uv run python pitch/make_charts.py && uv run python pitch/make_token_chart.py && uv run python pitch/build_deck.py
+```
+
+Also done on 2026-09-19 while waiting: the demo scenario and twelve fleet configs (`scenarios/logistics_yard/`, decisions 008 and 009), the cost table, the related-work paragraph (`docs/related_work.md`), the submission checklist (`docs/submission_checklist.md`), and lane B's adapter options (`docs/lanes/lane-b-agent-adapter.md`).
+
+At hour 8, the only change is that `run_episode` stops being the stub; nothing in lane C imports anything but that function and the contracts.
+
 ## Hour 0: team lead duties before touching lane C
 
 1. Everyone: clone dimos next to this repo, `uv sync --extra dev`, `./scripts/check_pins.sh`, `uv run pytest`.

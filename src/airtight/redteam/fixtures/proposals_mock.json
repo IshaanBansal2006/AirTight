@@ -1,0 +1,50 @@
+{
+  "proposals": [
+    {
+      "family": "charging_window",
+      "phase": 0.55,
+      "speed_mps": 1.8,
+      "rationale": "Enter the north gate just after the synchronized fleet has drained and both drones are docked; walk straight to the asset.",
+      "steps": [
+        {"op": "wait", "entry_id": null, "x": null, "y": null, "seconds": 300, "lead_s": null, "t_s": null},
+        {"op": "enter", "entry_id": "north_gate", "x": null, "y": null, "seconds": null, "lead_s": null, "t_s": null},
+        {"op": "move", "entry_id": null, "x": 62, "y": 58, "seconds": null, "lead_s": null, "t_s": null},
+        {"op": "move", "entry_id": null, "x": 60, "y": 40, "seconds": null, "lead_s": null, "t_s": null}
+      ]
+    },
+    {
+      "family": "decoy",
+      "phase": 0.2,
+      "speed_mps": 1.4,
+      "rationale": "Drop a decoy by the north gate to draw the ground robot north, then come through the loading dock on the far side.",
+      "steps": [
+        {"op": "drop_decoy", "entry_id": null, "x": 58, "y": 68, "seconds": null, "lead_s": 75, "t_s": null},
+        {"op": "enter", "entry_id": "loading_dock", "x": null, "y": null, "seconds": null, "lead_s": null, "t_s": null},
+        {"op": "move", "entry_id": null, "x": 30, "y": 25, "seconds": null, "lead_s": null, "t_s": null},
+        {"op": "sprint", "entry_id": null, "x": 60, "y": 40, "seconds": null, "lead_s": null, "t_s": null}
+      ]
+    },
+    {
+      "family": "blind_spot",
+      "phase": 0.7,
+      "speed_mps": 1.2,
+      "rationale": "The fixed camera faces north from the gate; approach from the east fence along the south half where nothing looks.",
+      "steps": [
+        {"op": "enter", "entry_id": "east_fence", "x": null, "y": null, "seconds": null, "lead_s": null, "t_s": null},
+        {"op": "move", "entry_id": null, "x": 95, "y": 18, "seconds": null, "lead_s": null, "t_s": null},
+        {"op": "move", "entry_id": null, "x": 70, "y": 20, "seconds": null, "lead_s": null, "t_s": null},
+        {"op": "move", "entry_id": null, "x": 60, "y": 40, "seconds": null, "lead_s": null, "t_s": null}
+      ]
+    },
+    {
+      "family": "charging_window",
+      "phase": 0.9,
+      "speed_mps": 9.0,
+      "rationale": "Deliberately invalid: speed above the cap, so the validator must reject it.",
+      "steps": [
+        {"op": "enter", "entry_id": "east_fence", "x": null, "y": null, "seconds": null, "lead_s": null, "t_s": null},
+        {"op": "move", "entry_id": null, "x": 60, "y": 40, "seconds": null, "lead_s": null, "t_s": null}
+      ]
+    }
+  ]
+}

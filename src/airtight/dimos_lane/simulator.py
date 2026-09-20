@@ -29,6 +29,10 @@ DIMOS_TRANSPORT = "lcm"
 A1_SKILL_CALL = True
 A1_LLM_TURN = False
 
+# A6 uses one gpt-4o-mini turn on the slim airtight-site stack.
+A6_MODEL = "gpt-4o-mini"
+A6_LLM_TURN = True
+
 
 @dataclass
 class BakeoffScore:

@@ -36,3 +36,7 @@ pitch/**/*.mkv
 .vscode/
 .idea/
 *.swp
+
+# generated deck renders
+pitch/deck.html
+pitch/deck.pdf
