@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import math
 
-from airtight.score.report.logs import EpisodeSummary
-from airtight.score.report.roc import (
+from airtight.score.logreport.logs import EpisodeSummary
+from airtight.score.logreport.roc import (
     QuietStats,
     far_at,
     operating_threshold,

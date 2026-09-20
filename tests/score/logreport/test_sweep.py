@@ -6,8 +6,8 @@ from pathlib import Path
 import pytest
 
 from airtight.contracts import FleetConfig, Report, SensorCurves, Site, Tactic
-from airtight.score.report.logs import summarize_log
-from airtight.score.report.sweep import (
+from airtight.score.logreport.logs import summarize_log
+from airtight.score.logreport.sweep import (
     ConfigInputs,
     build_report,
     coverage_gap,

@@ -21,8 +21,8 @@ from airtight.contracts import (
     Site,
     Tactic,
 )
-from airtight.score.report.logs import EpisodeSummary, summarize_log
-from airtight.score.report.roc import (
+from airtight.score.logreport.logs import EpisodeSummary, summarize_log
+from airtight.score.logreport.roc import (
     QuietStats,
     far_at,
     pd_at,

@@ -9,7 +9,7 @@ from pathlib import Path
 
 from airtight.contracts import FleetConfig, SensorCurves, Site
 from airtight.redteam.search import load_seeds
-from airtight.score.report.sweep import (
+from airtight.score.logreport.sweep import (
     ConfigInputs,
     build_report,
     coverage_gap,
