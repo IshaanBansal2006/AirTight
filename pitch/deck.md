@@ -60,13 +60,21 @@ Clip A, seed 63663: d2_go2_guard_sync never raised a timely alarm against `charg
 
 # The fix and the re-attack
 
-![height:400px](charts/before_after.png)
+![height:300px](charts/before_after.png)
 
-d2_go2_guard_sync to d3_go2_guard_stagger: detection 0.14 to 0.63; against the re-attacking worst tactic 0.04 to 0.49; the same tactics without the charge schedule 0.53 to 0.51.
+d2_go2_guard_sync to d3_go2_guard_stagger: detection 0.14 to 0.63; worst tactic 0.04 to 0.49; the same tactics without the schedule 0.53 to 0.51.
 
 *Replay clip B: the catch.*
 
 Clip B, same seed and tactic: d3_go2_guard_stagger alarmed at 24 s, before the 34 s deadline.
+
+---
+
+# What hiding the schedule is worth
+
+![height:480px](charts/schedule_blind.png)
+
+Same fleets, same worst tactics: orange has the charge schedule, blue only the site. The gap is what keeping the schedule private buys.
 
 ---
 
@@ -77,14 +85,6 @@ Human decisions per hour: 0.10 to 0.21. Coverage gap: 0 to 0 s/h.
 ![height:300px](charts/token_cost.png)
 
 Adversary cost per scored configuration: 100x cheaper than an LLM planning every episode (mean of 2 real calls).
-
----
-
-# What hiding the schedule is worth
-
-![height:440px](charts/schedule_blind.png)
-
-Same fleets, same worst tactics. The orange point assumes the adversary has the charge schedule to the second; the blue point gives it the site and nothing else. The gap is what a site buys by keeping its schedule private, and the score reports both.
 
 ---
 
