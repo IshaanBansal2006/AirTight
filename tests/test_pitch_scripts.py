@@ -261,8 +261,8 @@ def test_build_app_from_example_report_and_v0_logs(
         str(clips),
         "--clip-logs",
         str(tmp_path / "clip_logs"),
-        "--minmax",
-        str(tmp_path / "no_minmax.json"),
+        "--minmax-dir",
+        str(tmp_path / "no_minmax"),
         "--out",
         str(tmp_path / "app.html"),
     ]
@@ -271,4 +271,4 @@ def test_build_app_from_example_report_and_v0_logs(
     assert exc.value.code == 0
     html = (tmp_path / "app.html").read_text()
     assert "__DATA__" not in html and '"episodes"' in html and "three.min.js" in html
-    assert re.search(r'"minmax":\s*\[\]', html) and '"responder"' in html
+    assert re.search(r'"rounds":\s*\[\]', html) and '"responder"' in html
