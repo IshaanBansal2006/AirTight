@@ -45,3 +45,9 @@ pitch/deck.pdf
 .agents/
 .claude/
 skills-lock.json
+
+# review screenshots and browser profiles never belong in the repo
+ui-review/tools/
+ui-review/**/*.png
+ui-review/**/*.html
+ui-review/**/*.log
