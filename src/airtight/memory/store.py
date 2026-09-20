@@ -29,6 +29,11 @@ class FleetMemoryStore:
     def __init__(self, cell_m: float = 5.0) -> None:
         self.cell_m = cell_m
         self._items: dict[Key, CoverageCell | Claim | Evidence] = {}
+        self._by_kind: dict[str, dict[Key, CoverageCell | Claim | Evidence]] = {
+            "coverage": {},
+            "claim": {},
+            "evidence": {},
+        }
         self._stamps: dict[Key, int] = {}
         self._version = 0
         self._lock = threading.RLock()
@@ -118,7 +123,7 @@ class FleetMemoryStore:
 
     def query(self, kind: str, region: Region | None = None) -> list[Any]:
         with self._lock:
-            out = [it for (k, _), it in self._items.items() if k == kind]
+            out = list(self._by_kind.get(kind, {}).values())
         if region is None:
             return out
         xmin, ymin, xmax, ymax = region
@@ -156,6 +161,7 @@ class FleetMemoryStore:
             return False
         self._version += 1
         self._items[key] = merged
+        self._by_kind[key[0]][key] = merged
         self._stamps[key] = self._version
         return True
 

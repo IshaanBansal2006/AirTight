@@ -31,25 +31,27 @@ class EpisodeSummary(BaseModel):
 
 
 def summarize_log(path: Path) -> EpisodeSummary:
-    """Peaks from the score series; a header-plus-outcome log falls back to the outcome's verdict."""
+    """Peaks from the score series; a header-plus-outcome log falls back to the outcome's verdict.
+
+    One pass over the JSONL. The previous implementation re-opened the file after finding the
+    outcome just to walk the score events again.
+    """
     header, events = read_episode_log(path)
-    intruder_peak = -math.inf
-    benign: dict[str, float] = {}
-    decoy: float | None = None
+    scores: list[ScoreEvent] = []
     outcome: OutcomeEvent | None = None
-    has_scores = False
-    t_cdp = 0.0
     for ev in events:
         if isinstance(ev, OutcomeEvent):
             outcome = ev
-            t_cdp = ev.t_cdp
+        elif isinstance(ev, ScoreEvent):
+            scores.append(ev)
     if outcome is None:
         raise ValueError(f"{path} has no outcome event; the episode did not finish")
-    _, events = read_episode_log(path)
-    for ev in events:
-        if not isinstance(ev, ScoreEvent):
-            continue
-        has_scores = True
+    t_cdp = outcome.t_cdp
+    intruder_peak = -math.inf
+    benign: dict[str, float] = {}
+    decoy: float | None = None
+    has_scores = bool(scores)
+    for ev in scores:
         if ev.object_id == INTRUDER_ID:
             if ev.t <= t_cdp + 1e-9:
                 intruder_peak = max(intruder_peak, ev.value)

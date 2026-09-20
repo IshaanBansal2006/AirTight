@@ -140,7 +140,7 @@ def coverage_profile(
     def probe(t: float, agents: Sequence[AgentState], controller: PatrolController) -> None:
         if abs(t - round(t / SAMPLE_S) * SAMPLE_S) > _EPS or t > duration - _EPS:
             return
-        stale = controller.staleness(t)[controller.weight > 0]
+        stale = controller.weighted_staleness(t)
         rows.append(
             (
                 t,
