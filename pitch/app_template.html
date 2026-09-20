@@ -115,8 +115,8 @@ main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;o
 .seg{display:flex;gap:6px;flex-wrap:wrap}
 .seg button{padding:6px 11px;border-radius:999px;border:0;background:var(--surface);box-shadow:var(--shadow2);font-weight:500;font-size:12px;cursor:pointer;min-height:32px}
 .seg button[aria-pressed="true"]{background:var(--ink);color:var(--ground)}
-.seg button.atk[aria-pressed="true"]{background:var(--atk);color:#fff}
-.seg button.sec[aria-pressed="true"]{background:var(--sec);color:#fff}
+.seg button.atk[aria-pressed="true"]{background:#d7263d;color:#fff}
+.seg button.sec[aria-pressed="true"]{background:#2a78d6;color:#fff}
 /* swarm */
 .link{display:flex;gap:12px;align-items:center}
 .link .ring{width:44px;height:44px;border-radius:50%;background:var(--brand-soft);display:grid;place-items:center;position:relative;flex:none}
@@ -265,7 +265,7 @@ nav.tabbar button:focus-visible{outline:2px solid var(--brand);outline-offset:2p
         <div class="hint">drag to orbit, pinch to zoom, two fingers to pan</div>
       </div>
       <div class="seg" id="roundSeg"></div>
-      <div class="legend"><span><i style="background:var(--sec)"></i>where the fleet patrolled</span><span><i style="background:var(--atk)"></i>attack paths that still landed</span><span><i style="background:#bbb092"></i>decoy</span></div>
+      <div class="legend"><span><i style="background:#2a78d6"></i>blue team patrol</span><span><i style="background:#d7263d"></i>red team paths</span><span><i style="background:#d7263d;border-radius:2px"></i>hole, sized by miss rate</span><span><i style="background:#eda100"></i>decoy</span></div>
       <div class="sect"><h2>Holes the red team found</h2><div class="list" id="holeList"></div></div>
     </section>
 
@@ -363,7 +363,6 @@ function showTab(id, push){
 }
 document.querySelectorAll('nav.tabbar button').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab, true)));
 window.addEventListener('hashchange', () => showTab('tab-' + location.hash.slice(1), false));
-if (location.hash.length > 1) showTab('tab-' + location.hash.slice(1), false);
 
 // ---------- environment switcher ----------
 const envs = [{id: site.name, name: site.name.replaceAll('-',' ').replace(/^\w/, c => c.toUpperCase()), detail: `${site.bounds[2]-site.bounds[0]} × ${site.bounds[3]-site.bounds[1]} m, ${site.entry_points.length} entries, ${site.fixed_sensors.length} fixed cameras, response ${site.response_time_s} s`, live: true}];
@@ -433,35 +432,147 @@ $('#fleetStrip').innerHTML = fleetAgents.map(a => { const b = batteryAt(a, catch
 const viewer = $('#viewer'); let renderer, scene, camera, threeOk = false, mapLoading = false, renderQueued = false;
 const cx = (site.bounds[0]+site.bounds[2])/2, cz = (site.bounds[1]+site.bounds[3])/2;
 const toV = (x,y,h) => new THREE.Vector3(x - cx, h, -(y - cz));
-const HOME_VIEW = {theta: -1.15, phi: 0.62, r: 300, tx: 0, tz: 0};
+const HOME_VIEW = {theta: -0.72, phi: 1.08, r: 165, tx: 18, tz: -8};
 let orbit = {...HOME_VIEW};
 const layers = {sec: [], atk: [], labels: []}; let roundFilter = 'all';
+const BLUE = {drone: 0x2a78d6, go2: 0x1aa3c4, guard: 0x5aa0e6};
+const RED = 0xd7263d;
 function requestRender(){ if (!threeOk || renderQueued) return; renderQueued = true; requestAnimationFrame(() => { renderQueued = false; if (viewer.closest('.page').classList.contains('active')) renderer.render(scene, camera); }); }
 function ensureMap(){ if (threeOk || mapLoading) return; mapLoading = true; const boot = () => { try { initScene(); applyMapFilter(); } catch(e) { viewer.insertAdjacentHTML('afterbegin', `<p class="empty">3D view unavailable: ${esc(e.message||e)}</p>`); } }; if (window.THREE) { boot(); return; } const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js'; sc.onload = boot; sc.onerror = () => { viewer.insertAdjacentHTML('afterbegin', '<p class="empty">3D view could not load.</p>'); }; document.head.appendChild(sc); }
 function setCam(){ camera.position.set(orbit.tx + orbit.r*Math.sin(orbit.phi)*Math.cos(orbit.theta), orbit.r*Math.cos(orbit.phi), orbit.tz + orbit.r*Math.sin(orbit.phi)*Math.sin(orbit.theta)); camera.lookAt(orbit.tx, 0, orbit.tz); requestRender(); }
-function tube(points, color, radius, opacity){ const curve = new THREE.CatmullRomCurve3(points); const g = new THREE.TubeGeometry(curve, Math.max(8, points.length*2), radius, 6, false); const m = new THREE.Mesh(g, new THREE.MeshLambertMaterial({color, transparent: opacity < 1, opacity})); return m; }
-function label(text, x, y, h, color){ const c = document.createElement('canvas'); c.width = 128; c.height = 64; const ctx = c.getContext('2d'); ctx.fillStyle = color; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(8, 8, 112, 48, 24) : ctx.rect(8,8,112,48); ctx.fill(); ctx.fillStyle = '#fff3e6'; ctx.font = 'bold 30px Barlow, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(text, 64, 33); const tex = new THREE.CanvasTexture(c); const s = new THREE.Sprite(new THREE.SpriteMaterial({map: tex, depthTest: false})); s.scale.set(16, 8, 1); s.position.copy(toV(x, y, h)); return s; }
+function tube(points, color, radius, opacity){ const curve = new THREE.CatmullRomCurve3(points); const g = new THREE.TubeGeometry(curve, Math.max(8, points.length*2), radius, 6, false); const m = new THREE.Mesh(g, new THREE.MeshLambertMaterial({color, transparent: opacity < 1, opacity, depthWrite: opacity >= 1})); return m; }
+function label(text, x, y, h, color){ const c = document.createElement('canvas'); c.width = 128; c.height = 64; const ctx = c.getContext('2d'); ctx.fillStyle = color; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(8, 8, 112, 48, 24) : ctx.rect(8,8,112,48); ctx.fill(); ctx.fillStyle = '#fff'; ctx.font = 'bold 26px Barlow, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(text, 64, 33); const tex = new THREE.CanvasTexture(c); const s = new THREE.Sprite(new THREE.SpriteMaterial({map: tex, depthTest: false})); s.scale.set(14, 7, 1); s.position.copy(toV(x, y, h)); return s; }
+function noiseTex(rgb, amp, repeat, size){
+  size = size || 128; const c=document.createElement('canvas'); c.width=c.height=size; const ctx=c.getContext('2d'); const img=ctx.createImageData(size,size);
+  for (let i=0;i<size*size;i++){ const n=(Math.random()*2-1)*amp; img.data[i*4]=Math.max(0,Math.min(255,rgb[0]+n)); img.data[i*4+1]=Math.max(0,Math.min(255,rgb[1]+n)); img.data[i*4+2]=Math.max(0,Math.min(255,rgb[2]+n)); img.data[i*4+3]=255; }
+  ctx.putImageData(img,0,0); const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(repeat,repeat); return t;
+}
+function mat(color, map){ return new THREE.MeshLambertMaterial(map ? {color, map} : {color}); }
+function place(x,y){ const g=new THREE.Group(); g.position.copy(toV(x,y,0)); scene.add(g); return g; }
+function addBox(g, m, x,y,z, w,h,d){ const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d), m); o.position.set(x,y,z); o.castShadow=o.receiveShadow=true; g.add(o); return o; }
+function addCyl(g, m, x,y,z, r1,r0,h,n){ const o=new THREE.Mesh(new THREE.CylinderGeometry(r1,r0,h,n||8), m); o.position.set(x,y,z); o.castShadow=o.receiveShadow=true; g.add(o); return o; }
+function makePerson(col){
+  const g=new THREE.Group(); const cloth=mat(col), skin=mat(0xe2c4a8), dark=mat(0x2a2a2a);
+  addCyl(g, dark, -0.14, 0.28, 0.02, 0.09, 0.11, 0.55, 6); addCyl(g, dark, 0.14, 0.28, 0.02, 0.09, 0.11, 0.55, 6);
+  addBox(g, cloth, 0, 0.95, 0, 0.52, 0.62, 0.28); addCyl(g, skin, 0, 1.42, 0, 0.14, 0.15, 0.26, 8);
+  addBox(g, cloth, -0.34, 0.92, 0, 0.11, 0.5, 0.11); addBox(g, cloth, 0.34, 0.92, 0, 0.11, 0.5, 0.11);
+  return g;
+}
+function makeDrone(col){
+  const g=new THREE.Group(); const body=mat(col), arm=mat(0x1a1a1a), rotor=mat(0x333333);
+  addBox(g, body, 0, 0, 0, 0.7, 0.22, 0.7);
+  [[-0.7,-0.7],[0.7,-0.7],[-0.7,0.7],[0.7,0.7]].forEach(([x,z]) => { addBox(g, arm, x*0.5, 0, z*0.5, 0.7, 0.06, 0.08); addCyl(g, rotor, x, 0.08, z, 0.38, 0.38, 0.04, 12); });
+  addCyl(g, mat(0x88ccee), 0, 0.18, 0, 0.12, 0.12, 0.1, 8);
+  g.position.y = 8; return g;
+}
+function makeGo2(col){
+  const g=new THREE.Group(); const body=mat(col), dark=mat(0x222222);
+  addBox(g, body, 0, 0.55, 0, 0.95, 0.32, 0.48); addBox(g, dark, 0.42, 0.58, 0, 0.28, 0.18, 0.36);
+  [[-0.32,-0.16],[-0.32,0.16],[0.28,-0.16],[0.28,0.16]].forEach(([x,z]) => addCyl(g, dark, x, 0.28, z, 0.06, 0.08, 0.5, 6));
+  return g;
+}
+function makeTruck(){
+  const g=new THREE.Group(); const cab=mat(0x3d5a80), crate=mat(0xd8d0c4), tire=mat(0x1a1a1a), win=mat(0x88aacc);
+  addBox(g, cab, -3.2, 1.5, 0, 2.4, 1.8, 2.2); addBox(g, win, -2.6, 1.85, 0, 0.08, 0.7, 1.8);
+  addBox(g, crate, 1.4, 1.7, 0, 6.4, 2.4, 2.4);
+  [[-3.4,-0.9],[-3.4,0.9],[0.2,-0.9],[0.2,0.9],[3.6,-0.9],[3.6,0.9]].forEach(([x,z]) => { const wh=addCyl(g, tire, x, 0.42, z, 0.42, 0.42, 0.28, 10); wh.rotation.z = Math.PI/2; });
+  return g;
+}
 function initScene(){
   renderer = new THREE.WebGLRenderer({antialias:true, powerPreference:'low-power'}); renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, 1.5));
+  renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   viewer.insertBefore(renderer.domElement, viewer.firstChild);
-  const cs = getComputedStyle(document.documentElement); const dark = matchMedia('(prefers-color-scheme: dark)').matches && document.documentElement.dataset.theme !== 'light' || document.documentElement.dataset.theme === 'dark';
-  scene = new THREE.Scene(); scene.background = new THREE.Color(cs.getPropertyValue('--surface').trim() || '#fff');
+  const dark = matchMedia('(prefers-color-scheme: dark)').matches && document.documentElement.dataset.theme !== 'light' || document.documentElement.dataset.theme === 'dark';
+  const sky = dark ? 0x141a28 : 0xc5d4df;
+  scene = new THREE.Scene(); scene.background = new THREE.Color(sky); scene.fog = new THREE.Fog(sky, 220, 520);
   camera = new THREE.PerspectiveCamera(42, 1, 1, 2500); setCam();
-  scene.add(new THREE.HemisphereLight(0xffffff, 0x777777, dark ? 0.75 : 1.0)); const sun = new THREE.DirectionalLight(0xffffff, 0.55); sun.position.set(80,140,60); scene.add(sun);
-  const w = site.bounds[2]-site.bounds[0], d = site.bounds[3]-site.bounds[1];
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(w+40, d+40), new THREE.MeshLambertMaterial({color: dark ? 0x20243d : 0xf8eedf})); ground.rotation.x = -Math.PI/2; ground.position.y = -0.2; scene.add(ground);
-  const yard = new THREE.Mesh(new THREE.PlaneGeometry(w, d), new THREE.MeshLambertMaterial({color: dark ? 0x2a2f4d : 0xefe2cf})); yard.rotation.x = -Math.PI/2; scene.add(yard);
-  const fenceMat = new THREE.MeshLambertMaterial({color: dark ? 0x9a9db3 : 0x5d627f});
-  const P = site.perimeter; for (let i=0;i<P.length;i++){ const a=P[i], b=P[(i+1)%P.length]; const len=Math.hypot(b.x-a.x,b.y-a.y); const m=new THREE.Mesh(new THREE.BoxGeometry(len,2.4,0.4), fenceMat); m.position.copy(toV((a.x+b.x)/2,(a.y+b.y)/2,1.2)); m.rotation.y = -Math.atan2(b.y-a.y, b.x-a.x); scene.add(m); }
-  site.entry_points.forEach(e => { const g=new THREE.Mesh(new THREE.BoxGeometry(5,3.2,1.4), new THREE.MeshLambertMaterial({color:0x2b3157})); g.position.copy(toV(e.position.x,e.position.y,1.6)); scene.add(g); });
-  site.docks.forEach(dk => { const m=new THREE.Mesh(new THREE.CylinderGeometry(3.4,3.4,0.6,20), new THREE.MeshLambertMaterial({color:0x8fbfbb})); m.position.copy(toV(dk.position.x,dk.position.y,0.3)); scene.add(m); });
-  const asset = new THREE.Mesh(new THREE.BoxGeometry(9,7,9), new THREE.MeshLambertMaterial({color:0x2b3157})); asset.position.copy(toV(site.asset.x, site.asset.y, 3.5)); scene.add(asset);
-  site.fixed_sensors.forEach(s => { const c=D.curves[s.sensor_type]||{fov_deg:60,range:30}; const wedge=new THREE.Mesh(new THREE.CircleGeometry(c.range, 24, THREE.MathUtils.degToRad(s.heading_deg - c.fov_deg/2), THREE.MathUtils.degToRad(c.fov_deg)), new THREE.MeshBasicMaterial({color:0x2b3157, transparent:true, opacity:0.12, side:THREE.DoubleSide})); wedge.rotation.x = -Math.PI/2; wedge.position.copy(toV(s.position.x,s.position.y,0.15)); scene.add(wedge); const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.4,0.4,6,8), new THREE.MeshLambertMaterial({color:0x2b3157})); pole.position.copy(toV(s.position.x,s.position.y,3)); scene.add(pole); });
-  // where the fleet patrolled: the fixed fleet's recorded tracks
-  const blues = {drone: 0x2b3157, go2: 0x2e6f6b, guard: 0x5c6aa3};
-  agentsOf(catchEp).forEach(id => { const tr = catchEp.tracks[id]; const pts = []; for (let i=0;i<tr.length;i+= Math.max(1, Math.floor(tr.length/60))) pts.push(toV(tr[i][1], tr[i][2], kindOf(id)==='drone' ? 8 : 1.0)); if (pts.length > 2) { const m = tube(pts, blues[kindOf(id)] || 0x2b3157, kindOf(id)==='drone' ? 0.9 : 0.7, 0.85); layers.sec.push(m); scene.add(m); } });
-  // attack paths that still landed, one per round
-  D.rounds.forEach(r => { if(!r.tactic || !r.tactic.path.length) return; const pts = [...r.tactic.path.map(p => toV(p[0], p[1], 1.2)), toV(site.asset.x, site.asset.y, 1.2)]; const m = tube(pts, 0xa07070, 1.1, 0.95); m.userData.round = r.k; layers.atk.push(m); scene.add(m); const disc = new THREE.Mesh(new THREE.CircleGeometry(6 + 6*(r.tactic.miss||0), 28), new THREE.MeshBasicMaterial({color:0xa07070, transparent:true, opacity:0.25 + 0.45*(r.tactic.miss||0), side:THREE.DoubleSide})); disc.rotation.x = -Math.PI/2; disc.position.copy(toV(r.tactic.path[0][0], r.tactic.path[0][1], 0.25)); disc.userData.round = r.k; layers.atk.push(disc); scene.add(disc); const lb = label('R' + r.k, r.tactic.path[0][0], r.tactic.path[0][1], 9, '#a07070'); lb.userData.round = r.k; layers.labels.push(lb); scene.add(lb); if (r.tactic.decoy) { const ring = new THREE.Mesh(new THREE.RingGeometry(2.4, 3.4, 24), new THREE.MeshBasicMaterial({color:0xbbb092, side:THREE.DoubleSide})); ring.rotation.x = -Math.PI/2; ring.position.copy(toV(r.tactic.decoy[0], r.tactic.decoy[1], 0.3)); ring.userData.round = r.k; layers.atk.push(ring); scene.add(ring); } });
+  scene.add(new THREE.HemisphereLight(dark ? 0x8899aa : 0xe8f0f8, dark ? 0x334422 : 0x6a7a4a, dark ? 0.55 : 0.85));
+  const sun = new THREE.DirectionalLight(dark ? 0xc8d4e8 : 0xfff1d6, dark ? 0.65 : 0.9); sun.position.set(120, 180, 80); sun.castShadow = true;
+  sun.shadow.mapSize.set(512,512); const sc=sun.shadow.camera; sc.left=sc.bottom=-160; sc.right=sc.top=160; sc.near=10; sc.far=420; scene.add(sun);
+  const w = site.bounds[2]-site.bounds[0], dep = site.bounds[3]-site.bounds[1];
+  const grass = new THREE.Mesh(new THREE.PlaneGeometry(w+80, dep+80), mat(dark ? 0x1c2a1c : 0x5d7a45, noiseTex(dark ? [28,42,28] : [93,122,69], 18, 18))); grass.rotation.x=-Math.PI/2; grass.position.y=-0.22; grass.receiveShadow=true; scene.add(grass);
+  const yard = new THREE.Mesh(new THREE.PlaneGeometry(w, dep), mat(dark ? 0x2a2d32 : 0x5c5f66, noiseTex(dark ? [42,45,50] : [92,95,102], 14, 14))); yard.rotation.x=-Math.PI/2; yard.position.y=0.01; yard.receiveShadow=true; scene.add(yard);
+  const lineM = mat(0xd8c98a);
+  for (let x=20;x<w;x+=20){ const ln=new THREE.Mesh(new THREE.PlaneGeometry(0.18, dep-8), lineM); ln.rotation.x=-Math.PI/2; ln.position.copy(toV(site.bounds[0]+x, (site.bounds[1]+site.bounds[3])/2, 0.04)); scene.add(ln); }
+  const corr = (function(){ const c=document.createElement('canvas'); c.width=64; c.height=64; const ctx=c.getContext('2d'); ctx.fillStyle='#b8733a'; ctx.fillRect(0,0,64,64); ctx.fillStyle='#9a5c2c'; for(let i=0;i<64;i+=6) ctx.fillRect(i,0,2,64); const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(8,3); return t; })();
+  const wallM = mat(0xc47a3a, corr), roofM = mat(0x6a4332), doorM = mat(0x2b3157), concM = mat(0x8a8d92);
+  const wh = place(site.asset.x, site.asset.y);
+  addBox(wh, wallM, 0, 4.4, 0, 28, 8.8, 16); addBox(wh, roofM, 0, 9.05, 0, 30, 0.5, 18);
+  addBox(wh, roofM, 0, 9.4, 0, 8, 1.2, 4);
+  [-8,0,8].forEach(x => addBox(wh, doorM, x, 2.2, 8.15, 5.2, 4.4, 0.2));
+  addBox(wh, mat(0xd8cfc2), -16, 2.6, 2, 6, 5.2, 10); addBox(wh, mat(0x88aacc), -16, 3.6, 6.9, 4.2, 1.6, 0.12);
+  addBox(wh, concM, 0, 0.12, 12, 30, 0.24, 10);
+  scene.add(label('asset', site.asset.x, site.asset.y, 12, '#c45a28'));
+  const cans = [0x2a6aa3, 0xb84a32, 0xc9a227, 0x3d7a4a, 0x8a3d1c];
+  [[18,-4],[18,4],[18,12],[24,-4],[24,4],[24,12],[18,20]].forEach((p,i) => { const c=place(site.asset.x+p[0], site.asset.y+p[1]); addBox(c, mat(cans[i%cans.length]), 0, 1.3, 0, 6.1, 2.6, 2.44); addBox(c, mat(0x1a1a1a), 0, 2.62, 0, 6.1, 0.08, 2.44); });
+  const truck = makeTruck(); truck.position.copy(toV(160, 50, 0)); truck.rotation.y = Math.PI/2; scene.add(truck);
+  const fork = place(128, 42); addBox(fork, mat(0xc9a227), 0, 0.7, 0, 1.4, 0.7, 0.9); addBox(fork, mat(0x333333), 0.9, 0.25, 0, 1.6, 0.08, 0.12); addBox(fork, mat(0x333333), 0.9, 0.25, 0.28, 1.6, 0.08, 0.12);
+  const link = (function(){ const c=document.createElement('canvas'); c.width=32; c.height=32; const ctx=c.getContext('2d'); ctx.clearRect(0,0,32,32); ctx.strokeStyle='rgba(180,190,200,.85)'; ctx.lineWidth=1.2; ctx.strokeRect(1,1,14,14); ctx.strokeRect(16,16,14,14); const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; return t; })();
+  const linkM = new THREE.MeshLambertMaterial({map:link, transparent:true, opacity:0.55, side:THREE.DoubleSide, depthWrite:false});
+  const postM = mat(0x4a5060), railM = mat(0x6a7380);
+  const nearGate = (x,y) => site.entry_points.some(e => Math.hypot(e.position.x-x, e.position.y-y) < 7);
+  const Per = site.perimeter;
+  for (let i=0;i<Per.length;i++){
+    const a=Per[i], b=Per[(i+1)%Per.length]; const len=Math.hypot(b.x-a.x,b.y-a.y); const ang=-Math.atan2(b.y-a.y,b.x-a.x);
+    const nPost = Math.max(2, Math.round(len/6));
+    for (let k=0;k<=nPost;k++){
+      const t=k/nPost, x=a.x+(b.x-a.x)*t, y=a.y+(b.y-a.y)*t; if (nearGate(x,y)) continue;
+      const g=place(x,y); g.rotation.y=ang; addCyl(g, postM, 0, 1.35, 0, 0.08, 0.09, 2.7, 6);
+    }
+    const mx=(a.x+b.x)/2, my=(a.y+b.y)/2; if (!nearGate(mx,my)){
+      const g=place(mx,my); g.rotation.y=ang;
+      addBox(g, railM, 0, 0.7, 0, len-1, 0.06, 0.06); addBox(g, railM, 0, 1.5, 0, len-1, 0.06, 0.06); addBox(g, railM, 0, 2.3, 0, len-1, 0.06, 0.06);
+      const mesh=new THREE.Mesh(new THREE.PlaneGeometry(len-1.2, 2.2), linkM); mesh.position.set(0,1.4,0); g.add(mesh);
+    }
+  }
+  site.entry_points.forEach(e => {
+    const g=place(e.position.x, e.position.y);
+    if (e.kind==='fence_gap'){ addBox(g, mat(0x8c8262), -2.4, 1.1, 0, 0.18, 2.2, 0.18); addBox(g, mat(0x8c8262), 2.4, 1.1, 0, 0.18, 2.2, 0.18); addBox(g, mat(0xeda100), 0, 1.8, 0, 4.6, 0.08, 0.08); }
+    else if (e.kind==='pedestrian_gate'){ addBox(g, postM, -1.1, 1.4, 0, 0.22, 2.8, 0.22); addBox(g, postM, 1.1, 1.4, 0, 0.22, 2.8, 0.22); addBox(g, mat(0x3d5a80), 0, 1.1, 0, 1.7, 2.0, 0.12); }
+    else { addBox(g, postM, -3.4, 1.7, 0, 0.4, 3.4, 0.4); addBox(g, postM, 3.4, 1.7, 0, 0.4, 3.4, 0.4); addBox(g, mat(0x2b3157), 0, 2.9, 0, 6.6, 0.35, 0.35); addBox(g, mat(0xd9400a), 1.6, 1.15, 0, 3.2, 0.12, 0.28); }
+    scene.add(label(e.id.replaceAll('_',' '), e.position.x, e.position.y, 5.5, '#2b3157'));
+  });
+  site.docks.forEach(dk => {
+    const g=place(dk.position.x, dk.position.y); const drone = dk.id.startsWith('drone');
+    addCyl(g, concM, 0, 0.12, 0, 4.2, 4.2, 0.24, 20);
+    addBox(g, mat(drone?0x2a78d6:0x1aa3c4), 0, 0.26, 0, drone?2.4:1.6, 0.04, drone?2.4:1.6);
+    [[-3.2,-3.2],[3.2,-3.2],[-3.2,3.2],[3.2,3.2]].forEach(([x,z]) => addCyl(g, postM, x, 1.6, z, 0.08, 0.08, 3.2, 6));
+    addBox(g, roofM, 0, 3.3, 0, 7.2, 0.12, 7.2);
+  });
+  site.fixed_sensors.forEach(s => {
+    const c=D.curves[s.sensor_type]||{fov_deg:60,range:30}; const g=place(s.position.x, s.position.y);
+    addCyl(g, postM, 0, 3.2, 0, 0.12, 0.16, 6.4, 8); addBox(g, mat(0x1a1a1a), 0.28, 6.2, 0, 0.55, 0.28, 0.22);
+    const wedge=new THREE.Mesh(new THREE.CircleGeometry(c.range, 24, THREE.MathUtils.degToRad(s.heading_deg - c.fov_deg/2), THREE.MathUtils.degToRad(c.fov_deg)), new THREE.MeshBasicMaterial({color:0x2a78d6, transparent:true, opacity:0.12, side:THREE.DoubleSide, depthWrite:false}));
+    wedge.rotation.x=-Math.PI/2; wedge.position.copy(toV(s.position.x,s.position.y,0.08)); scene.add(wedge);
+  });
+  [[15,60],[100,8],[185,60],[100,112],[40,40],[160,90]].forEach(([x,y]) => { const g=place(x,y); addCyl(g, postM, 0, 3.6, 0, 0.1, 0.14, 7.2, 6); addCyl(g, mat(0xf2e6b8), 0, 7.15, 0, 0.45, 0.12, 0.2, 8); });
+  [[0,30],[0,90],[50,0],[150,0],[200,40],[200,90],[50,120],[150,120]].forEach(([x,y]) => { const g=place(Math.max(2,Math.min(198,x)), Math.max(2,Math.min(118,y))); addCyl(g, mat(0x5a3a22), 0, 0.7, 0, 0.18, 0.28, 1.4, 6); addCyl(g, mat(0x3d6a32), 0, 2.4, 0, 0.2, 1.6, 2.6, 8); });
+  const tMark = catchEp.t_alarm != null ? catchEp.t_alarm : (catchEp.t_end || 0) * 0.5;
+  agentsOf(catchEp).forEach(id => {
+    const tr = catchEp.tracks[id]; if (!tr || tr.length < 3) return;
+    const k=kindOf(id); const pts=[]; for (let i=0;i<tr.length;i+= Math.max(1, Math.floor(tr.length/60))) pts.push(toV(tr[i][1], tr[i][2], k==='drone' ? 8 : 0.35));
+    if (pts.length > 2) { const m = tube(pts, BLUE[k] || 0x2a78d6, k==='drone' ? 0.35 : 0.28, 0.72); layers.sec.push(m); scene.add(m); }
+    const p = positionAt(tr, tMark); const hold=place(p[1], p[2]);
+    const model = k==='drone' ? makeDrone(BLUE.drone) : k==='go2' ? makeGo2(BLUE.go2) : makePerson(BLUE.guard);
+    hold.add(model); layers.sec.push(hold);
+    const tag = label(id.replace('_',' '), p[1], p[2], k==='drone' ? 11 : 3.2, '#2a78d6'); layers.sec.push(tag); scene.add(tag);
+  });
+  D.rounds.forEach(r => {
+    if(!r.tactic || !r.tactic.path.length) return;
+    const miss = r.tactic.miss || 0;
+    const pts = [...r.tactic.path.map(p => toV(p[0], p[1], 0.4)), toV(site.asset.x, site.asset.y, 0.4)];
+    const m = tube(pts, RED, 0.38, 0.85); m.userData.round = r.k; layers.atk.push(m); scene.add(m);
+    const start = r.tactic.path[0];
+    const disc = new THREE.Mesh(new THREE.CircleGeometry(6 + 9*miss, 28), new THREE.MeshBasicMaterial({color:RED, transparent:true, opacity:0.2 + 0.4*miss, side:THREE.DoubleSide, depthWrite:false}));
+    disc.rotation.x = -Math.PI/2; disc.position.copy(toV(start[0], start[1], 0.08)); disc.userData.round = r.k; layers.atk.push(disc); scene.add(disc);
+    const hold=place(start[0], start[1]); const person=makePerson(RED); hold.add(person); hold.userData.round=r.k; layers.atk.push(hold);
+    const lb = label('R' + r.k + '  ' + Math.round(miss*100) + '%', start[0], start[1], 3.4, '#d7263d'); lb.userData.round = r.k; layers.labels.push(lb); scene.add(lb);
+    if (r.tactic.decoy) {
+      const ring = new THREE.Mesh(new THREE.RingGeometry(1.6, 2.4, 24), new THREE.MeshBasicMaterial({color:0xeda100, side:THREE.DoubleSide}));
+      ring.rotation.x = -Math.PI/2; ring.position.copy(toV(r.tactic.decoy[0], r.tactic.decoy[1], 0.1)); ring.userData.round = r.k; layers.atk.push(ring); scene.add(ring);
+    }
+  });
+  $('#hud').innerHTML = `<span class="chip on-surface" style="background:#2a78d6;color:#fff">blue team</span><span class="chip on-surface" style="background:#d7263d;color:#fff">red team</span><span class="chip on-surface">holes sized by miss rate</span>`;
   threeOk = true; resizeViewer(); requestRender();
 }
 function applyMapFilter(){ const on = (o) => roundFilter === 'all' || o.userData.round === roundFilter; layers.atk.forEach(o => o.visible = toggles.atk && on(o)); layers.labels.forEach(o => o.visible = toggles.atk && on(o)); layers.sec.forEach(o => o.visible = toggles.sec); requestRender(); }
@@ -479,12 +590,11 @@ viewer.addEventListener('touchstart', e => { if (e.touches.length === 2) { drag 
 viewer.addEventListener('touchmove', e => { if(e.touches.length===2 && pinch){ const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY); const x=(e.touches[0].clientX+e.touches[1].clientX)/2, y=(e.touches[0].clientY+e.touches[1].clientY)/2; orbit.r = Math.min(600, Math.max(50, orbit.r * pinch.d/d)); pan(x-pinch.x, y-pinch.y); pinch = {d, x, y}; setCam(); } }, {passive:true});
 viewer.addEventListener('touchend', () => { pinch=null; });
 const rounds = D.rounds;
-$('#mapLead').textContent = rounds.length ? `Blue is where ${prettyFleet(fixed.name)} actually patrolled in the recorded night. Red is the path the red team still landed on after each round of fixes.` : `Blue is where the fleet patrolled in the recorded night. Red paths appear once the attack, fix, re-attack rounds are on disk.`;
+$('#mapLead').textContent = rounds.length ? `Yard map: blue is ${prettyFleet(fixed.name)} on the recorded night, red is the red-team path that still landed after each round of fixes, discs are holes sized by miss rate.` : `Yard map: blue is the fleet on the recorded night. Red paths and hole discs appear once the attack, fix, re-attack rounds are on disk.`;
 $('#roundSeg').innerHTML = `<button data-round="all" aria-pressed="true">All rounds</button>` + rounds.map(r => `<button data-round="${r.k}" aria-pressed="false">Round ${r.k}</button>`).join('') + `<button class="sec" data-layer="sec" aria-pressed="true">Fleet trails</button><button class="atk" data-layer="atk" aria-pressed="true">Attack paths</button>`;
 $('#roundSeg').addEventListener('click', e => { const b = e.target.closest('button'); if(!b) return; if (b.dataset.round != null) { roundFilter = b.dataset.round === 'all' ? 'all' : parseInt(b.dataset.round); $('#roundSeg').querySelectorAll('button[data-round]').forEach(x => x.setAttribute('aria-pressed', x===b ? 'true' : 'false')); } else { toggles[b.dataset.layer] = !toggles[b.dataset.layer]; b.setAttribute('aria-pressed', String(toggles[b.dataset.layer])); } applyMapFilter(); });
 $('#holeList').innerHTML = rounds.length ? rounds.map(r => { const t = r.tactic || {}; const miss = t.miss == null ? (1 - r.worst_pd) : t.miss; return `<div class="row ${miss >= 0.9 ? 'sev-high' : miss >= 0.5 ? 'sev-med' : 'sev-low'}" data-round="${r.k}"><div class="dot"></div><div><div class="t">Round ${r.k}: ${esc((r.worst_family||'').replaceAll('_',' '))} through the ${esc((t.entry||'?').replaceAll('_',' '))}</div><div class="s">${esc(prettyFleet(r.fleet))} at $${r.cost.toFixed(0)}/h${t.phase!=null ? `, enters at phase ${fmt(t.phase)} of the charge cycle` : ''}${r.worst_pd_schedule_blind != null ? `, ${pct(r.worst_pd_schedule_blind)} caught with the schedule hidden` : ''} → ${r.move ? 'fix: ' + r.move.replaceAll('_',' ') : 'budget reached'}</div></div><div class="n">${Math.round(miss*100)}%<span>still missed</span></div></div>`; }).join('') : D.threats.map(t => `<div class="row ${t.miss >= 0.9 ? 'sev-high' : t.miss >= 0.5 ? 'sev-med' : 'sev-low'}"><div class="dot"></div><div><div class="t">${esc(t.family.replaceAll('_',' '))} through the ${esc(t.entry.replaceAll('_',' '))}</div><div class="s">phase ${fmt(t.phase)} of the charge cycle at ${fmt(t.speed,1)} m/s, found by ${esc(t.origin)}</div></div><div class="n">${Math.round(t.miss*100)}%<span>missed</span></div></div>`).join('');
 $('#holeList').addEventListener('click', e => { const row = e.target.closest('.row[data-round]'); if(!row) return; const r = rounds.find(x => x.k === parseInt(row.dataset.round)); if(!r || !r.tactic) return; orbit.tx = r.tactic.path[0][0] - cx; orbit.tz = -(r.tactic.path[0][1] - cz); orbit.r = 120; setCam(); roundFilter = r.k; $('#roundSeg').querySelectorAll('button[data-round]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.round == r.k))); applyMapFilter(); showTab('tab-map', true); });
-if (location.hash === '#map') ensureMap();
 
 // ---------- fleet memory (derived from the recorded night) ----------
 function memoryAt(ep, t){ const zones = [...site.entry_points.map(e => [e.id.replaceAll('_',' '), e.position]), ['the asset', site.asset], ...site.docks.map(d => [d.id.replaceAll('_',' '), d.position])]; return zones.map(([name, z]) => { let seen=null, by=null; for (const id of agentsOf(ep)) { const range = (D.curves[(fleetAgents.find(a=>a.id===id)||{}).sensor_type] || {range: 25}).range; for (const p of ep.tracks[id]) { if (p[0] > t) break; if (Math.hypot(p[1]-z.x, p[2]-z.y) <= Math.min(range, 40) && (seen==null || p[0] > seen)) { seen = p[0]; by = id; } } } return {name, seen, by, stale: seen==null ? null : t - seen}; }); }
@@ -594,5 +704,6 @@ $('#logFilters').innerHTML = Object.entries(filterNames).map(([k,v]) => `<button
 $('#logFilters').addEventListener('click', e => { const b = e.target.closest('button[data-f]'); if(!b) return; logFilter = b.dataset.f; $('#logFilters').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x===b))); renderLogs(); });
 function renderLogs(){ const all = buildLogs(); const L = all.filter(l => logFilter==='all' || l.kind===logFilter); const tagText = {alert:'ALERT', human:'YOU', llm:'LLM', round:'RED', run:'ARCH'}; $('#logList').innerHTML = L.length ? L.map(l => `<details class="log"><summary><span class="tag ${l.kind}">${tagText[l.kind]}</span><span><span class="t">${esc(l.t)}</span><br><span class="s">${esc(l.when)}</span></span><span class="pill ${l.outcome}">${l.outcome === 'good' ? 'good' : l.outcome === 'bad' ? 'bad' : 'noted'}</span></summary><div class="body"><div><b>What happened</b>${esc(l.what)}</div><div><b>Result</b>${esc(l.result)}</div><div><b>What we would improve</b>${esc(l.improve)}</div></div></details>`).join('') : '<div class="empty">Nothing in this filter yet.</div>'; $('#retention').innerHTML = `<div class="sub"><b style="color:var(--ink)">Where the record lives.</b> This phone keeps the last 200 entries. Everything older, and every raw episode log, is in the results archive by run (${D.runs.map(r => r.path).join(', ') || 'results/'}) with a manifest that names the commit, the site and the sensor curve it came from. Airtight tightens the airspace one night at a time: every alert, decision and red-team round above feeds the next fix.</div>`; }
 renderLogs();
+if (location.hash.length > 1) showTab('tab-' + location.hash.slice(1), false);
 })();
 </script>
