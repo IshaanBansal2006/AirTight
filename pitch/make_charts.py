@@ -337,7 +337,7 @@ def chart_schedule_blind(r: Report, p: Palette, out: Path, numbers: dict) -> Non
     if len(rows) < len(r.configs) or not rows:
         return
     rows.sort(key=lambda c: (c.cost_per_hour, c.config_name))
-    fig, ax = plt.subplots(figsize=(8, 0.42 * len(rows) + 1.6))
+    fig, ax = plt.subplots(figsize=(10, 0.36 * len(rows) + 1.5))
     ys = list(range(len(rows)))[::-1]
     for y, c in zip(ys, rows, strict=True):
         known, hidden = c.worst_tactic_pd, float(c.worst_tactic_pd_schedule_blind or 0.0)
@@ -360,7 +360,7 @@ def chart_schedule_blind(r: Report, p: Palette, out: Path, numbers: dict) -> Non
                 textcoords="offset points",
                 va="center",
                 ha=ha,
-                fontsize=7,
+                fontsize=8,
                 color=p.ink,
             )
     ax.scatter([], [], s=56, color=p.series[1], label="adversary has the charge schedule")
@@ -371,12 +371,16 @@ def chart_schedule_blind(r: Report, p: Palette, out: Path, numbers: dict) -> Non
             f"{c.config_name}{' (baseline)' if c.config_name == r.baseline_config else ''}, ${c.cost_per_hour:.0f}/h"
             for c in rows
         ],
-        fontsize=7,
+        fontsize=8,
     )
     ax.set_xlim(-0.1, 1.08)
     ax.set_xlabel("Timely detection against the worst tactic at the operating point")
-    ax.set_title("What hiding the charge schedule is worth", loc="left")
-    ax.legend(loc="lower right", fontsize=7, frameon=False)
+    ax.set_title(
+        "Worst-case detection per fleet, adversary with and without the charge schedule",
+        loc="left",
+        fontsize=10,
+    )
+    ax.legend(loc="lower right", fontsize=8, frameon=False)
     fig.text(0.01, 0.01, conditions_line(r), fontsize=7, color=p.muted)
     fig.tight_layout(rect=(0, 0.06, 1, 1))
     fig.savefig(out / "schedule_blind.png")

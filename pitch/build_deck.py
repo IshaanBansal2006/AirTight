@@ -49,7 +49,7 @@ def blind_line(ba: dict) -> str:
     pair = ba.get("worst_tactic_pd_schedule_blind") or [None, None]
     if pair[0] is None or pair[1] is None:
         return ""
-    return f"; the same tactics without the charge schedule {_fmt(pair[0])} to {_fmt(pair[1])}"
+    return f"; the same tactics without the schedule {_fmt(pair[0])} to {_fmt(pair[1])}"
 
 
 def _fmt(v: float, digits: int = 2) -> str:
@@ -113,7 +113,7 @@ def build(
     )
     sb = numbers.get("schedule_blind") or {}
     schedule_slide = (
-        f"# What hiding the schedule is worth\n\n![height:440px]({charts_rel}/schedule_blind.png)\n\nSame fleets, same worst tactics. The orange point assumes the adversary has the charge schedule to the second; the blue point gives it the site and nothing else. The gap is what a site buys by keeping its schedule private, and the score reports both.{watermark}"
+        f"# What hiding the schedule is worth\n\n![height:480px]({charts_rel}/schedule_blind.png)\n\nSame fleets, same worst tactics: orange has the charge schedule, blue only the site. The gap is what keeping the schedule private buys.{watermark}"
         if sb and ba
         else None
     )
@@ -133,7 +133,7 @@ def build(
         ),
         f"# The score\n\n![height:470px]({charts_rel}/cost_vs_detection.png){watermark}",
         (
-            f"# The fix and the re-attack\n\n![height:400px]({charts_rel}/before_after.png)\n\n{ba['baseline']} to {ba['fixed']}: detection {_fmt(ba['pd'][0])} to {_fmt(ba['pd'][1])}; against the re-attacking worst tactic {_fmt(ba['worst_tactic_pd'][0])} to {_fmt(ba['worst_tactic_pd'][1])}{blind_line(ba)}.\n\n*Replay clip B: the catch.*{clip_line(clips, 'catch')}{watermark}"
+            f"# The fix and the re-attack\n\n![height:300px]({charts_rel}/before_after.png)\n\n{ba['baseline']} to {ba['fixed']}: detection {_fmt(ba['pd'][0])} to {_fmt(ba['pd'][1])}; worst tactic {_fmt(ba['worst_tactic_pd'][0])} to {_fmt(ba['worst_tactic_pd'][1])}{blind_line(ba)}.\n\n*Replay clip B: the catch.*{clip_line(clips, 'catch')}{watermark}"
             if ba
             else f"# The fix and the re-attack\n\n*Needs a report with at least two configurations.*{watermark}"
         ),
