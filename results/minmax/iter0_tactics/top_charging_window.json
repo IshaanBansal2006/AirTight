@@ -1,0 +1,310 @@
+{
+  "family": "charging_window",
+  "seeds": [
+    63663,
+    70017,
+    81040,
+    147908,
+    195632,
+    226512,
+    240213,
+    269396,
+    291656,
+    377049,
+    388056,
+    393957,
+    395215,
+    419021,
+    533251,
+    557281,
+    609063,
+    611521,
+    697677,
+    753955
+  ],
+  "n_episodes": 3600,
+  "scores": [
+    {
+      "tactic_id": "charging_window-355349180",
+      "family": "charging_window",
+      "n_episodes": 20,
+      "miss_rate": 0.95,
+      "mean_margin_s": -15.956113886972616,
+      "adversary_score": 0.9506092615724772
+    },
+    {
+      "tactic_id": "charging_window-472617528",
+      "family": "charging_window",
+      "n_episodes": 20,
+      "miss_rate": 0.95,
+      "mean_margin_s": -17.40218836124972,
+      "adversary_score": 0.9501021883612497
+    },
+    {
+      "tactic_id": "charging_window-959077642",
+      "family": "charging_window",
+      "n_episodes": 20,
+      "miss_rate": 0.95,
+      "mean_margin_s": -13.068218207141047,
+      "adversary_score": 0.95
+    },
+    {
+      "tactic_id": "charging_window-194129772",
+      "family": "charging_window",
+      "n_episodes": 20,
+      "miss_rate": 0.95,
+      "mean_margin_s": -15.424536762688708,
+      "adversary_score": 0.95
+    },
+    {
+      "tactic_id": "charging_window-672526633",
+      "family": "charging_window",
+      "n_episodes": 20,
+      "miss_rate": 0.95,
+      "mean_margin_s": -14.485675324700003,
+      "adversary_score": 0.95
+    },
+    {
+      "tactic_id": "charging_window-073741013",
+      "family": "charging_window",
+      "n_episodes": 20,
+      "miss_rate": 0.95,
+      "mean_margin_s": -16.70825740040693,
+      "adversary_score": 0.95
+    },
+    {
+      "tactic_id": "charging_window-862949998",
+      "family": "charging_window",
+      "n_episodes": 20,
+      "miss_rate": 0.95,
+      "mean_margin_s": -18.366948158848675,
+      "adversary_score": 0.95
+    },
+    {
+      "tactic_id": "charging_window-674798649",
+      "family": "charging_window",
+      "n_episodes": 20,
+      "miss_rate": 0.95,
+      "mean_margin_s": -15.070546216121608,
+      "adversary_score": 0.95
+    },
+    {
+      "tactic_id": "charging_window-821792002",
+      "family": "charging_window",
+      "n_episodes": 20,
+      "miss_rate": 0.95,
+      "mean_margin_s": -18.336301846159195,
+      "adversary_score": 0.95
+    },
+    {
+      "tactic_id": "charging_window-888489886",
+      "family": "charging_window",
+      "n_episodes": 20,
+      "miss_rate": 0.95,
+      "mean_margin_s": -16.238052444355155,
+      "adversary_score": 0.95
+    }
+  ],
+  "tactics": [
+    {
+      "id": "charging_window-355349180",
+      "family": "charging_window",
+      "entry_id": "rear_fence_gap",
+      "phase": 0.5724499740771813,
+      "speed_mps": 1.5749172608812747,
+      "waypoints": [
+        {
+          "x": 164.10872347709008,
+          "y": 41.810762879961864
+        },
+        {
+          "x": 140.0,
+          "y": 70.0
+        }
+      ],
+      "decoy": null,
+      "comms_event": null,
+      "origin": "search"
+    },
+    {
+      "id": "charging_window-472617528",
+      "family": "charging_window",
+      "entry_id": "rear_fence_gap",
+      "phase": 0.5626457754487129,
+      "speed_mps": 1.5183839290340773,
+      "waypoints": [
+        {
+          "x": 164.3414407351408,
+          "y": 39.74227050790328
+        },
+        {
+          "x": 140.0,
+          "y": 70.0
+        }
+      ],
+      "decoy": null,
+      "comms_event": null,
+      "origin": "search"
+    },
+    {
+      "id": "charging_window-959077642",
+      "family": "charging_window",
+      "entry_id": "service_gate",
+      "phase": 0.3694044110916809,
+      "speed_mps": 1.4631338126255446,
+      "waypoints": [
+        {
+          "x": 183.43618847700083,
+          "y": 43.41325976569244
+        },
+        {
+          "x": 140.0,
+          "y": 70.0
+        }
+      ],
+      "decoy": null,
+      "comms_event": null,
+      "origin": "random"
+    },
+    {
+      "id": "charging_window-194129772",
+      "family": "charging_window",
+      "entry_id": "service_gate",
+      "phase": 0.5260222486178752,
+      "speed_mps": 1.428121672873904,
+      "waypoints": [
+        {
+          "x": 176.5943058597651,
+          "y": 42.36066243996386
+        },
+        {
+          "x": 140.0,
+          "y": 70.0
+        }
+      ],
+      "decoy": null,
+      "comms_event": null,
+      "origin": "random"
+    },
+    {
+      "id": "charging_window-672526633",
+      "family": "charging_window",
+      "entry_id": "rear_fence_gap",
+      "phase": 0.5898700283209505,
+      "speed_mps": 1.1836179635391981,
+      "waypoints": [
+        {
+          "x": 173.40734595948106,
+          "y": 51.498080555429155
+        },
+        {
+          "x": 140.0,
+          "y": 70.0
+        }
+      ],
+      "decoy": null,
+      "comms_event": null,
+      "origin": "random"
+    },
+    {
+      "id": "charging_window-073741013",
+      "family": "charging_window",
+      "entry_id": "rear_fence_gap",
+      "phase": 0.4761669632169956,
+      "speed_mps": 1.3142475297715086,
+      "waypoints": [
+        {
+          "x": 158.34622856610878,
+          "y": 34.93085142271966
+        },
+        {
+          "x": 140.0,
+          "y": 70.0
+        }
+      ],
+      "decoy": null,
+      "comms_event": null,
+      "origin": "random"
+    },
+    {
+      "id": "charging_window-862949998",
+      "family": "charging_window",
+      "entry_id": "rear_fence_gap",
+      "phase": 0.5644128211205941,
+      "speed_mps": 1.3813987308155005,
+      "waypoints": [
+        {
+          "x": 165.28984420336843,
+          "y": 42.568828623705286
+        },
+        {
+          "x": 140.0,
+          "y": 70.0
+        }
+      ],
+      "decoy": null,
+      "comms_event": null,
+      "origin": "random"
+    },
+    {
+      "id": "charging_window-674798649",
+      "family": "charging_window",
+      "entry_id": "rear_fence_gap",
+      "phase": 0.3628219508629361,
+      "speed_mps": 1.195874998992723,
+      "waypoints": [
+        {
+          "x": 163.72854883123662,
+          "y": 40.85140371436028
+        },
+        {
+          "x": 140.0,
+          "y": 70.0
+        }
+      ],
+      "decoy": null,
+      "comms_event": null,
+      "origin": "random"
+    },
+    {
+      "id": "charging_window-821792002",
+      "family": "charging_window",
+      "entry_id": "rear_fence_gap",
+      "phase": 0.5849826802256783,
+      "speed_mps": 1.3719061060469246,
+      "waypoints": [
+        {
+          "x": 168.1219470037121,
+          "y": 45.68414170408331
+        },
+        {
+          "x": 140.0,
+          "y": 70.0
+        }
+      ],
+      "decoy": null,
+      "comms_event": null,
+      "origin": "random"
+    },
+    {
+      "id": "charging_window-888489886",
+      "family": "charging_window",
+      "entry_id": "service_gate",
+      "phase": 0.37207159887701763,
+      "speed_mps": 1.6241859399396004,
+      "waypoints": [
+        {
+          "x": 182.47154612657204,
+          "y": 34.511708635740604
+        },
+        {
+          "x": 140.0,
+          "y": 70.0
+        }
+      ],
+      "decoy": null,
+      "comms_event": null,
+      "origin": "search"
+    }
+  ]
+}
