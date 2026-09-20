@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # Rebuild every pitch artifact from a frozen report, in order, with no hand steps.
-#   scripts/rebuild_pitch.sh data/v3/report.json data/v3/tactics [fixed_config]
+#   scripts/rebuild_pitch.sh data/v3/report.json data/v3/tactics [fixed_config] [deployed_config]
 set -euo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"
 report="${1:?usage: rebuild_pitch.sh <report.json> <tactics_dir> [fixed_config]}"
 tactics="${2:?usage: rebuild_pitch.sh <report.json> <tactics_dir> [fixed_config]}"
 fixed="${3:-d3_go2_guard_stagger}"
+deployed="${4:-d4_go2_guard_sync}"   # shown as the current configuration on the console
 scen="$root/scenarios/logistics_yard"
 py="$root/.venv/bin/python"
 cp "$report" "$root/pitch/report.json"
@@ -14,6 +15,6 @@ cp "$report" "$root/pitch/report.json"
 "$py" "$root/pitch/make_clips.py" --tactics-dir "$tactics" --fixed "$fixed" || echo "clips: no miss-and-catch seed found; the deck keeps whatever clip facts exist"
 "$py" "$root/pitch/build_deck.py"
 "$py" "$root/pitch/fill_writeup.py"
-"$py" "$root/pitch/build_app.py" --report "$root/pitch/report.json" --tactics-dir "$tactics"
+"$py" "$root/pitch/build_app.py" --report "$root/pitch/report.json" --tactics-dir "$tactics" --deployed "$deployed"
 "$root/pitch/render_deck.sh"
 echo "pitch rebuilt from $(basename "$report") with tactics from $tactics"
