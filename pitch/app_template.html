@@ -13,7 +13,8 @@
   <header class="topbar">
     <button class="envbtn" id="envBtn" aria-haspopup="dialog" aria-expanded="false"><i></i><span id="envName">Logistics yard</span><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
     <div class="title" id="pageTitle">Tonight</div>
-    <button type="button" class="glossbtn" id="glossBtn" aria-haspopup="dialog">Glossary</button>
+    <button type="button" class="glossbtn" id="themeBtn" aria-label="Colour theme">Theme: auto</button>
+    <button type="button" class="glossbtn nogap" id="glossBtn" aria-haspopup="dialog">Glossary</button>
     <div class="avatar" title="Operator on duty">OP</div>
     <div class="pop" id="envPop" hidden role="dialog" aria-label="Choose an environment"><h3>Environments</h3><div id="envList"></div></div>
   </header>
@@ -369,6 +370,15 @@ function showTab(id, push){
   if (id === 'tab-perception') { setTimeout(resizePerception, 0); startPerception(); }
 }
 document.querySelectorAll('nav.tabbar button').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab, true)));
+// theme: follows the device unless the viewer, or ?theme=light|dark in the address, says otherwise
+{ const tb = document.getElementById('themeBtn'), root = document.documentElement, order = ['auto','light','dark'];
+  const read = () => { try { return localStorage.getItem('airtight-theme'); } catch(e) { return null; } };
+  const apply = (mode, keep) => { if (mode === 'light' || mode === 'dark') root.dataset.theme = mode; else { mode = 'auto'; delete root.dataset.theme; }
+    if (tb) tb.textContent = 'Theme: ' + mode; if (keep) { try { localStorage.setItem('airtight-theme', mode); } catch(e) {} }
+    window.dispatchEvent(new Event('resize')); return mode; };
+  const asked = new URLSearchParams(location.search).get('theme');
+  let mode = apply(order.includes(asked) ? asked : (read() || 'auto'), false);
+  if (tb) tb.addEventListener('click', () => { mode = apply(order[(order.indexOf(mode) + 1) % order.length], true); }); }
 { const gb = document.getElementById('glossBtn'), gd = document.getElementById('gloss'); if (gb && gd) gb.addEventListener('click', () => { if (gd.showModal) gd.showModal(); else gd.setAttribute('open',''); }); }
 window.addEventListener('hashchange', () => showTab('tab-' + location.hash.slice(1), false));
 if (location.hash.length > 1) showTab('tab-' + location.hash.slice(1), false);

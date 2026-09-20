@@ -321,3 +321,7 @@ dialog.gloss dd{margin:var(--space-1) 0 0;color:var(--ink-2);line-height:1.45}
 
 /* a log entry with nothing to say about its outcome shows no chip */
 #logList summary span:empty{display:none}
+
+/* header buttons sit together: only the first one takes the free space to its left */
+.glossbtn.nogap{margin-left:0}
+@media (max-width:520px){#themeBtn{display:none}}
