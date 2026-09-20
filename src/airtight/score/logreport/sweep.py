@@ -20,7 +20,12 @@ from airtight.contracts import (
     Tactic,
 )
 from airtight.score.logreport.logs import EpisodeSummary, summarize_log
-from airtight.score.logreport.roc import decisions_per_hour_at, pd_at, pd_at_operating_point, roc_curve
+from airtight.score.logreport.roc import (
+    decisions_per_hour_at,
+    pd_at,
+    pd_at_operating_point,
+    roc_curve,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Sequence

@@ -200,7 +200,9 @@ def main(argv: list[str] | None = None) -> int:
     rep.add_argument("--log", default=None)
     rep.add_argument("--example", action="store_true")
     rep.add_argument("--pitch", default="pitch")
-    rep.add_argument("--live", action="store_true", help="publish /person_pose and MCP dispatch_verify")
+    rep.add_argument(
+        "--live", action="store_true", help="publish /person_pose and MCP dispatch_verify"
+    )
     rep.add_argument("--rrd", default=None, help="write a Rerun .rrd (file or directory)")
     rep.add_argument("--speed", type=float, default=0.0, help="realtime scale; 1=wall clock")
     rep.set_defaults(func=_cmd_replay)
