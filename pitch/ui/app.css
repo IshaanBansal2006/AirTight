@@ -256,11 +256,11 @@ nav.tabbar button:focus-visible{outline-offset:-3px}
   .hero .big{font-size:60px}
 }
 /* ---------- tablet: same column, a little wider ---------- */
-@media (min-width:700px) and (max-width:1279.98px){
+@media (min-width:700px) and (max-width:999.98px){
   .app{max-width:560px}
 }
 /* ---------- wide: rail + working area ---------- */
-@media (min-width:1280px){
+@media (min-width:1000px){
   .app{max-width:none;margin:0;border:0;display:grid;grid-template-columns:200px minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto;grid-template-areas:"top top" "nav main" "foot main"}
   .topbar{grid-area:top;padding:var(--space-2) var(--space-5)}
   .topbar .title{font-size:var(--text-xl)}
