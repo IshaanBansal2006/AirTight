@@ -1,0 +1,34 @@
+[
+  {
+    "k": 0,
+    "fleet": "d2_go2_guard_sync",
+    "cost": 55.0,
+    "worst_pd": 0.050000000000000044,
+    "worst_family": "blind_spot",
+    "move": "stagger"
+  },
+  {
+    "k": 1,
+    "fleet": "d2_go2_guard_stagger",
+    "cost": 55.0,
+    "worst_pd": 0.0,
+    "worst_family": "blind_spot",
+    "move": "add_drone"
+  },
+  {
+    "k": 2,
+    "fleet": "d2_go2_guard_stagger+drone_stagger",
+    "cost": 62.0,
+    "worst_pd": 0.050000000000000044,
+    "worst_family": "blind_spot",
+    "move": "add_drone"
+  },
+  {
+    "k": 3,
+    "fleet": "d2_go2_guard_stagger+drone_stagger+drone_stagger",
+    "cost": 69.0,
+    "worst_pd": 0.0,
+    "worst_family": "charging_window",
+    "move": null
+  }
+]

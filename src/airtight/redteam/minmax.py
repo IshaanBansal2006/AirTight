@@ -94,6 +94,17 @@ GUARD = AgentSpec(
 COSTS = {"drone": 7.0, "go2": 9.0, "guard": 32.0}
 
 
+def canonical_name(fleet: FleetConfig) -> str:
+    n_drones = sum(a.type == "drone" for a in fleet.agents)
+    parts = [
+        f"d{n_drones}",
+        "go2" if any(a.type == "go2" for a in fleet.agents) else "nogo2",
+        "guard" if any(a.type == "guard" for a in fleet.agents) else "noguard",
+        "stagger" if fleet.charge_policy.stagger_offsets_s else "sync",
+    ]
+    return "_".join(parts)
+
+
 def stagger(fleet: FleetConfig) -> FleetConfig:
     drones = [a for a in fleet.agents if a.type == "drone"]
     if len(drones) < 2:

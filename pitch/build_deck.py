@@ -9,6 +9,23 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 
 
+def pretty_fleet(name: str) -> str:
+    """d3_go2_guard_stagger -> '3 drones, Go2, guard, staggered'; older run names with +drone suffixes count the suffixes."""
+    import re
+
+    base, _, extra = name.partition("+")
+    m = re.match(r"d(\d+)_(go2|nogo2)_(guard|noguard)_(sync|stagger)", base)
+    if not m:
+        return name.replace("_", " ")
+    n = int(m.group(1)) + extra.count("drone")
+    bits = [f"{n} drone" + ("s" if n != 1 else "")]
+    if m.group(2) == "go2" or "go2" in extra:
+        bits.append("Go2")
+    if m.group(3) == "guard" or "guard" in extra:
+        bits.append("guard")
+    return ", ".join(bits) + (", staggered" if m.group(4) == "stagger" else ", synchronized")
+
+
 def _fmt(v: float, digits: int = 2) -> str:
     return f"{v:.{digits}f}"
 
@@ -57,6 +74,21 @@ def build(
     worst = numbers.get("worst_tactics", {})
     cw = worst.get("charging_window")
     cmp = tokens["comparison"]
+    mm = numbers.get("minmax") or []
+    minmax_slide = (
+        (
+            "# Attack, fix, re-attack\n\nEach round the red team searches the current fleet, every affordable fix is scored against what it found, the best worst case wins, and the red team attacks again.\n\n"
+            "| Round | Fleet | $/h | Worst case after re-attack | Fix chosen |\n|---|---|---|---|---|\n"
+            + "\n".join(
+                f"| {i['k']} | {pretty_fleet(i['fleet'])} | {i['cost']:.0f} | {i['worst_pd']:.2f} | {(i.get('move') or 'stop').replace('_', ' ')} |"
+                for i in mm
+            )
+            + "\n\nThe re-attack number stays near zero: with full knowledge of the patrol and no reaction from the fleet, the adversary finds a new hole after every fix. The score reports the typical intruder and the worst case side by side, and the loop is how a site finds the next hole before an intruder does."
+            + watermark
+        )
+        if mm
+        else None
+    )
     slides = [
         f"# Airtight\n\n## How secure is this site, and what should you buy?\n\nA security score and a vulnerability map for building owners, insurers and security firms, before any robot is purchased, and a re-score after.{watermark}",
         f"# Site twin and mixed fleet\n\n![height:480px]({charts_rel}/vulnerability_map.png)\n\nDrones, a ground robot and guards bid in one auction. Batteries and docks make coverage continuity real.{watermark}",
@@ -82,6 +114,7 @@ def build(
             if ba
             else f"# Human attention is a cost\n\n![height:300px]({charts_rel}/token_cost.png)\n\n{cmp['ratio']:,.0f}x cheaper than an LLM planning every episode ({cmp['basis']}).{watermark}"
         ),
+        *([minmax_slide] if minmax_slide else []),
         f"# What we sell, and what is next\n\n- The score, the vulnerability map, and a re-score after purchase\n- Next: learned adversary, calibrated sensors on more platforms, fleet memory under link loss\n\n<small>{conditions}</small>{watermark}",
     ]
     header = (
