@@ -8,10 +8,11 @@ protect (asset-weighted) and stale (not surveilled recently).
 from __future__ import annotations
 
 import math
+from collections.abc import Sequence
 from statistics import median
 from typing import TYPE_CHECKING, NamedTuple
 
-from airtight.contracts import XY, Tactic
+from airtight.contracts import XY, Tactic, TacticFamily
 from airtight.sim import adapt
 from airtight.sim.coverage import uncovered_intervals
 from airtight.sim.episode import _run_loop, official_params
@@ -24,7 +25,7 @@ MIN_LEG_M = 2.0
 N_STALE_WAYPOINTS = 2
 ASSET_SCALE_M = 25.0
 ASSET_BASE = 0.3
-HANDOFF_FAMILY = "charging_window"
+HANDOFF_FAMILY: TacticFamily = "charging_window"
 HANDOFF_ENTRY = "rear_fence_gap"
 HANDOFF_SPEED_MPS = 1.8301223906650246
 
@@ -113,7 +114,7 @@ def snapshot_staleness(
 def waypoints_through_stale(
     site: Site,
     entry: XY,
-    cells: list[CellNeed | tuple[XY, float] | tuple[XY, float, float]],
+    cells: Sequence[CellNeed | tuple[XY, float] | tuple[XY, float, float]],
     n: int = N_STALE_WAYPOINTS,
 ) -> list[XY]:
     """One neglected high-value cell per progress band toward the asset, then the asset."""

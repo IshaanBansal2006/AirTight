@@ -275,7 +275,7 @@ def _render_mp4(log: Path, site: Site, dest: Path) -> Path | None:
     if str(pitch) not in sys.path:
         sys.path.insert(0, str(pitch))
     try:
-        from render_replay import render
+        from render_replay import render  # type: ignore[import-not-found]
     except ImportError:
         return None
     try:
