@@ -229,13 +229,63 @@
         </style>
         <div class="rp-top"><div class="sub" id="pLead"></div></div>
         <div class="rp-modes">
-          <div class="seg" id="pMode" role="group" aria-label="Replay layout"><button type="button" data-mode="single" aria-pressed="true">One episode</button><button type="button" data-mode="compare" aria-pressed="false">Before and after</button></div>
+          <div class="seg" id="pMode" role="group" aria-label="Replay layout"><button type="button" data-mode="single" aria-pressed="true">One episode</button><button type="button" data-mode="compare" aria-pressed="false">Before and after</button><button type="button" data-mode="perceived" aria-pressed="false">What the drones perceive</button></div>
           <div class="seg" id="pEpSeg" role="group" aria-label="Episode shown"><button type="button" data-ep="miss" aria-pressed="false">Before: missed</button><button type="button" data-ep="catch" aria-pressed="true">After: caught</button></div>
         </div>
       </div>
       <div class="rp-stage" id="pStage" tabindex="0" role="group" aria-label="Replay of the recorded attack. Space plays or pauses, left and right arrows step between events, shift with an arrow moves one second.">
         <figure class="rp-view" id="pViewA"><figcaption id="pCapA"></figcaption><canvas class="pcanvas" id="pcanvas" width="800" height="480" role="img" aria-label="Site plan, north up: fleet positions, sensor footprints and the intruder track"></canvas><p class="empty rp-empty" id="pEmptyA" hidden></p></figure>
         <figure class="rp-view" id="pViewB" hidden><figcaption id="pCapB"></figcaption><canvas class="pcanvas" id="pcanvas2" width="800" height="480" role="img" aria-label="Site plan, north up: the same attack against the fixed fleet"></canvas><p class="empty rp-empty" id="pEmptyB" hidden></p></figure>
+        <figure class="rp-view pv" id="pvView" hidden>
+          <style>
+            #tab-perception .pv{gap:var(--space-2);justify-content:flex-start}
+            #tab-perception .pv-bar{display:flex;flex-wrap:wrap;gap:var(--space-2) var(--space-4);align-items:center;font-size:var(--text-xs);color:var(--ink-2)}
+            #tab-perception .pv-bar .pv-ctl{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+            #tab-perception .pv-check{display:inline-flex;align-items:center;gap:6px;min-height:36px;font-size:var(--text-sm);color:var(--ink);cursor:pointer}
+            #tab-perception .pv-check input{width:16px;height:16px;accent-color:var(--ink);margin:0}
+            #tab-perception .pv-port{position:relative;background:var(--ground);border:var(--border);border-radius:var(--radius-2);overflow:hidden;aspect-ratio:5/3;min-height:300px;touch-action:pan-y;cursor:grab}
+            #tab-perception .pv-port.dragging{cursor:grabbing}
+            #tab-perception .pv-port:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+            #tab-perception .pv-port canvas{position:absolute;inset:0;width:100%!important;height:100%!important;display:block}
+            #tab-perception .pv-labels{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+            #tab-perception .pv-label{position:absolute;left:0;top:0;white-space:nowrap;font-size:11px;line-height:14px;font-weight:var(--w-strong);color:var(--ink);padding:0 4px;border-radius:var(--radius-1);background:color-mix(in srgb,var(--surface) 82%,transparent)}
+            #tab-perception .pv-label.quiet{font-weight:var(--w-label);color:var(--ink-2)}
+            #tab-perception .pv-label.warm{color:var(--intruder)}
+            #tab-perception .pv-label.num{padding:0 3px;font-size:10px;line-height:12px;background:var(--ink);color:var(--surface)}
+            #tab-perception .pv-hud{position:absolute;left:var(--space-2);top:var(--space-2);display:flex;gap:4px;flex-wrap:wrap;max-width:calc(100% - 16px)}
+            #tab-perception .pv-hud button{padding:4px 10px;min-height:30px;border:1px solid var(--hair);border-radius:var(--radius-1);background:var(--surface);color:var(--ink);font:inherit;font-size:var(--text-xs);font-weight:var(--w-label);cursor:pointer}
+            #tab-perception .pv-hud button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--surface)}
+            #tab-perception .pv-scale{position:absolute;left:var(--space-3);bottom:var(--space-2);font-size:11px;color:var(--ink);pointer-events:none;display:flex;flex-direction:column;gap:2px}
+            #tab-perception .pv-scale i{display:block;height:6px;border:1.5px solid var(--ink);border-top:0;box-sizing:border-box}
+            #tab-perception .pv-read{font-size:var(--text-xs);color:var(--ink-2);margin:0;min-height:34px;font-variant-numeric:tabular-nums lining-nums}
+            #tab-perception .pv-legend{display:flex;flex-wrap:wrap;gap:var(--space-2) var(--space-4);font-size:var(--text-xs);color:var(--ink-2);align-items:center}
+            #tab-perception .pv-legend>span{display:inline-flex;align-items:center;gap:6px}
+            #tab-perception .pv-legend svg{width:16px;height:16px;flex:none}
+            #tab-perception .pv-ramp{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
+            #tab-perception .pv-ramp i{display:inline-flex}
+            #tab-perception .pv-ramp i b{display:block;width:16px;height:10px;border-top:1px solid var(--hair);border-bottom:1px solid var(--hair)}
+            #tab-perception .pv-why h3{font-size:var(--text-sm);font-weight:var(--w-strong);margin:var(--space-2) 0 var(--space-1);color:var(--ink)}
+            #tab-perception .pv-why .pv-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:var(--space-1) var(--space-3);padding:var(--space-2) var(--space-3);border:var(--border);border-radius:var(--radius-2);background:var(--surface);margin-bottom:var(--space-1);font-size:var(--text-xs)}
+            #tab-perception .pv-why .pv-row .k{color:var(--ink-2);display:block}
+            #tab-perception .pv-why .pv-row .v{color:var(--ink);font-size:var(--text-sm);font-variant-numeric:tabular-nums lining-nums;font-weight:var(--w-label)}
+            #tab-perception .pv-why .pv-row .who{font-weight:var(--w-strong);font-size:var(--text-sm);color:var(--ink)}
+            @media (max-width:699px){#tab-perception .pv-port{aspect-ratio:5/4;min-height:260px}#tab-perception .pv #pvCap{order:3}#tab-perception .pv .pv-read{order:4}#tab-perception .pv .pv-legend{order:5}#tab-perception .pv .pv-why{order:6}}
+          </style>
+          <figcaption id="pvCap"></figcaption>
+          <div class="pv-bar" id="pvBar">
+            <div class="pv-ctl"><span id="pvSrcLbl">Map built from</span><div class="seg" id="pvSrc" role="group" aria-labelledby="pvSrcLbl"><button type="button" data-src="drones" aria-pressed="true">Drones only</button><button type="button" data-src="swarm" aria-pressed="false">Whole swarm</button></div></div>
+            <label class="pv-check"><input type="checkbox" id="pvPrio" checked>Patrol priority</label>
+          </div>
+          <div class="pv-port" id="pvPort" tabindex="0" role="img" aria-label="Perceived map of the yard, north up: columns the selected observers have swept, blocks where they saw something standing, the drones and their next waypoints. Drag to orbit, shift and drag to pan, control and wheel or pinch to zoom.">
+            <div class="pv-labels" id="pvLabels"></div>
+            <div class="pv-hud" id="pvHud"><button type="button" data-cam="top" aria-pressed="false">Top</button><button type="button" data-cam="angled" aria-pressed="false">Angled</button><button type="button" data-cam="fit">Fit site</button><button type="button" data-cam="in" aria-label="Zoom in">Zoom in</button><button type="button" data-cam="out" aria-label="Zoom out">Zoom out</button></div>
+            <div class="pv-scale" id="pvScale" hidden><span></span><i></i></div>
+          </div>
+          <p class="empty rp-empty" id="pvEmpty" hidden></p>
+          <p class="pv-read" id="pvRead" aria-live="off"></p>
+          <div class="pv-legend" id="pvLegend"></div>
+          <div class="pv-why" id="pvWhy"></div>
+        </figure>
       </div>
       <div class="rp-panel">
         <div class="rp-controls" id="pControls">
@@ -391,6 +441,7 @@ $('#hil').innerHTML = `<div class="li"><i>1</i><div><div class="t">The swarm run
 addMsg('swarm', `Good evening. ${catchEp.timely ? `A ${catchEp.family.replaceAll('_',' ')} track through the ${catchEp.entry.replaceAll('_',' ')} was caught at ${fmt(catchEp.t_alarm,0)} s tonight; the proposal above is the follow-up.` : 'The yard is quiet.'} Ask for status, blind spots, or give an order.`, 'swarm');
 
 /*__INCLUDE:replay.js__*/
+/*__INCLUDE:perceived.js__*/
 // ---------- logs ----------
 const colorFor = {drone:'#2b3157', go2:'#2e6f6b', guard:'#5c6aa3'};
 $('#contacts').innerHTML = [`<div class="contact"><div class="av" style="background:var(--brand)">OP</div><div class="t">Operator</div><div class="s">you, on duty</div><div class="acts"><button type="button" data-act="handover">Handover</button></div></div>`, ...fleetAgents.map((a,i) => `<div class="contact"><div class="av" style="background:${colorFor[a.type]||'#8c8262'}">${a.type==='guard' ? 'G' : a.type==='go2' ? 'Q' : 'D'}${a.id.replace(/\D/g,'')}</div><div class="t">${esc(a.id.replace('_',' '))}</div><div class="s">${a.type==='guard' ? 'radio channel 3 (placeholder)' : a.type==='go2' ? 'telemetry link, go2 dock' : 'telemetry link, ' + (i % 2 ? 'dock se' : 'dock nw')}</div><div class="acts"><button type="button" data-act="ping" data-id="${a.id}">${a.type==='guard' ? 'Call' : 'Ping'}</button><button type="button" data-act="msg" data-id="${a.id}">Message</button></div></div>`)].join('');

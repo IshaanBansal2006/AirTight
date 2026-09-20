@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -146,6 +147,21 @@ def threats(tactics_dir: Path) -> list[dict]:
     return out
 
 
+def perception_view(
+    log_path: Path, fleet_name: str, fleets_dir: Path, site: Site, curves: SensorCurves
+) -> dict | None:
+    """Controller trace and dimOS perceived maps for one recording, or None when they cannot be built."""
+    sys.path.insert(0, str(REPO / "pitch"))
+    from perception_map import build_view
+
+    fleet_path = fleets_dir / f"{fleet_name}.json"
+    if not fleet_path.exists() or not log_path.exists():
+        return None
+    return build_view(
+        log_path, FleetConfig.model_validate_json(fleet_path.read_text()), site, curves
+    )
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--report", type=Path, default=REPO / "pitch" / "report.json")
@@ -223,6 +239,13 @@ def main(argv: list[str] | None = None) -> int:
         "tokens": tokens,
         "runs": archived_runs(),
     }
+    for kind, name, log in (
+        ("miss", clips["baseline"], miss_log),
+        ("catch", clips["fixed"], catch_log),
+    ):
+        payload["episodes"][kind]["view"] = perception_view(
+            log, name, args.fleets_dir, site, curves
+        )
     blob = json.dumps(payload, separators=(",", ":")).replace("</", "<\\/")
     html = args.template.read_text()
     # The template is split into parts under pitch/ui so each can be worked on alone.

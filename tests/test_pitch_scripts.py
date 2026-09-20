@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import json
 import re
 import runpy
@@ -272,3 +273,156 @@ def test_build_app_from_example_report_and_v0_logs(
     html = (tmp_path / "app.html").read_text()
     assert "__DATA__" not in html and '"episodes"' in html and "three.min.js" in html
     assert re.search(r'"rounds":\s*\[\]', html) and '"responder"' in html
+    data = json.loads(
+        re.search(r'<script[^>]*id="data"[^>]*>(.*?)</script>', html, re.S)
+        .group(1)
+        .replace("<\\/", "</")
+    )
+    assert "__INCLUDE:" not in html and len(html) < 650_000
+    try:
+        import dimos.mapping.voxels.impl.packed  # noqa: F401
+    except ImportError:
+        assert data["episodes"]["catch"]["view"] is None
+    else:
+        for kind in ("miss", "catch"):
+            view = data["episodes"][kind]["view"]
+            assert view["n"] == len(view["pm"]["touch"]["drone"]) == len(view["swept"])
+
+
+def test_column_carving_clears_a_moved_object_only_when_its_column_is_reswept() -> None:
+    pytest.importorskip("dimos.mapping.voxels.impl.packed")
+    from perception_map import ColumnMap, Sensed
+
+    cmap = ColumnMap((0.0, 0.0, 40.0, 20.0))
+    near = cmap.footprint([Sensed(pos=(5.0, 10.0), heading=0.0, fov_deg=360.0, radius_m=8.0)])
+    far = cmap.footprint([Sensed(pos=(32.0, 10.0), heading=0.0, fov_deg=360.0, radius_m=8.0)])
+    old = cmap.column_of(6.0, 10.0)
+    assert old is not None
+
+    in_view = cmap.sense(0.0, near, {"intruder": (6.0, 10.0, 1.8)})
+    assert in_view == ["intruder"] and cmap.levels()[old] > 0 and cmap.made_by[old] == "intruder"
+    assert cmap.levels()[cmap.column_of(20.0, 10.0)] == -1  # never observed: unknown
+
+    # the object walks out of range and the observer looks elsewhere: the old column is a ghost
+    moved = {"intruder": (20.0, 2.0, 1.8)}
+    in_view = cmap.sense(1.0, far, moved)
+    assert in_view == [] and cmap.levels()[old] > 0 and cmap.ghosts(1.0, moved) == 1
+
+    # the old column is swept again with nothing in it: dimOS carves it back to free ground
+    cmap.sense(2.0, near, moved)
+    assert cmap.levels()[old] == 0 and cmap.ghosts(2.0, moved) == 0 and old not in cmap.made_by
+    assert cmap.last_touched[old] == 2.0
+
+    # a wedge only touches what it faces
+    wedge = ColumnMap((0.0, 0.0, 40.0, 20.0))
+    facing = [Sensed(pos=(20.0, 10.0), heading=0.0, fov_deg=90.0, radius_m=8.0)]
+    wedge.sense(0.0, wedge.footprint(facing), {})
+    assert wedge.levels()[wedge.column_of(25.0, 10.0)] == 0
+    assert wedge.levels()[wedge.column_of(15.0, 10.0)] == -1
+
+
+def test_runs_round_trip() -> None:
+    import numpy as np
+    from perception_map import pack_runs, unpack_runs
+
+    rng = np.random.default_rng([7, 1])
+    for mask in (rng.random((48, 80)) < 0.3, np.zeros((3, 5), bool), np.ones((3, 5), bool)):
+        assert (unpack_runs(pack_runs(mask), mask.shape) == mask).all()
+
+
+@pytest.fixture(scope="module")
+def yard_trace(tmp_path_factory: pytest.TempPathFactory):  # type: ignore[no-untyped-def]
+    import os
+
+    sys.path.insert(0, str(PITCH))
+    from perception_map import episode_trace
+
+    from airtight.contracts import PositionEvent, read_episode_log
+    from airtight.sim.runner import run_episode
+    from airtight.sim.scenarios import load_fleet, load_sensor_curves, load_site, load_tactic
+
+    site, curves = load_site(), load_sensor_curves()
+    # the scenario's jog sits in the charging window; an early phase keeps both drones on patrol
+    fleet = load_fleet("2drones")
+    tactic = load_tactic("jog").model_copy(update={"phase": 0.1})
+    before = os.environ.get("AIRTIGHT_ENGINE")
+    os.environ["AIRTIGHT_ENGINE"] = "v0"
+    try:
+        res = run_episode(site, fleet, tactic, curves, 11, tmp_path_factory.mktemp("trace_logs"))
+    finally:
+        if before is None:
+            del os.environ["AIRTIGHT_ENGINE"]
+        else:
+            os.environ["AIRTIGHT_ENGINE"] = before
+    _, events = read_episode_log(res.log_path)
+    tracks: dict[str, list[tuple[float, float, float]]] = {}
+    for ev in events:
+        if isinstance(ev, PositionEvent):
+            tracks.setdefault(ev.object_id, []).append((ev.t, ev.position.x, ev.position.y))
+    return site, tactic, episode_trace(site, fleet, tactic, curves, 11), tracks
+
+
+def test_controller_trace_is_the_logged_episode(yard_trace) -> None:  # type: ignore[no-untyped-def]
+    from perception_map import check_trace_against_log
+
+    _, _, trace, tracks = yard_trace
+    assert check_trace_against_log(trace, tracks) >= len(trace.frames)
+    shifted = {k: [(t, x + 0.01, y) for t, x, y in v] for k, v in tracks.items()}
+    with pytest.raises(ValueError, match="not the recorded episode"):
+        check_trace_against_log(trace, shifted)
+
+
+def test_candidate_sets_are_the_top_cells_of_the_agents_own_region(yard_trace) -> None:  # type: ignore[no-untyped-def]
+    _, _, trace, _ = yard_trace
+    seen = 0
+    for frame in trace.frames:
+        for aid, a in frame.agents.items():
+            if a["mode"] != "patrol" or not a["active"]:
+                assert aid not in frame.candidates
+                continue
+            cells = frame.candidates[aid]
+            assert len(cells) >= 1
+            priority = (trace.staleness(frame) * trace.weight).ravel()
+            assert (priority[cells] > 0).all()
+            if not frame.fell_back[aid]:
+                assert frame.regions[aid].ravel()[cells].all()
+                positive = int(((priority > 0) & frame.regions[aid].ravel()).sum())
+                assert len(cells) == max(1, int(trace.top_fraction * positive))
+            seen += 1
+    assert seen > 0
+
+
+def test_perceived_maps_per_source_and_payload_size(yard_trace) -> None:  # type: ignore[no-untyped-def]
+    pytest.importorskip("dimos.mapping.voxels.impl.packed")
+    import numpy as np
+    from perception_map import NEVER, encode, perceive, unpack_runs
+
+    site, _, trace, _ = yard_trace
+    # the warm-up poses come from the recording controller: one per whole second before t = 0
+    assert len(trace.warm) == round(trace.warmup_s) and trace.warm[0][0] == -trace.warmup_s
+    perceived = perceive(trace, site.bounds)
+    view = encode(trace, perceived)
+    blob = json.dumps(view, separators=(",", ":"))
+    # yard_night has 2.5 times the area of the pitch yard, whose whole page is bounded in the build_app test
+    assert len(blob) < 250_000
+    pm = view["pm"]
+    assert view["n"] == len(trace.frames) == len(view["swept"]) == len(pm["touch"]["drone"])
+    assert set(view["agents"]) == set(trace.agent_meta) and view["pmax"] > 0
+    assert all(len(a["hd"]) == view["n"] for a in view["agents"].values())
+    assert set(pm["src"]) == {"drones", "swarm"}
+    shape = (pm["rows"], pm["cols"])
+    ages = {s: np.frombuffer(base64.b64decode(pm["src"][s]["age0"]), np.uint8) for s in pm["src"]}
+    # the swarm has swept everything the drones have, at least as recently
+    assert (ages["swarm"] <= ages["drones"]).all() and (ages["drones"] < NEVER).any()
+    fixed = unpack_runs(pm["touch"]["fixed"], shape)
+    assert fixed.any() == bool(trace.fixed) and (ages["swarm"].reshape(shape)[fixed] <= 1).all()
+    assert all(len(pm["src"][s]["ghosts"]) == view["n"] for s in pm["src"])
+
+
+def test_template_has_the_perceived_mode() -> None:
+    html = (PITCH / "app_template.html").read_text()
+    assert html.index("__INCLUDE:replay.js__") < html.index("__INCLUDE:perceived.js__")
+    for needle in ('data-mode="perceived"', 'id="pvPort"', 'data-src="drones"', 'id="pvPrio"'):
+        assert needle in html
+    js = (PITCH / "ui" / "perceived.js").read_text()
+    assert "carve_columns=True" in js and "points_f32" in js and "pv2d" in js
