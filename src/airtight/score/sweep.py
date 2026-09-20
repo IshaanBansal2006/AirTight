@@ -323,20 +323,18 @@ def _dump(rows: dict[int, dict[str, Any]], order: Sequence[int], guard: str) -> 
 
 # ---- jobs ------------------------------------------------------------------------------------
 
-CellJob = tuple[Site, FleetConfig, Tactic, SensorCurves, tuple[int, ...]]
-QuietJob = tuple[Site, FleetConfig, SensorCurves, tuple[int, ...]]
+CellJob = tuple[Site, FleetConfig, Tactic, SensorCurves, tuple[int, ...], EpisodeParams]
+QuietJob = tuple[Site, FleetConfig, SensorCurves, tuple[int, ...], EpisodeParams]
 
 
 def _cell_job(job: CellJob) -> list[dict[str, Any]]:
     """The missing seeds of one cell. Top level so a process pool can call it."""
-    site, fleet, tactic, curves, seeds = job
-    params = official_params()
+    site, fleet, tactic, curves, seeds, params = job
     return [dataclasses.asdict(simulate(site, fleet, tactic, curves, s, params)) for s in seeds]
 
 
 def _quiet_job(job: QuietJob) -> list[dict[str, Any]]:
-    site, fleet, curves, seeds = job
-    params = official_params()
+    site, fleet, curves, seeds, params = job
     return [
         dataclasses.asdict(simulate_quiet(site, fleet, curves, s, params=params)) for s in seeds
     ]
@@ -364,9 +362,12 @@ def run_sweep(
     out: Path,
     workers: int | None = None,
     verbose: bool = False,
+    params: EpisodeParams | None = None,
 ) -> SweepResult:
+    """params defaults to official_params(). The fix loop passes a candidate's own parameters;
+    the engine tag keeps their caches apart."""
     seeds, quiet_seeds = [int(s) for s in seeds], [int(s) for s in quiet_seeds]
-    params = official_params()
+    params = official_params() if params is None else params
     tag = engine_tag(params, inputs.curves)
 
     def say(text: str) -> None:
@@ -410,13 +411,16 @@ def run_sweep(
                 tactic,
                 inputs.curves,
                 tuple(seeds[:1] * PROBE_EPISODES),
+                params,
             )
         )
         per = (time.perf_counter() - start) / PROBE_EPISODES
         per_quiet = 0.0
         if n_quiet:
             start = time.perf_counter()
-            _quiet_job((inputs.site, inputs.fleets[config], inputs.curves, (quiet_seeds[0],)))
+            _quiet_job(
+                (inputs.site, inputs.fleets[config], inputs.curves, (quiet_seeds[0],), params)
+            )
             per_quiet = time.perf_counter() - start
         total_s = (per * n_episodes + per_quiet * n_quiet) / n_workers
         say(
@@ -428,8 +432,8 @@ def run_sweep(
         config, _, _, tactic, _, missing = item
         fleet = inputs.fleets[config]
         if tactic is None:
-            return _quiet_job, (inputs.site, fleet, inputs.curves, missing)
-        return _cell_job, (inputs.site, fleet, tactic, inputs.curves, missing)
+            return _quiet_job, (inputs.site, fleet, inputs.curves, missing, params)
+        return _cell_job, (inputs.site, fleet, tactic, inputs.curves, missing, params)
 
     todo = [item for item in plan if item[5]]
     done_per_config: dict[str, int] = dict.fromkeys(inputs.fleets, 0)

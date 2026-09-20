@@ -44,6 +44,7 @@ reaction to the decoy (it is scored like an intruder, nobody is sent to it).
 from __future__ import annotations
 
 import math
+import os
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Protocol
 
@@ -54,7 +55,7 @@ from airtight.sim.actors import INTRUDER_STREAM, Intruder, make_decoy, spawn_ben
 from airtight.sim.battery import make_clocks, step_battery
 from airtight.sim.constants import BENIGN_HORIZON_S, DEFAULT_CELL_SIZE_M, TAU_REF, TIME_EPS
 from airtight.sim.fleet import PatrolController, make_agents, step_agents
-from airtight.sim.geometry import Grid, inside_mask, patrol_weight
+from airtight.sim.geometry import WEIGHT_MODES, Grid, inside_mask, patrol_weight
 from airtight.sim.sensing import (
     LookRngs,
     LookSchedule,
@@ -167,13 +168,28 @@ def check_setup(
         raise ValueError("episode setup is invalid:\n  - " + "\n  - ".join(problems))
 
 
+WEIGHT_MODE_ENV = "AIRTIGHT_WEIGHT_MODE"
+
+
 def official_params() -> EpisodeParams:
     """The parameters run_episode uses: the one source of truth for official numbers.
 
     The sweep calls this too, so a sweep can never disagree with run_episode. simulate's own
     default keeps the battery off so the part 1 tables keep their meaning.
+
+    One documented override: the environment variable AIRTIGHT_WEIGHT_MODE sets the patrol
+    weight mode (asset, uniform or band). Unset means asset. It exists because the weight mode
+    is an engine parameter, not a fleet field, so a fix that changes it can only reach
+    run_episode, and lane C's re-attack, this way. Nothing else can be overridden.
     """
-    return EpisodeParams(battery=True)
+    mode = os.environ.get(WEIGHT_MODE_ENV)
+    if mode is None or mode == "":
+        return EpisodeParams(battery=True)
+    if mode not in WEIGHT_MODES:
+        raise ValueError(
+            f"{WEIGHT_MODE_ENV}={mode!r} is not a weight mode; choose one of {WEIGHT_MODES}"
+        )
+    return EpisodeParams(battery=True, weight_mode=mode)
 
 
 def _start_jitter_s(seed: int, params: EpisodeParams) -> float:
