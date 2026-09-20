@@ -13,7 +13,40 @@ def _fmt(v: float, digits: int = 2) -> str:
     return f"{v:.{digits}f}"
 
 
-def build(numbers: dict, tokens: dict, charts_rel: str, example: bool) -> str:
+def load_clip_facts(clips_dir: Path) -> dict | None:
+    """Lane C's clips.json, or lane A's miss.json and catch.json sidecars folded into the same shape."""
+    for name in ("clips_c.json", "clips.json"):
+        candidate = clips_dir / name
+        if candidate.exists():
+            data = json.loads(candidate.read_text())
+            if {"tactic_id", "seed", "baseline", "fixed", "t_cdp"} <= set(data):
+                return data
+    miss, catch = clips_dir / "miss.json", clips_dir / "catch.json"
+    if not (miss.exists() and catch.exists()):
+        return None
+    m, c = json.loads(miss.read_text()), json.loads(catch.read_text())
+    return {
+        "tactic_id": c.get("tactic_id", m.get("tactic_id", "?")),
+        "seed": c.get("seed", m.get("seed", "?")),
+        "baseline": m.get("fleet", "baseline fleet"),
+        "fixed": c.get("fleet", "fixed fleet"),
+        "miss_t_alarm": m.get("t_alarm"),
+        "catch_t_alarm": c.get("t_alarm") if c.get("t_alarm") is not None else float("nan"),
+        "t_cdp": c.get("t_cdp", m.get("t_cdp", float("nan"))),
+    }
+
+
+def clip_line(clips: dict | None, which: str) -> str:
+    if not clips:
+        return ""
+    if which == "miss":
+        return f"\n\nClip A, seed {clips['seed']}: {clips['baseline']} never raised a timely alarm against `{clips['tactic_id']}` (deadline {clips['t_cdp']:.0f} s)."
+    return f"\n\nClip B, same seed and tactic: {clips['fixed']} alarmed at {clips['catch_t_alarm']:.0f} s, before the {clips['t_cdp']:.0f} s deadline."
+
+
+def build(
+    numbers: dict, tokens: dict, charts_rel: str, example: bool, clips: dict | None = None
+) -> str:
     cond = numbers["conditions"]
     conditions = (
         f"Operating point {cond['far_per_hour_operating_point']:g} false alarm/h · {cond['n_seeds']} seeds · "
@@ -34,13 +67,13 @@ def build(numbers: dict, tokens: dict, charts_rel: str, example: bool) -> str:
         )
         + watermark,
         (
-            f"# What the adversary found\n\nCharging-window attack: enter `{cw['entry']}` at phase {cw['phase']:.2f} of the charge cycle at {cw['speed_mps']:.1f} m/s.\n\n*Replay clip A: the miss.*{watermark}"
+            f"# What the adversary found\n\nCharging-window attack: enter `{cw['entry']}` at phase {cw['phase']:.2f} of the charge cycle at {cw['speed_mps']:.1f} m/s.\n\n*Replay clip A: the miss.*{clip_line(clips, 'miss')}{watermark}"
             if cw
             else f"# What the adversary found\n\n*Run the search to populate this slide.*{watermark}"
         ),
-        f"# The score\n\n![height:440px]({charts_rel}/cost_vs_detection.png)\n\n<small>{conditions}</small>{watermark}",
+        f"# The score\n\n![height:470px]({charts_rel}/cost_vs_detection.png){watermark}",
         (
-            f"# The fix and the re-attack\n\n![height:400px]({charts_rel}/before_after.png)\n\n{ba['baseline']} to {ba['fixed']}: detection {_fmt(ba['pd'][0])} to {_fmt(ba['pd'][1])}; against the re-attacking worst tactic {_fmt(ba['worst_tactic_pd'][0])} to {_fmt(ba['worst_tactic_pd'][1])}.\n\n*Replay clip B: the catch.*{watermark}"
+            f"# The fix and the re-attack\n\n![height:400px]({charts_rel}/before_after.png)\n\n{ba['baseline']} to {ba['fixed']}: detection {_fmt(ba['pd'][0])} to {_fmt(ba['pd'][1])}; against the re-attacking worst tactic {_fmt(ba['worst_tactic_pd'][0])} to {_fmt(ba['worst_tactic_pd'][1])}.\n\n*Replay clip B: the catch.*{clip_line(clips, 'catch')}{watermark}"
             if ba
             else f"# The fix and the re-attack\n\n*Needs a report with at least two configurations.*{watermark}"
         ),
@@ -51,7 +84,19 @@ def build(numbers: dict, tokens: dict, charts_rel: str, example: bool) -> str:
         ),
         f"# What we sell, and what is next\n\n- The score, the vulnerability map, and a re-score after purchase\n- Next: learned adversary, calibrated sensors on more platforms, fleet memory under link loss\n\n<small>{conditions}</small>{watermark}",
     ]
-    header = "---\nmarp: true\ntheme: default\npaginate: true\n---\n\n"
+    header = (
+        "---\nmarp: true\ntheme: default\npaginate: true\n"
+        "style: |\n"
+        "  section { background: #fcfcfb; color: #0b0b0b; font-family: ui-sans-serif, system-ui, sans-serif; padding: 48px 64px; }\n"
+        "  h1 { color: #0b0b0b; font-size: 1.7em; margin-bottom: 0.2em; }\n"
+        "  h2 { color: #52514e; font-weight: 500; font-size: 1.1em; }\n"
+        "  a, strong { color: #2a78d6; }\n"
+        "  small { color: #898781; font-size: 0.6em; }\n"
+        "  code { background: #f0efe9; color: #0b0b0b; }\n"
+        "  section::after { color: #898781; }\n"
+        "  img { display: block; margin: 0 auto; }\n"
+        "---\n\n"
+    )
     return header + "\n\n---\n\n".join(slides) + "\n"
 
 
@@ -59,6 +104,7 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--charts", type=Path, default=REPO / "pitch" / "charts")
     ap.add_argument("--out", type=Path, default=REPO / "pitch" / "deck.md")
+    ap.add_argument("--clips-dir", type=Path, default=REPO / "pitch" / "clips")
     args = ap.parse_args(argv)
     numbers_path = args.charts / "numbers.json"
     tokens_path = args.charts / "token_numbers.json"
@@ -74,7 +120,8 @@ def main(argv: list[str] | None = None) -> int:
         if args.charts.resolve().is_relative_to(args.out.resolve().parent)
         else args.charts
     )
-    args.out.write_text(build(numbers, tokens, str(rel), example))
+    clips = load_clip_facts(args.clips_dir)
+    args.out.write_text(build(numbers, tokens, str(rel), example, clips))
     print(
         f"deck written to {args.out}"
         + (" (EXAMPLE DATA watermark on every slide)" if example else "")

@@ -46,3 +46,17 @@ Run the site blueprint to confirm the entry point is discovered:
 ```bash
 uv run dimos run airtight.airtight-site
 ```
+
+## Commands
+
+Everything below runs from the repo root after `uv sync --extra dev`. The demo scenario lives in
+`scenarios/logistics_yard/`; pass `--engine v0` to use the simulation engine instead of the stub.
+
+```bash
+uv run airtight-redteam difficulty --engine v0 --site scenarios/logistics_yard/site.json --fleet scenarios/logistics_yard/fleets/d2_go2_guard_sync.json --curves scenarios/logistics_yard/sensor_curve.json --config scenarios/logistics_yard/redteam_config.json --workers 8
+uv run airtight-redteam search     --engine v0 <same scene flags> --out data/tactics          # worst tactic per family, replay logs for each
+uv run airtight-redteam propose    <scene flags> --prior data/tactics --mock                    # LLM proposals; drop --mock for one real call under the cap
+uv run airtight-sweep --engine v0 --tactics-dir data/tactics --n-seeds 200 --quiet-seeds 20     # twelve fleets x worst tactics -> data/report.json
+scripts/rebuild_pitch.sh data/report.json data/tactics                                          # charts, clips, deck, write-up, rendered deck
+uv run python pitch/render_replay.py <episode.jsonl>                                            # one episode as MP4
+```

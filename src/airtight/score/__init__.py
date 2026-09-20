@@ -1,1 +1,1 @@
-"""Offline scoring. `airtight.score.report` is lane C's log-based scorer and sweep runner (airtight-sweep)."""
+"""Offline scoring. `airtight.score.logreport` is lane C's log-based scorer and sweep runner (airtight-sweep)."""

@@ -14,7 +14,7 @@ Airtight is a security-posture engine. You give it a site twin: perimeter, entry
 
 - Robot runtime on dimOS: the Go2 walks, patrols and answers skills over MCP in MuJoCo; the allocator, the approval gate and the fleet are dimOS modules composed into one blueprint.
 - A headless simulator for the sweep: kinematic agents, per-look Bernoulli sensing from a calibrated curve, a log-likelihood track score, battery clocks and docks, benign traffic with false alarms.
-- A red team: four tactic families over one schema, a validator, elite search with a continuous objective, and an LLM that proposes tactics as programs of primitives which the search then attacks. The LLM never plans an episode, which is why the adversary costs [ratio]x less than an LLM planner. In our runs the cheapest model's proposals were outcompeted by the search; the honest claim is that the proposer is a seed, not the adversary.
+- A red team: four tactic families over one schema, a validator, elite search with a continuous objective, and an LLM that proposes tactics as programs of primitives which the search then attacks. The LLM never plans an episode, which is why the adversary costs 100x less than an LLM planner. In our runs the cheapest model's proposals were outcompeted by the search; the honest claim is that the proposer is a seed, not the adversary.
 - A fleet memory that keeps merging under a cut link: a state-based CRDT with property tests for order independence.
 - An offline scorer: thresholds swept on logged scores, the operating point set at one false alarm per hour, bootstrap intervals, paired comparisons on the same seeds.
 - Every number on every slide is produced by a script from the frozen report.
@@ -22,12 +22,12 @@ Airtight is a security-posture engine. You give it a site twin: perimeter, entry
 ## Challenges
 
 - Timing is the whole game. With a 25 s response time and a jogging intruder, the deadline for a run from the nearest gate is zero, and no fleet can ever be timely. We found that in the first real search and fixed the scenario, not the adversary.
-- Synchronized charging is a real vulnerability. The moment battery clocks existed, the charging-window family became the weak one on the synchronized fleet while other families stayed high; the worst tactic enters at `[worst_entry]` at phase [worst_phase] of the charge cycle.
+- Synchronized charging is a real vulnerability. The moment battery clocks existed, the charging-window family became the weak one on the synchronized fleet while other families stayed high; the worst tactic enters at `rear_fence_gap` at phase 1.00 of the charge cycle.
 - Keeping four people from stepping on each other in 24 hours: one schema, one seed list, lanes that only touch their own directories, and a merge gate.
 
 ## Accomplishments
 
-- A quantified score with its conditions stated, not a demo: timely detection [pd_baseline] to [pd_fixed] and [worst_baseline] to [worst_fixed] against the worst tactic, from [baseline_config] at [cost] dollars per hour to [fixed_config], on [n_seeds] shared seeds; human decisions per hour [decisions_baseline] to [decisions_fixed].
+- A quantified score with its conditions stated, not a demo: timely detection 0.14 to 0.63 and 0.04 to 0.49 against the worst tactic, from d2_go2_guard_sync at 55 dollars per hour to d3_go2_guard_stagger, on 200 shared seeds; human decisions per hour 0.1 to 0.2.
 - The fix loop closes: stagger, re-attack, re-score, on the same seeds.
 - Everything reproducible from one command per stage.
 

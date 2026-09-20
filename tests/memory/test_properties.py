@@ -112,3 +112,47 @@ def test_dict_items_from_lane_a_shape_are_accepted() -> None:
     recs = a.records("claim", now=5.0)
     assert recs[0]["agent_id"] == "go2_1" and recs[0]["age"] == 2.0
     assert a.records("coverage")[0]["x"] == 5.0
+
+
+def test_concurrent_writers_and_readers_do_not_corrupt_the_store() -> None:
+    import threading
+
+    store = FleetMemoryStore()
+    errors: list[BaseException] = []
+
+    def writer(tag: str) -> None:
+        try:
+            for i in range(2000):
+                store.observe(
+                    {
+                        "kind": "coverage",
+                        "x": float(i % 50),
+                        "y": float(i % 30),
+                        "last_seen": float(i),
+                        "by": tag,
+                    }
+                )
+                store.observe(
+                    {"kind": "claim", "key": f"task_{i % 7}", "value": tag, "t": float(i)}
+                )
+        except BaseException as e:  # noqa: BLE001
+            errors.append(e)
+
+    def reader() -> None:
+        try:
+            for _ in range(500):
+                store.delta(0, 2048)
+                store.records("coverage", now=1e9)
+                store.query("claim")
+        except BaseException as e:  # noqa: BLE001
+            errors.append(e)
+
+    threads = [threading.Thread(target=writer, args=(f"w{i}",)) for i in range(4)] + [
+        threading.Thread(target=reader) for _ in range(2)
+    ]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert not errors, errors[:1]
+    assert len(store.query("claim")) == 7 and store.version > 0
