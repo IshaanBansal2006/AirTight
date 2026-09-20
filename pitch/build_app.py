@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -74,6 +75,35 @@ def episode(log_path: Path, fleet_name: str) -> dict:
         "first_detection": first_det,
         "responder": responder,
     }
+
+
+def priority_ramp() -> dict[str, list[str]]:
+    """One hue, ordered by lightness: the chart palette's amber mixed toward paper and toward ink. Dark mode runs the other way."""
+    sys.path.insert(0, str(REPO / "pitch"))
+    from palette import LIGHT
+
+    amber = [int(LIGHT.series[3][i : i + 2], 16) for i in (1, 3, 5)]
+
+    def mix(to: int, k: float) -> str:
+        return "#" + "".join(f"{round(c + (to - c) * k):02x}" for c in amber)
+
+    light = [mix(255, 0.8), mix(255, 0.5), mix(255, 0.2), mix(0, 0.1), mix(0, 0.3), mix(0, 0.5)]
+    return {"light": light, "dark": light[::-1]}
+
+
+def perception_view(
+    log_path: Path, fleet_name: str, fleets_dir: Path, site: Site, curves: SensorCurves
+) -> dict | None:
+    """Controller trace and dimOS perceived map for one recording, or None when either cannot be built."""
+    sys.path.insert(0, str(REPO / "pitch"))
+    from perception_map import build_view
+
+    fleet_path = fleets_dir / f"{fleet_name}.json"
+    if not fleet_path.exists():
+        return None
+    return build_view(
+        log_path, FleetConfig.model_validate_json(fleet_path.read_text()), site, curves
+    )
 
 
 def rounds(minmax_dir: Path, site: Site) -> list[dict]:
@@ -222,7 +252,15 @@ def main(argv: list[str] | None = None) -> int:
         "rounds": rounds(args.minmax_dir, site),
         "tokens": tokens,
         "runs": archived_runs(),
+        "ramp": priority_ramp(),
     }
+    for kind, name, log in (
+        ("miss", clips["baseline"], miss_log),
+        ("catch", clips["fixed"], catch_log),
+    ):
+        payload["episodes"][kind]["view"] = perception_view(
+            log, name, args.fleets_dir, site, curves
+        )
     blob = json.dumps(payload, separators=(",", ":")).replace("</", "<\\/")
     html = args.template.read_text().replace("__DATA__", blob)
     args.out.write_text(html)
