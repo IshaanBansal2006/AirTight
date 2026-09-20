@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from importlib import resources
 from pathlib import Path
 
@@ -88,6 +89,76 @@ def test_run_replay_scripts_path_and_dispatches(tmp_path: Path) -> None:
     write_rrd(plan, dest)
     assert dest.is_file()
     assert dest.stat().st_size > 0
+
+
+def test_clean_clip_hides_dispatch_uuid() -> None:
+    from airtight.dimos_lane.clips import render_html
+
+    plan = plan_replay(EXAMPLE_LOG)
+    html = render_html(plan, load_example_site(), clean=True)
+    assert "proposal=" not in html
+    assert "Replay B — catch" in html
+    assert "dispatch=" not in html
+
+
+def test_charging_window_ends_at_logistics_asset() -> None:
+    from airtight.dimos_lane.clips import charging_window_tactic
+    from airtight.dimos_lane.site_io import load_logistics_site
+
+    site = load_logistics_site()
+    tactic = charging_window_tactic(site, tactics_dir=Path("/no/tactics"))
+    assert tactic.family == "charging_window"
+    assert tactic.entry_id == "rear_fence_gap"
+    assert tactic.waypoints[-1] == site.asset
+    assert len(tactic.waypoints) >= 2
+
+
+def test_clips_record_matches_lane_c_schema() -> None:
+    from airtight.contracts import EpisodeResult
+    from airtight.dimos_lane.clips import CLIPS_JSON_KEYS, charging_window_tactic, clips_record
+    from airtight.dimos_lane.site_io import load_logistics_site
+
+    tactic = charging_window_tactic(load_logistics_site(), tactics_dir=Path("/no/tactics"))
+    miss = EpisodeResult(timely_detected=False, t_alarm=None, t_cdp=33.7, log_path=Path("m.jsonl"))
+    catch = EpisodeResult(timely_detected=True, t_alarm=24.0, t_cdp=33.7, log_path=Path("c.jsonl"))
+    payload = clips_record(tactic, 63663, miss, catch)
+    assert tuple(payload) == CLIPS_JSON_KEYS
+    assert payload["baseline"] == "d2_go2_guard_sync"
+    assert payload["fixed"] == "d3_go2_guard_stagger"
+    assert payload["seed"] == 63663
+
+
+def test_write_handoff_clips_from_pair(tmp_path: Path) -> None:
+    from airtight.contracts import EpisodeResult
+    from airtight.dimos_lane.clips import write_handoff_clips
+
+    miss_log = miss_log_from_catch(EXAMPLE_LOG, tmp_path / "pair_miss.jsonl")
+    calls = {"n": 0}
+
+    def run(*_args: object, **_kwargs: object) -> EpisodeResult:
+        miss = calls["n"] % 2 == 0
+        calls["n"] += 1
+        return EpisodeResult(
+            timely_detected=not miss,
+            t_alarm=None if miss else 24.0,
+            t_cdp=33.7,
+            log_path=miss_log if miss else EXAMPLE_LOG,
+        )
+
+    manifest = write_handoff_clips(
+        tmp_path,
+        seeds=[63663],
+        render_mp4=False,
+        run_episode=run,
+        tactics_dir=tmp_path,
+    )
+    payload = json.loads(manifest.read_text())
+    assert payload["seed"] == 63663
+    miss_html = (tmp_path / "clips" / "miss.html").read_text()
+    catch_html = (tmp_path / "clips" / "catch.html").read_text()
+    assert "Replay A — miss" in miss_html
+    assert "Replay B — catch" in catch_html
+    assert "proposal=" not in miss_html
 
 
 def test_miss_replay_does_not_dispatch(tmp_path: Path) -> None:

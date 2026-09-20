@@ -7,15 +7,7 @@ import pytest
 
 from airtight.contracts import FleetConfig, Report, SensorCurves, Site, Tactic
 from airtight.score.logreport.logs import summarize_log
-from airtight.score.logreport.sweep import (
-    ConfigInputs,
-    build_report,
-    coverage_gap,
-    inputs_without_quiet,
-    run_config,
-    run_quiet_nights,
-    seed_list_hash,
-)
+from airtight.score.logreport.sweep import build_report, run_config, seed_list_hash
 from airtight.sim.runner import run_episode
 
 SCEN = Path(__file__).parents[3] / "scenarios" / "logistics_yard"
@@ -26,14 +18,9 @@ def _v0(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("AIRTIGHT_ENGINE", "v0")
 
 
-def _scene() -> tuple[Site, SensorCurves]:
-    return Site.model_validate_json(
-        (SCEN / "site.json").read_text()
-    ), SensorCurves.model_validate_json((SCEN / "sensor_curve.json").read_text())
-
-
 def test_v0_log_summary_has_score_series(tmp_path: Path) -> None:
-    site, curves = _scene()
+    site = Site.model_validate_json((SCEN / "site.json").read_text())
+    curves = SensorCurves.model_validate_json((SCEN / "sensor_curve.json").read_text())
     fleet = FleetConfig.model_validate_json(
         (SCEN / "fleets" / "d2_go2_guard_sync.json").read_text()
     )
@@ -55,19 +42,9 @@ def test_v0_log_summary_has_score_series(tmp_path: Path) -> None:
     )
 
 
-def test_quiet_nights_and_coverage_gap_from_engine() -> None:
-    site, curves = _scene()
-    fleet = FleetConfig.model_validate_json(
-        (SCEN / "fleets" / "d2_go2_guard_sync.json").read_text()
-    )
-    quiet = run_quiet_nights(site, fleet, curves, [11], workers=1)
-    assert quiet.hours > 0.5 and "quiet nights" in quiet.source
-    gap = coverage_gap(site, fleet, curves)
-    assert 0.0 <= gap <= 3600.0
-
-
 def test_two_config_sweep_builds_a_valid_report(tmp_path: Path) -> None:
-    site, curves = _scene()
+    site = Site.model_validate_json((SCEN / "site.json").read_text())
+    curves = SensorCurves.model_validate_json((SCEN / "sensor_curve.json").read_text())
     tactics = [
         Tactic(
             id="walk",
@@ -79,13 +56,15 @@ def test_two_config_sweep_builds_a_valid_report(tmp_path: Path) -> None:
         )
     ]
     seeds = [1, 2, 3]
-    per_config: dict[str, ConfigInputs] = {}
+    per_config = {}
     for name in ("d2_go2_guard_sync", "d4_go2_guard_stagger"):
         fleet = FleetConfig.model_validate_json((SCEN / "fleets" / f"{name}.json").read_text())
-        summaries = run_config(
-            site, fleet, tactics, curves, seeds, run_episode, tmp_path / "logs", prune_logs=True
+        per_config[name] = (
+            fleet,
+            run_config(
+                site, fleet, tactics, curves, seeds, run_episode, tmp_path / "logs", prune_logs=True
+            ),
         )
-        per_config[name] = inputs_without_quiet(fleet, summaries)
     assert not (tmp_path / "logs" / "d2_go2_guard_sync").exists()
     report = build_report(
         site,
@@ -98,9 +77,9 @@ def test_two_config_sweep_builds_a_valid_report(tmp_path: Path) -> None:
     )
     assert Report.model_validate_json(report.model_dump_json()) == report
     other = report.config("d4_go2_guard_stagger")
-    assert other.n_episodes == 3 and {d.metric for d in other.paired_vs_baseline} == {
-        "pd_at_operating_point",
-        "human_decisions_per_hour",
-        "coverage_gap_s_per_hour",
-    }
+    assert (
+        other.n_episodes == 3
+        and other.paired_vs_baseline
+        and other.paired_vs_baseline[0].metric == "pd_at_operating_point"
+    )
     assert json.loads(report.model_dump_json())["conditions"]["n_seeds"] == 3

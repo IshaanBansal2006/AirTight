@@ -13,6 +13,8 @@ from airtight.sim.constants import TAU_INVESTIGATE
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
 
+    import numpy.typing as npt
+
     from airtight.sim.episode import EpisodeScores, QuietScores
 
     Interval = tuple[float, float]
@@ -46,15 +48,10 @@ class ConfigScore:
     quiet_hours: float
 
 
-def score_config(
-    episodes_by_tactic: Mapping[str, Sequence[EpisodeScores]],
-    quiet_runs: Sequence[QuietScores],
-    far_target: float = 1.0,
-    n_boot: int = 500,
-    boot_seed: int = 0,
-    tau_min: float = TAU_INVESTIGATE,
-) -> ConfigScore:
-    """Score one configuration from its intrusion episodes and its quiet nights.
+def peaks_and_quiet(
+    episodes_by_tactic: Mapping[str, Sequence[EpisodeScores]], quiet_runs: Sequence[QuietScores]
+) -> tuple[list[str], npt.NDArray[np.float64], list[tuple[npt.NDArray[np.float64], float]]]:
+    """Check the inputs and lay them out for roc: tactic ids, peaks (n_seeds, n_tactics), quiet.
 
     Every tactic must have exactly the same seeds in the same order: the rows of the peaks
     matrix are seeds, and intervals come from resampling whole rows.
@@ -79,14 +76,30 @@ def score_config(
             assert DECOY_ID not in episode.benign_peaks, "the decoy must never count as benign"
     for run in quiet_runs:
         assert DECOY_ID not in run.benign_peaks, "the decoy must never count as benign"
-
     peaks = np.array(
         [[e.intruder_peak for e in episodes_by_tactic[t]] for t in tactic_ids], dtype=np.float64
-    ).T  # (n_seeds, n_tactics)
+    ).T
     quiet = [
         (np.array(list(run.benign_peaks.values()), dtype=np.float64), run.sim_hours)
         for run in quiet_runs
     ]
+    return tactic_ids, peaks, quiet
+
+
+def score_config(
+    episodes_by_tactic: Mapping[str, Sequence[EpisodeScores]],
+    quiet_runs: Sequence[QuietScores],
+    far_target: float = 1.0,
+    n_boot: int = 500,
+    boot_seed: int = 0,
+    tau_min: float = TAU_INVESTIGATE,
+) -> ConfigScore:
+    """Score one configuration from its intrusion episodes and its quiet nights.
+
+    Every tactic must have exactly the same seeds in the same order: the rows of the peaks
+    matrix are seeds, and intervals come from resampling whole rows.
+    """
+    tactic_ids, peaks, quiet = peaks_and_quiet(episodes_by_tactic, quiet_runs)
 
     op = roc.operating_point(peaks, quiet, far_target, tau_min)
     per_tactic, worst = roc.pd_by_tactic(peaks, op.tau)
@@ -110,6 +123,6 @@ def score_config(
         roc=rows,
         human_decisions_per_hour=op.far,
         raw_alerts_per_hour=float(roc.far_curve(quiet, np.array([tau_min]))[0]),
-        n_seeds=len(seeds),
+        n_seeds=peaks.shape[0],
         quiet_hours=float(sum(run.sim_hours for run in quiet_runs)),
     )

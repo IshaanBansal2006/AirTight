@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import json
 import logging
 import shutil
@@ -9,7 +8,6 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 import numpy as np
-from pydantic import BaseModel
 
 from airtight.contracts import (
     Conditions,
@@ -23,11 +21,9 @@ from airtight.contracts import (
 )
 from airtight.score.logreport.logs import EpisodeSummary, summarize_log
 from airtight.score.logreport.roc import (
-    QuietStats,
-    far_at,
+    decisions_per_hour_at,
     pd_at,
     pd_at_operating_point,
-    quiet_from_summaries,
     roc_curve,
 )
 
@@ -38,16 +34,6 @@ if TYPE_CHECKING:
     from airtight.redteam.objective import EpisodeFn
 
 log = logging.getLogger(__name__)
-DEPLOYED_ALARM_THRESHOLD = 4.0
-
-
-class ConfigInputs(BaseModel):
-    """Everything the report needs for one configuration."""
-
-    fleet: FleetConfig
-    summaries: list[EpisodeSummary]
-    quiet: QuietStats
-    coverage_gap_s_per_hour: float
 
 
 def _job(
@@ -89,38 +75,13 @@ def run_config(
     return out
 
 
-def run_quiet_nights(
-    site: Site,
-    fleet: FleetConfig,
-    curves: SensorCurves,
-    quiet_seeds: Sequence[int],
-    workers: int = 1,
-) -> QuietStats:
-    """Benign-only exposure through the engine's quiet nights; one reference charge cycle per seed."""
-    from airtight.score.quiet import run_quiet
-
-    nights = run_quiet(site, fleet, curves, list(quiet_seeds), workers=max(1, workers))
-    peaks = [v for night in nights for v in night.benign_peaks.values()]
-    hours = float(sum(night.sim_hours for night in nights))
-    return QuietStats(
-        benign_peaks=peaks,
-        hours=hours,
-        source=f"{len(nights)} quiet nights of one charge cycle each",
-    )
-
-
-def coverage_gap(site: Site, fleet: FleetConfig, curves: SensorCurves) -> float:
-    """Seconds per hour with nobody patrolling, from the engine's coverage profile over one charge cycle."""
-    from airtight.sim.coverage import coverage_profile, uncovered_s_per_hour
-
-    return float(uncovered_s_per_hour(coverage_profile(site, fleet, curves)))
-
-
 def config_result(
-    inputs: ConfigInputs, far_target: float, rng: np.random.Generator
+    fleet: FleetConfig,
+    summaries: Sequence[EpisodeSummary],
+    far_target: float,
+    rng: np.random.Generator,
 ) -> tuple[ConfigResult, float]:
-    fleet, summaries, quiet = inputs.fleet, inputs.summaries, inputs.quiet
-    pd, ci, tau = pd_at_operating_point(summaries, quiet, far_target, rng=rng)
+    pd, ci, tau = pd_at_operating_point(summaries, far_target, rng=rng)
     by_tactic: dict[str, list[EpisodeSummary]] = {}
     for s in summaries:
         by_tactic.setdefault(s.tactic_id, []).append(s)
@@ -131,29 +92,29 @@ def config_result(
         config_name=fleet.name,
         fleet_hash=fleet.content_hash(),
         n_episodes=len(summaries),
-        roc=roc_curve(summaries, quiet),
+        roc=roc_curve(summaries),
         pd_at_operating_point=pd,
         pd_at_operating_point_ci=ci,
         worst_tactic_id=worst_id,
         worst_tactic_pd=worst_pd,
         cost_per_hour=fleet.cost_per_hour(),
-        coverage_gap_s_per_hour=inputs.coverage_gap_s_per_hour,
-        human_decisions_per_hour=far_at(quiet, DEPLOYED_ALARM_THRESHOLD),
+        coverage_gap_s_per_hour=0.0,
+        human_decisions_per_hour=decisions_per_hour_at(summaries, tau),
     )
     return result, tau
 
 
 def paired_deltas(
-    base: ConfigInputs,
+    base: Sequence[EpisodeSummary],
     base_tau: float,
-    other: ConfigInputs,
+    other: Sequence[EpisodeSummary],
     other_tau: float,
     rng: np.random.Generator,
     n_boot: int = 200,
 ) -> list[PairedDelta]:
     """Per-episode differences on the shared (tactic, seed) keys; the interval is a bootstrap over pairs."""
-    b = {(s.tactic_id, s.seed): s for s in base.summaries}
-    o = {(s.tactic_id, s.seed): s for s in other.summaries}
+    b = {(s.tactic_id, s.seed): s for s in base}
+    o = {(s.tactic_id, s.seed): s for s in other}
     keys = sorted(set(b) & set(o))
     if not keys:
         return []
@@ -174,18 +135,14 @@ def paired_deltas(
             metric="pd_at_operating_point", delta=float(diffs.mean()), ci=(float(lo), float(hi))
         )
     ]
-    d_dec = far_at(other.quiet, DEPLOYED_ALARM_THRESHOLD) - far_at(
-        base.quiet, DEPLOYED_ALARM_THRESHOLD
-    )
+    d_dec = decisions_per_hour_at(other, other_tau) - decisions_per_hour_at(base, base_tau)
     out.append(PairedDelta(metric="human_decisions_per_hour", delta=d_dec, ci=(d_dec, d_dec)))
-    d_gap = other.coverage_gap_s_per_hour - base.coverage_gap_s_per_hour
-    out.append(PairedDelta(metric="coverage_gap_s_per_hour", delta=d_gap, ci=(d_gap, d_gap)))
     return out
 
 
 def build_report(
     site: Site,
-    per_config: dict[str, ConfigInputs],
+    per_config: dict[str, tuple[FleetConfig, list[EpisodeSummary]]],
     baseline: str,
     far_target: float,
     seeds: Sequence[int],
@@ -196,15 +153,18 @@ def build_report(
     rng = rng or np.random.default_rng(0)
     if baseline not in per_config:
         raise KeyError(f"baseline {baseline!r} not among swept configs {sorted(per_config)}")
-    results = {name: config_result(inp, far_target, rng) for name, inp in per_config.items()}
+    results: dict[str, tuple[ConfigResult, float]] = {
+        name: config_result(fleet, ss, far_target, rng) for name, (fleet, ss) in per_config.items()
+    }
     base_res, base_tau = results[baseline]
+    base_ss = per_config[baseline][1]
     configs = []
     for name, (res, tau) in results.items():
         if name != baseline:
             res = res.model_copy(
                 update={
                     "paired_vs_baseline": paired_deltas(
-                        per_config[baseline], base_tau, per_config[name], tau, rng
+                        base_ss, base_tau, per_config[name][1], tau, rng
                     )
                 }
             )
@@ -225,16 +185,6 @@ def build_report(
     )
 
 
-def inputs_without_quiet(fleet: FleetConfig, summaries: list[EpisodeSummary]) -> ConfigInputs:
-    """For tests and the stub engine: false alarms from intrusion episodes, coverage gap unknown."""
-    return ConfigInputs(
-        fleet=fleet,
-        summaries=summaries,
-        quiet=quiet_from_summaries(summaries),
-        coverage_gap_s_per_hour=0.0,
-    )
-
-
 def load_top_tactics(tactics_dir: Path, per_family: int) -> list[Tactic]:
     """The best few per family from a search output directory."""
     from airtight.redteam.search import SearchResult
@@ -251,4 +201,6 @@ def load_top_tactics(tactics_dir: Path, per_family: int) -> list[Tactic]:
 
 
 def seed_list_hash(seeds: Sequence[int]) -> str:
+    import hashlib
+
     return hashlib.sha256(json.dumps(list(seeds)).encode()).hexdigest()[:12]
