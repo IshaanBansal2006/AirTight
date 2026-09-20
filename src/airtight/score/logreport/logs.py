@@ -6,9 +6,13 @@ from typing import TYPE_CHECKING
 from pydantic import BaseModel, Field
 
 from airtight.contracts import OutcomeEvent, ScoreEvent, read_episode_log
+from airtight.sim.recorder import timely_at_ref
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+    from airtight.contracts import FleetConfig, Tactic
+    from airtight.sim.episode import EpisodeScores
 
 INTRUDER_ID = "intruder"
 DECOY_PREFIX = "decoy"
@@ -28,6 +32,25 @@ class EpisodeSummary(BaseModel):
     benign_peaks: dict[str, float] = Field(default_factory=dict)
     decoy_peak: float | None = None
     has_score_series: bool
+
+
+def summarize_from_scores(
+    fleet: FleetConfig, tactic: Tactic, scores: EpisodeScores
+) -> EpisodeSummary:
+    """Build a summary from the live EpisodeScores so a sweep need not write or parse JSONL."""
+    return EpisodeSummary(
+        fleet_hash=fleet.content_hash(),
+        tactic_id=tactic.id,
+        family=tactic.family,
+        seed=scores.seed,
+        t_end_s=scores.t_end,
+        t_cdp=scores.t_cdp,
+        timely_at_ref=timely_at_ref(scores),
+        intruder_peak_before_cdp=scores.intruder_peak,
+        benign_peaks=dict(scores.benign_peaks),
+        decoy_peak=scores.decoy_peak,
+        has_score_series=scores.n_looks > 0,
+    )
 
 
 def summarize_log(path: Path) -> EpisodeSummary:

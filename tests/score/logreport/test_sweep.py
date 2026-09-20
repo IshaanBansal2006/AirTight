@@ -121,3 +121,49 @@ def test_two_config_sweep_builds_a_valid_report(tmp_path: Path) -> None:
         "coverage_gap_s_per_hour",
     }
     assert json.loads(report.model_dump_json())["conditions"]["n_seeds"] == 3
+
+
+def test_v0_pruned_sweep_uses_live_peaks_and_writes_nothing(tmp_path: Path) -> None:
+    site, curves = _scene()
+    fleet = FleetConfig.model_validate_json(
+        (SCEN / "fleets" / "d2_go2_guard_sync.json").read_text()
+    )
+    tactic = Tactic(
+        id="walk",
+        family="charging_window",
+        entry_id="main_gate",
+        phase=0.1,
+        speed_mps=1.2,
+        waypoints=[site.asset],
+    )
+    summaries = run_config(
+        site, fleet, [tactic], curves, [3], run_episode, tmp_path / "logs", prune_logs=True
+    )
+    assert summaries[0].has_score_series
+    assert summaries[0].intruder_peak_before_cdp not in (float("inf"), float("-inf"))
+    assert not (tmp_path / "logs").exists() or not any((tmp_path / "logs").rglob("*.jsonl"))
+
+
+def test_summarize_from_scores_matches_full_log(tmp_path: Path) -> None:
+    from airtight.score.logreport.logs import summarize_from_scores
+    from airtight.sim.episode import official_params, simulate
+
+    site, curves = _scene()
+    fleet = FleetConfig.model_validate_json(
+        (SCEN / "fleets" / "d2_go2_guard_sync.json").read_text()
+    )
+    tactic = Tactic(
+        id="walk",
+        family="charging_window",
+        entry_id="main_gate",
+        phase=0.1,
+        speed_mps=1.2,
+        waypoints=[site.asset],
+    )
+    scores = simulate(site, fleet, tactic, curves, 3, official_params())
+    from_scores = summarize_from_scores(fleet, tactic, scores)
+    from_log = summarize_log(run_episode(site, fleet, tactic, curves, 3, tmp_path).log_path)
+    assert from_scores.intruder_peak_before_cdp == from_log.intruder_peak_before_cdp
+    assert from_scores.timely_at_ref == from_log.timely_at_ref
+    assert from_scores.has_score_series == from_log.has_score_series
+

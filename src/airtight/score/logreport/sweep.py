@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import os
 import shutil
 from concurrent.futures import ProcessPoolExecutor
 from datetime import UTC, datetime
@@ -21,7 +22,7 @@ from airtight.contracts import (
     Site,
     Tactic,
 )
-from airtight.score.logreport.logs import EpisodeSummary, summarize_log
+from airtight.score.logreport.logs import EpisodeSummary, summarize_from_scores, summarize_log
 from airtight.score.logreport.roc import (
     QuietStats,
     far_at,
@@ -73,6 +74,20 @@ def _blind_job(
     return summarize_log(result.log_path).model_copy(update={"tactic_id": tactic.id})
 
 
+def _v0_summary_job(
+    args: tuple[Site, FleetConfig, Tactic, SensorCurves, int, bool],
+) -> EpisodeSummary:
+    """Official v0 peaks straight from simulate — no JSONL, no recorder."""
+    from airtight.redteam.objective import schedule_blind
+    from airtight.sim.episode import official_params, simulate
+
+    site, fleet, tactic, curves, seed, randomize_phase = args
+    used = schedule_blind(tactic, seed) if randomize_phase else tactic
+    scores = simulate(site, fleet, used, curves, seed, official_params())
+    summary = summarize_from_scores(fleet, used, scores)
+    return summary.model_copy(update={"tactic_id": tactic.id}) if randomize_phase else summary
+
+
 def run_config(
     site: Site,
     fleet: FleetConfig,
@@ -85,18 +100,33 @@ def run_config(
     prune_logs: bool = False,
     randomize_phase: bool = False,
 ) -> list[EpisodeSummary]:
-    """Every tactic on every seed with full logs, summarised as they finish; logs optionally deleted after."""
-    cfg_dir = log_dir / (fleet.name + ("_blind" if randomize_phase else ""))
-    cfg_dir.mkdir(parents=True, exist_ok=True)
-    jobs = [(episode_fn, site, fleet, t, curves, s, cfg_dir) for t in tactics for s in seeds]
-    job = _blind_job if randomize_phase else _job
-    if workers <= 1:
-        out = [job(j) for j in jobs]
+    """Every tactic on every seed, summarised as they finish.
+
+    The v0 engine with prune_logs (the CLI default) never writes episode files: peaks come
+    from EpisodeScores. Stub runs and --keep-logs still go through episode_fn and JSONL.
+    """
+    engine = os.environ.get("AIRTIGHT_ENGINE", "stub")
+    if engine == "v0" and prune_logs:
+        jobs = [(site, fleet, t, curves, s, randomize_phase) for t in tactics for s in seeds]
+        if workers <= 1:
+            out = [_v0_summary_job(j) for j in jobs]
+        else:
+            with ProcessPoolExecutor(max_workers=workers) as pool:
+                out = list(
+                    pool.map(_v0_summary_job, jobs, chunksize=max(1, len(jobs) // (workers * 8)))
+                )
     else:
-        with ProcessPoolExecutor(max_workers=workers) as pool:
-            out = list(pool.map(job, jobs, chunksize=max(1, len(jobs) // (workers * 8))))
-    if prune_logs:
-        shutil.rmtree(cfg_dir, ignore_errors=True)
+        cfg_dir = log_dir / (fleet.name + ("_blind" if randomize_phase else ""))
+        cfg_dir.mkdir(parents=True, exist_ok=True)
+        jobs = [(episode_fn, site, fleet, t, curves, s, cfg_dir) for t in tactics for s in seeds]
+        job = _blind_job if randomize_phase else _job
+        if workers <= 1:
+            out = [job(j) for j in jobs]
+        else:
+            with ProcessPoolExecutor(max_workers=workers) as pool:
+                out = list(pool.map(job, jobs, chunksize=max(1, len(jobs) // (workers * 8))))
+        if prune_logs:
+            shutil.rmtree(cfg_dir, ignore_errors=True)
     log.info(
         "%s: %d episodes, timely at ref %.2f",
         fleet.name,

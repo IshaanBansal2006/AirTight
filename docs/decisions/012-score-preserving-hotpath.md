@@ -38,3 +38,9 @@ Optimize **how** the existing formulas run, not **what** they compute.
 - Remaining cost that would change scores if touched: `BENIGN_HORIZON_S`, search population sizes, thinning `mark_seen` during warm-up, coarser patrol/occupancy cells, `argpartition` for top-k (tie sets), JPDA truncation (`max_events`).
 - Remaining cost that is I/O or API, not the formulas: full-log JSONL (pydantic events at 2 Hz plus every look), matplotlib MP4 rendering, occupancy rasters at 0.05 m for MuJoCo.
 - `tests/sim/test_hotpath_opts.py` locks window ≡ full-grid `mark_seen`, cached polylines, and bisect ≡ reverse scan.
+
+## Follow-up: skip I/O unless a replay needs it
+
+- v0 `run_config(..., prune_logs=True)` (CLI default) reads peaks from `EpisodeScores` and writes no JSONL. `--keep-logs` is the old full-log path. Replay export and miss/catch clips still request `full_log=True`, and clip search uses header+outcome until a pair is found.
+- `--handoff` writes HTML + `clips.json`; pass `--mp4` for ffmpeg.
+- Evidence conflicts compare a field tuple, not two `model_dump_json()` strings. `delta` caches the JSONL line after the first serialize.

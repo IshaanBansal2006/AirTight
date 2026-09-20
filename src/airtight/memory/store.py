@@ -35,6 +35,7 @@ class FleetMemoryStore:
             "evidence": {},
         }
         self._stamps: dict[Key, int] = {}
+        self._wire: dict[Key, bytes] = {}
         self._version = 0
         self._lock = threading.RLock()
 
@@ -114,7 +115,10 @@ class FleetMemoryStore:
         lines: list[bytes] = []
         used = 0
         for _, key in changed:
-            line = self._items[key].model_dump_json().encode() + b"\n"
+            line = self._wire.get(key)
+            if line is None:
+                line = self._items[key].model_dump_json().encode() + b"\n"
+                self._wire[key] = line
             if used + len(line) > byte_budget:
                 break
             lines.append(line)
@@ -163,6 +167,7 @@ class FleetMemoryStore:
         self._items[key] = merged
         self._by_kind[key[0]][key] = merged
         self._stamps[key] = self._version
+        self._wire.pop(key, None)
         return True
 
 
@@ -176,5 +181,19 @@ def _merge_pair(a: MemoryItem, b: MemoryItem) -> MemoryItem:
             return b
         return a
     if isinstance(a, Evidence) and isinstance(b, Evidence):
-        return b if b.model_dump_json() > a.model_dump_json() else a
+        return b if _evidence_rank(b) > _evidence_rank(a) else a
     raise TypeError(f"cannot merge {type(a).__name__} with {type(b).__name__} under the same key")
+
+
+def _evidence_rank(item: Evidence) -> tuple[str, str, str, str, float, float, float, float]:
+    """Total order on evidence content. Same field order as the model; no JSON round-trip."""
+    return (
+        item.kind,
+        item.evidence_id,
+        item.object_id,
+        item.agent_id,
+        item.t,
+        item.score,
+        item.x,
+        item.y,
+    )
