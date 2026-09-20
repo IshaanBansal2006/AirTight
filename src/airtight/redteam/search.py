@@ -21,12 +21,21 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
+class EvaluatedTactic(BaseModel):
+    round: int
+    tactic: Tactic
+    score: TacticScore
+
+
 class SearchResult(BaseModel):
     family: TacticFamily
     seeds: list[int]
     n_episodes: int
     scores: list[TacticScore] = Field(description="elites, best adversary score first")
     tactics: list[Tactic] = Field(description="same order as scores")
+    evaluated: list[EvaluatedTactic] = Field(
+        default_factory=list, description="every tactic scored, by round, elites included"
+    )
 
     def best(self) -> tuple[Tactic, TacticScore]:
         return self.tactics[0], self.scores[0]
@@ -67,12 +76,17 @@ def search_family(
     ]
     n_episodes = 0
 
+    evaluated: list[tuple[int, Tactic, TacticScore]] = []
+    round_no = 0
+
     def run(ts: list[Tactic]) -> list[TacticScore]:
         nonlocal n_episodes
         n_episodes += len(ts) * len(seeds)
-        return evaluate(
+        scores = evaluate(
             ts, site, fleet, curves, seeds, episode_fn, log_dir, sc.margin_weight, workers
         )
+        evaluated.extend((round_no, t, s) for t, s in zip(ts, scores, strict=True))
+        return scores
 
     ranked = _rank(population, run(population))
     elites = ranked[: sc.n_elite]
@@ -83,6 +97,7 @@ def search_family(
         elites[0][1].miss_rate,
     )
     for r in range(1, sc.n_rounds + 1):
+        round_no = r
         children = [perturb(t, site, rng, cfg) for t, _ in elites for _ in range(sc.n_children)]
         children = _dedupe(children, {t.id for t, _ in elites})
         pool = elites + _rank(children, run(children))
@@ -100,6 +115,7 @@ def search_family(
         n_episodes=n_episodes,
         scores=[s for _, s in elites],
         tactics=[t for t, _ in elites],
+        evaluated=[EvaluatedTactic(round=r, tactic=t, score=s) for r, t, s in evaluated],
     )
 
 

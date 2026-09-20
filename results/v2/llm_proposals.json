@@ -1,0 +1,24 @@
+{
+  "tactics": [
+    {
+      "id": "llm-charging_window-736fe8f0",
+      "family": "charging_window",
+      "entry_id": "rear_fence_gap",
+      "phase": 0.0,
+      "speed_mps": 1.8,
+      "waypoints": [
+        {
+          "x": 140.0,
+          "y": 70.0
+        }
+      ],
+      "decoy": null,
+      "comms_event": null,
+      "origin": "llm"
+    }
+  ],
+  "rejected": [],
+  "rationales": {
+    "llm-charging_window-736fe8f0": "Utilize the full charged capacity and enter during the peak charge phase when defender sensors are less effective."
+  }
+}

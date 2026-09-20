@@ -1,0 +1,370 @@
+{
+  "family": "decoy",
+  "seeds": [
+    63663,
+    70017,
+    81040,
+    147908,
+    195632,
+    226512,
+    240213,
+    269396,
+    291656,
+    377049,
+    388056,
+    393957,
+    395215,
+    419021,
+    533251,
+    557281,
+    609063,
+    611521,
+    697677,
+    753955
+  ],
+  "n_episodes": 6400,
+  "scores": [
+    {
+      "tactic_id": "decoy-556745041",
+      "family": "decoy",
+      "n_episodes": 20,
+      "miss_rate": 0.95,
+      "mean_margin_s": -16.423009892230876,
+      "adversary_score": 0.9548740954055595
+    },
+    {
+      "tactic_id": "decoy-094277310",
+      "family": "decoy",
+      "n_episodes": 20,
+      "miss_rate": 0.95,
+      "mean_margin_s": -18.229914286414406,
+      "adversary_score": 0.954768696429009
+    },
+    {
+      "tactic_id": "decoy-420418289",
+      "family": "decoy",
+      "n_episodes": 20,
+      "miss_rate": 0.95,
+      "mean_margin_s": -16.783790685436436,
+      "adversary_score": 0.9537793953427182
+    },
+    {
+      "tactic_id": "decoy-249577358",
+      "family": "decoy",
+      "n_episodes": 20,
+      "miss_rate": 0.95,
+      "mean_margin_s": -17.23659944069744,
+      "adversary_score": 0.9537779997457716
+    },
+    {
+      "tactic_id": "decoy-626396598",
+      "family": "decoy",
+      "n_episodes": 20,
+      "miss_rate": 0.95,
+      "mean_margin_s": -17.236053351598244,
+      "adversary_score": 0.9537777515234538
+    },
+    {
+      "tactic_id": "decoy-058678371",
+      "family": "decoy",
+      "n_episodes": 20,
+      "miss_rate": 0.95,
+      "mean_margin_s": -17.22809124485236,
+      "adversary_score": 0.9537741323840238
+    },
+    {
+      "tactic_id": "decoy-160279861",
+      "family": "decoy",
+      "n_episodes": 20,
+      "miss_rate": 0.95,
+      "mean_margin_s": -16.976744715570025,
+      "adversary_score": 0.9537735203252591
+    },
+    {
+      "tactic_id": "decoy-762861014",
+      "family": "decoy",
+      "n_episodes": 20,
+      "miss_rate": 0.95,
+      "mean_margin_s": -16.976493597987435,
+      "adversary_score": 0.9537734061809033
+    },
+    {
+      "tactic_id": "decoy-434418407",
+      "family": "decoy",
+      "n_episodes": 20,
+      "miss_rate": 0.95,
+      "mean_margin_s": -16.796039821500948,
+      "adversary_score": 0.9537730199107505
+    },
+    {
+      "tactic_id": "decoy-390970837",
+      "family": "decoy",
+      "n_episodes": 20,
+      "miss_rate": 0.95,
+      "mean_margin_s": -17.249941789392466,
+      "adversary_score": 0.9537727008133602
+    }
+  ],
+  "tactics": [
+    {
+      "id": "decoy-556745041",
+      "family": "decoy",
+      "entry_id": "main_gate",
+      "phase": 0.9780456893193393,
+      "speed_mps": 1.6543569796661126,
+      "waypoints": [
+        {
+          "x": 121.7509973155268,
+          "y": 94.05644205824605
+        },
+        {
+          "x": 140.0,
+          "y": 70.0
+        }
+      ],
+      "decoy": {
+        "position": {
+          "x": 157.8654092199236,
+          "y": 6.461279508903354
+        },
+        "lead_time_s": 78.34059584294113
+      },
+      "comms_event": null,
+      "origin": "random"
+    },
+    {
+      "id": "decoy-094277310",
+      "family": "decoy",
+      "entry_id": "main_gate",
+      "phase": 0.9738725014109213,
+      "speed_mps": 1.5476213366269895,
+      "waypoints": [
+        {
+          "x": 117.4546373345722,
+          "y": 93.8574305220365
+        },
+        {
+          "x": 140.0,
+          "y": 70.0
+        }
+      ],
+      "decoy": {
+        "position": {
+          "x": 160.07582547577667,
+          "y": 1.016129774898224
+        },
+        "lead_time_s": 95.69401951586366
+      },
+      "comms_event": null,
+      "origin": "search"
+    },
+    {
+      "id": "decoy-420418289",
+      "family": "decoy",
+      "entry_id": "service_gate",
+      "phase": 0.4133188875181063,
+      "speed_mps": 2.0,
+      "waypoints": [
+        {
+          "x": 145.86048956030325,
+          "y": 32.288352977394695
+        },
+        {
+          "x": 140.0,
+          "y": 70.0
+        }
+      ],
+      "decoy": {
+        "position": {
+          "x": 12.739048236285537,
+          "y": 66.7978265441769
+        },
+        "lead_time_s": 120.0
+      },
+      "comms_event": null,
+      "origin": "search"
+    },
+    {
+      "id": "decoy-249577358",
+      "family": "decoy",
+      "entry_id": "service_gate",
+      "phase": 0.6099270408416416,
+      "speed_mps": 2.0,
+      "waypoints": [
+        {
+          "x": 144.10605424979175,
+          "y": 39.3139248371767
+        },
+        {
+          "x": 140.0,
+          "y": 70.0
+        }
+      ],
+      "decoy": {
+        "position": {
+          "x": 193.14506697757457,
+          "y": 32.066680874774
+        },
+        "lead_time_s": 120.0
+      },
+      "comms_event": null,
+      "origin": "search"
+    },
+    {
+      "id": "decoy-626396598",
+      "family": "decoy",
+      "entry_id": "service_gate",
+      "phase": 0.6295935551462405,
+      "speed_mps": 2.0,
+      "waypoints": [
+        {
+          "x": 144.19816365389661,
+          "y": 38.371811338691444
+        },
+        {
+          "x": 140.0,
+          "y": 70.0
+        }
+      ],
+      "decoy": {
+        "position": {
+          "x": 195.99113868601597,
+          "y": 33.21296323144936
+        },
+        "lead_time_s": 120.0
+      },
+      "comms_event": null,
+      "origin": "search"
+    },
+    {
+      "id": "decoy-058678371",
+      "family": "decoy",
+      "entry_id": "service_gate",
+      "phase": 0.6161461141773373,
+      "speed_mps": 2.0,
+      "waypoints": [
+        {
+          "x": 143.6935515261716,
+          "y": 38.24605517692632
+        },
+        {
+          "x": 140.0,
+          "y": 70.0
+        }
+      ],
+      "decoy": {
+        "position": {
+          "x": 193.45218394380996,
+          "y": 28.50520679397721
+        },
+        "lead_time_s": 120.0
+      },
+      "comms_event": null,
+      "origin": "search"
+    },
+    {
+      "id": "decoy-160279861",
+      "family": "decoy",
+      "entry_id": "service_gate",
+      "phase": 0.3731742084858868,
+      "speed_mps": 2.0,
+      "waypoints": [
+        {
+          "x": 146.5420914289154,
+          "y": 35.64653241465599
+        },
+        {
+          "x": 140.0,
+          "y": 70.0
+        }
+      ],
+      "decoy": {
+        "position": {
+          "x": 7.659549656381885,
+          "y": 66.0878983423566
+        },
+        "lead_time_s": 91.81439777948746
+      },
+      "comms_event": null,
+      "origin": "search"
+    },
+    {
+      "id": "decoy-762861014",
+      "family": "decoy",
+      "entry_id": "service_gate",
+      "phase": 0.5003432327627686,
+      "speed_mps": 2.0,
+      "waypoints": [
+        {
+          "x": 145.80437488732898,
+          "y": 40.505815880189864
+        },
+        {
+          "x": 140.0,
+          "y": 70.0
+        }
+      ],
+      "decoy": {
+        "position": {
+          "x": 15.348987965303476,
+          "y": 54.98389386009734
+        },
+        "lead_time_s": 31.67535612437675
+      },
+      "comms_event": null,
+      "origin": "search"
+    },
+    {
+      "id": "decoy-434418407",
+      "family": "decoy",
+      "entry_id": "service_gate",
+      "phase": 0.6289491746524382,
+      "speed_mps": 2.0,
+      "waypoints": [
+        {
+          "x": 144.49049450059363,
+          "y": 32.382817008280355
+        },
+        {
+          "x": 140.0,
+          "y": 70.0
+        }
+      ],
+      "decoy": {
+        "position": {
+          "x": 191.54642215908726,
+          "y": 23.082537527188457
+        },
+        "lead_time_s": 77.22021747973541
+      },
+      "comms_event": null,
+      "origin": "search"
+    },
+    {
+      "id": "decoy-390970837",
+      "family": "decoy",
+      "entry_id": "service_gate",
+      "phase": 0.6768275415996164,
+      "speed_mps": 2.0,
+      "waypoints": [
+        {
+          "x": 143.3026978183501,
+          "y": 39.82114832354383
+        },
+        {
+          "x": 140.0,
+          "y": 70.0
+        }
+      ],
+      "decoy": {
+        "position": {
+          "x": 198.31759408698917,
+          "y": 30.82614381344728
+        },
+        "lead_time_s": 120.0
+      },
+      "comms_event": null,
+      "origin": "search"
+    }
+  ]
+}
