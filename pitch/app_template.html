@@ -1,88 +1,111 @@
 <title>Airtight Console</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700&display=swap">
 <style>
 :root{
-  --surface:#fcfcfb; --page:#f4f3ee; --ink:#0b0b0b; --ink2:#52514e; --muted:#898781; --grid:#e1e0d9; --line:#c3c2b7;
-  --accent:#2a78d6; --alert:#eb6834; --good:#1baf7a; --critical:#d03b3b; --warn:#eda100;
-  --card:#ffffff; --tab:#fcfcfb;
-  --font-body:"IBM Plex Sans",system-ui,sans-serif; --font-display:"Archivo","IBM Plex Sans",system-ui,sans-serif; --font-mono:"IBM Plex Mono",ui-monospace,monospace;
-  --shadow:0 4px 16px color-mix(in srgb,var(--ink) 6%,transparent); --accent-soft:color-mix(in srgb,var(--accent) 8%,transparent);
+  --ground:#f3f5f7; --surface:#ffffff; --surface2:#e9edf1; --ink:#101418; --ink2:#5b6572; --muted:#8a94a0; --hair:#dfe4e9;
+  --accent:#2a78d6; --accent-soft:rgba(42,120,214,.10); --alert:#eb6834; --good:#1baf7a; --critical:#d03b3b; --warn:#eda100;
+  --shadow:0 8px 24px rgba(16,20,24,.08); --font:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --tabs:64px;
 }
-@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
-  --surface:#1a1a19; --page:#111110; --ink:#ffffff; --ink2:#c3c2b7; --muted:#898781; --grid:#2c2c2a; --line:#383835;
-  --accent:#3987e5; --alert:#d95926; --good:#199e70; --critical:#e66767; --warn:#c98500; --card:#232322; --tab:#1a1a19; }}
-:root[data-theme="dark"]{
-  --surface:#1a1a19; --page:#111110; --ink:#ffffff; --ink2:#c3c2b7; --muted:#898781; --grid:#2c2c2a; --line:#383835;
-  --accent:#3987e5; --alert:#d95926; --good:#199e70; --critical:#e66767; --warn:#c98500; --card:#232322; --tab:#1a1a19; }
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ color-scheme:dark;
+  --ground:#0f1418; --surface:#161c22; --surface2:#1e262e; --ink:#f2f5f7; --ink2:#aeb8c2; --muted:#7d8792; --hair:#26303a;
+  --accent:#4a90e2; --accent-soft:rgba(74,144,226,.16); --alert:#f0794a; --good:#2cc48d; --critical:#ee6b6b; --warn:#f0b432;
+  --shadow:0 8px 24px rgba(0,0,0,.35); }}
+:root[data-theme="dark"]{ color-scheme:dark;
+  --ground:#0f1418; --surface:#161c22; --surface2:#1e262e; --ink:#f2f5f7; --ink2:#aeb8c2; --muted:#7d8792; --hair:#26303a;
+  --accent:#4a90e2; --accent-soft:rgba(74,144,226,.16); --alert:#f0794a; --good:#2cc48d; --critical:#ee6b6b; --warn:#f0b432;
+  --shadow:0 8px 24px rgba(0,0,0,.35); }
 *{box-sizing:border-box}
 html,body{height:100%}
-body{margin:0;background:var(--page);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.5}
-.wrap{padding-inline:16px;padding-block:0 96px;max-width:600px;margin:0 auto}
-header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--grid);padding:16px;display:flex;align-items:center;justify-content:space-between;gap:16px}
-header.top h1{font-family:var(--font-display);font-size:18px;margin:0;letter-spacing:.01em}
-header.top .site{font-size:12px;color:var(--ink2);opacity:.8}
-.pill{font-family:var(--font-mono);font-size:12px;padding:4px 8px;border-radius:999px;border:1px solid var(--line);color:var(--ink2);white-space:nowrap}
-.pill.good{border-color:var(--good);color:var(--good)} .pill.bad{border-color:var(--critical);color:var(--critical)}
-section.tab{display:none;padding-block:24px} section.tab.active{display:block}
-h2{font-family:var(--font-display);font-size:18px;font-weight:600;margin:32px 0 12px;text-wrap:balance}
-h2:first-child{margin-top:0}
-p{margin:8px 0;color:var(--ink2)} p.lead{color:var(--ink);opacity:.85;max-width:60ch}
-.tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-.tile{background:var(--card);border:1px solid var(--grid);border-radius:16px;padding:16px;box-shadow:var(--shadow)}
-.tile .k{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
-.tile .v{font-family:var(--font-mono);font-size:28px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:4px;line-height:1.15}
-.tile .d{font-size:12px;color:var(--ink2)} .up{color:var(--good)} .down{color:var(--critical)}
-.chart{background:var(--card);border:1px solid var(--grid);border-radius:16px;padding:12px;box-shadow:var(--shadow)}
-.chart img{width:100%;height:auto;display:block;border-radius:6px}
-.cap{font-size:12px;color:var(--muted);margin-top:8px}
-.list{display:flex;flex-direction:column;gap:12px}
-.row{background:var(--card);border:1px solid var(--grid);border-radius:16px;padding:16px;display:grid;grid-template-columns:4px 1fr auto;gap:12px;align-items:center}
-.row .stripe{width:4px;height:100%;min-height:40px;border-radius:2px;background:var(--alert)}
-.row .t{font-weight:600} .row .s{font-size:12px;color:var(--ink2);opacity:.85} .row .n{font-family:var(--font-mono);font-size:18px;font-weight:600;font-variant-numeric:tabular-nums;text-align:right;line-height:1.1}
-.row.sev-high .stripe{background:var(--critical)} .row.sev-med .stripe{background:var(--warn)} .row.sev-low .stripe{background:var(--good)}
-table{border-collapse:collapse;width:100%;font-size:12px} th,td{text-align:left;padding:8px;border-bottom:1px solid var(--grid)} th{color:var(--muted);font-weight:400;font-size:12px;text-transform:uppercase;letter-spacing:.05em} td.num,th.num{text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums}
-.tablewrap{overflow-x:auto;border:1px solid var(--grid);border-radius:16px;background:var(--card)}
-.viewer{position:relative;background:var(--surface);border:1px solid var(--grid);border-radius:16px;overflow:hidden;aspect-ratio:4/3;max-width:100%;touch-action:none;box-shadow:var(--shadow)}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.5;font-weight:500;-webkit-font-smoothing:antialiased;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.app{height:100%;display:flex;flex-direction:column;max-width:430px;margin:0 auto;background:var(--ground);position:relative}
+@media (min-width:600px){ body{background:var(--surface2)} .app{box-shadow:0 0 0 1px var(--hair),var(--shadow)} }
+header.top{flex:none;position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--ground);padding:12px 16px 8px;display:flex;align-items:flex-end;justify-content:space-between;gap:16px}
+header.top h1{font-size:22px;font-weight:700;margin:0;letter-spacing:-.01em;line-height:1.1}
+header.top .site{font-size:13px;color:var(--ink2);margin-top:2px}
+.pill{font-size:12px;font-weight:700;padding:6px 10px;border-radius:999px;background:var(--surface);color:var(--ink2);white-space:nowrap;box-shadow:0 0 0 1px var(--hair)}
+.pill.good{color:var(--good)} .pill.bad{color:var(--critical)}
+main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.wrap{padding-inline:16px;padding-block:8px calc(var(--tabs) + 24px + env(safe-area-inset-bottom,0px))}
+section.tab{display:none} section.tab.active{display:block}
+h2{font-size:17px;font-weight:700;margin:28px 0 10px;letter-spacing:-.005em;text-wrap:balance}
+h2:first-child{margin-top:8px}
+p{margin:6px 0;color:var(--ink2)} p.lead{color:var(--ink);max-width:36em}
+.hero{background:var(--surface);border-radius:20px;padding:20px 16px 16px;box-shadow:var(--shadow);display:grid;grid-template-columns:132px 1fr;gap:16px;align-items:center}
+.gauge{width:132px;height:132px} .gauge text{font-family:var(--font);fill:var(--ink)}
+.hero .big{font-size:40px;font-weight:700;line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.hero .big small{display:block;font-size:14px;font-weight:500;color:var(--ink2);letter-spacing:0;margin-top:4px}
+.hero .was{font-size:13px;color:var(--ink2);margin-top:6px} .hero .was b{color:var(--good);font-weight:700}
+.hero .fleet{font-size:13px;color:var(--ink2);margin-top:10px;padding-top:10px;border-top:1px solid var(--hair)}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--hair);border-radius:16px;overflow:hidden;margin-top:12px}
+.stat{background:var(--surface);padding:14px 16px} .stat .v{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1} .stat .v small{font-size:12px;font-weight:500;color:var(--ink2);margin-left:3px}
+.stat .k{font-size:12px;color:var(--ink2);margin-top:4px} .stat .d{font-size:12px;margin-top:2px} .up{color:var(--good)} .down{color:var(--critical)} .flat{color:var(--muted)}
+.chart{background:var(--surface);border-radius:16px;padding:10px;box-shadow:var(--shadow)}
+.chart img{width:100%;height:auto;display:block;border-radius:8px}
+.cap{font-size:12px;color:var(--muted);margin-top:8px;padding-inline:4px}
+.list{background:var(--surface);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
+.row{display:grid;grid-template-columns:10px 1fr auto;gap:12px;align-items:center;padding:14px 16px;border-top:1px solid var(--hair)} .row:first-child{border-top:0}
+.row .dot{width:10px;height:10px;border-radius:50%;background:var(--alert)} .row.sev-high .dot{background:var(--critical)} .row.sev-med .dot{background:var(--warn)} .row.sev-low .dot{background:var(--good)}
+.row>div{min-width:0;overflow-wrap:anywhere} .row .t{font-weight:700} .row .s{font-size:12px;color:var(--ink2)} .row .n{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;text-align:right;line-height:1.05} .row .n .s{display:block;font-weight:500}
+table{border-collapse:collapse;width:100%;font-size:13px} th,td{text-align:left;padding:10px 12px;border-top:1px solid var(--hair)} thead th{border-top:0;color:var(--ink2);font-weight:500;font-size:12px} td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.tablewrap{overflow-x:auto;border-radius:16px;background:var(--surface);box-shadow:var(--shadow)}
+.viewer{position:relative;background:var(--surface);border-radius:16px;overflow:hidden;aspect-ratio:1/1;max-width:100%;touch-action:none;box-shadow:var(--shadow)}
 .viewer canvas{width:100%;height:100%;display:block}
-.banner{position:absolute;left:12px;right:12px;bottom:12px;padding:8px 12px;border-radius:12px;font-family:var(--font-mono);font-size:12px;background:var(--card);border:1px solid var(--grid);color:var(--ink);box-shadow:var(--shadow)}
-.banner.hit{border-color:var(--good);color:var(--good)} .banner.miss{border-color:var(--critical);color:var(--critical)}
+.banner{position:absolute;left:12px;right:12px;bottom:12px;padding:10px 12px;border-radius:12px;font-size:13px;font-weight:700;background:var(--surface);color:var(--ink);box-shadow:var(--shadow);font-variant-numeric:tabular-nums}
+.banner.hit{color:var(--good)} .banner.miss{color:var(--critical)}
 .controls{display:flex;gap:12px;align-items:center;margin-top:12px;flex-wrap:wrap}
-.seg{display:inline-flex;border:1px solid var(--line);border-radius:12px;overflow:hidden}
-.seg button{background:transparent;border:0;padding:12px 16px;font:inherit;font-size:12px;color:var(--ink2);cursor:pointer;min-height:44px} .seg button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);font-weight:600}
-button.btn{font:inherit;font-weight:600;border-radius:12px;padding:12px 16px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;min-width:44px;min-height:48px;transition:transform .12s ease,box-shadow .12s ease}
+.seg{display:flex;flex:1;background:var(--surface2);border-radius:12px;padding:3px}
+.seg button{flex:1;background:transparent;border:0;padding:10px 8px;font:inherit;font-size:13px;font-weight:700;color:var(--ink2);cursor:pointer;min-height:44px;border-radius:10px;transition:background .15s ease,color .15s ease} .seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(16,20,24,.12)}
+button.btn{font:inherit;font-weight:700;border-radius:12px;padding:12px 18px;border:0;background:var(--surface2);color:var(--ink);cursor:pointer;min-width:44px;min-height:48px;transition:transform .12s ease,filter .12s ease}
 button.btn:active{transform:scale(.98)}
-button.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 6px 18px color-mix(in srgb,var(--accent) 30%,transparent);flex:1} button.btn.danger{background:transparent;border-color:color-mix(in srgb,var(--critical) 40%,transparent);color:var(--critical)}
-button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-input[type=range]{flex:1;min-width:120px;accent-color:var(--accent)}
+button.btn.primary{background:var(--accent);color:#fff;box-shadow:0 8px 18px rgba(42,120,214,.28);flex:1} button.btn.danger{background:transparent;color:var(--critical);box-shadow:inset 0 0 0 1px var(--critical)}
+button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+input[type=range]{flex:1;min-width:120px;accent-color:var(--accent);height:44px}
 .legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--ink2);margin-top:12px} .legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;vertical-align:-1px}
-.proposal{background:var(--card);border:1px solid var(--grid);border-left:4px solid var(--alert);border-radius:16px;padding:16px;box-shadow:var(--shadow)}
-.proposal.done{border-left-color:var(--good)} .proposal.denied{border-left-color:var(--critical)}
-.proposal .t{font-weight:600;font-size:18px;font-family:var(--font-display)} .proposal .s{font-size:15px;color:var(--ink2);margin:8px 0 12px} .proposal .count{font-family:var(--font-mono);font-size:12px;color:var(--muted)}
-.actions{position:sticky;bottom:calc(72px + env(safe-area-inset-bottom,0px));display:flex;gap:12px;margin-top:16px;padding:12px;background:var(--card);border-radius:16px;box-shadow:var(--shadow)}
-.success{display:flex;align-items:center;gap:12px;color:var(--good);font-weight:600;margin-top:12px;animation:pop .35s ease-out} .success i{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:50%;background:color-mix(in srgb,var(--good) 14%,transparent);font-style:normal}
-@keyframes pop{from{transform:scale(.92);opacity:0}to{transform:scale(1);opacity:1}}
+.proposal{background:var(--surface);border-radius:20px;padding:18px 16px;box-shadow:var(--shadow)}
+.proposal .eyebrow{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--alert)} .proposal .eyebrow i{width:8px;height:8px;border-radius:50%;background:var(--alert)}
+.proposal .t{font-weight:700;font-size:20px;letter-spacing:-.01em;margin-top:6px;line-height:1.2} .proposal .s{font-size:15px;color:var(--ink2);margin:8px 0 4px} .proposal .count{font-size:13px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.actions{position:sticky;bottom:calc(var(--tabs) + 12px + env(safe-area-inset-bottom,0px));display:flex;gap:12px;margin-top:16px;padding:12px;background:var(--surface);border-radius:16px;box-shadow:var(--shadow)}
+.success{display:flex;align-items:center;gap:12px;font-weight:700;margin-top:12px;animation:pop .35s ease-out} .success i{display:inline-grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--accent-soft);font-style:normal}
+.proposal.done .success{color:var(--good)} .proposal.denied .success{color:var(--critical)}
+@keyframes pop{from{transform:scale(.94);opacity:0}to{transform:scale(1);opacity:1}}
 .hist{margin-top:12px} .hist .row{grid-template-columns:1fr auto}
-nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--tab);border-top:1px solid var(--grid);display:flex;gap:4px;padding:8px;padding-bottom:calc(8px + env(safe-area-inset-bottom,0px));z-index:6}
-nav.tabs button{flex:1;background:transparent;border:0;font:inherit;font-size:12px;color:var(--muted);padding:12px 4px;border-radius:12px;cursor:pointer;min-height:48px;transition:background .12s ease} nav.tabs button[aria-selected="true"]{color:var(--accent);font-weight:600;background:var(--accent-soft)}
-.note{font-size:12px;color:var(--muted);border-left:2px solid var(--grid);padding-left:12px;margin-top:12px}
-@media (min-width:600px){ .tiles{grid-template-columns:repeat(4,1fr)} }
-@media (prefers-reduced-motion: reduce){ *{transition:none!important;animation:none!important} }
+nav.tabs{flex:none;position:sticky;bottom:0;background:var(--surface);border-top:1px solid var(--hair);display:flex;gap:4px;padding:8px 8px calc(8px + env(safe-area-inset-bottom,0px));z-index:6}
+nav.tabs button{flex:1;background:transparent;border:0;font:inherit;font-size:12px;font-weight:700;color:var(--muted);padding:10px 4px 8px;border-radius:12px;cursor:pointer;min-height:48px;display:flex;flex-direction:column;align-items:center;gap:4px;transition:color .15s ease}
+nav.tabs button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+nav.tabs button[aria-selected="true"]{color:var(--accent)}
+.note{font-size:12px;color:var(--muted);margin-top:12px;padding-inline:4px}
+.empty{padding:20px 16px;color:var(--ink2);font-size:14px}
+@media (prefers-reduced-motion: reduce){ *{transition:none!important;animation:none!important} .gauge .arc{transition:none!important} }
 </style>
 
+<div class="app">
 <header class="top">
-  <div><h1>Airtight Console</h1><div class="site" id="siteName"></div></div>
+  <div><h1>Airtight</h1><div class="site" id="siteName"></div></div>
   <span class="pill" id="statusPill">report loaded</span>
 </header>
-
-<div class="wrap">
+<main><div class="wrap">
 <section class="tab active" id="tab-score" role="tabpanel">
   <h2>Security score</h2>
+  <div class="hero" id="hero">
+    <svg class="gauge" viewBox="0 0 132 132" aria-hidden="true">
+      <circle cx="66" cy="66" r="54" fill="none" stroke="var(--surface2)" stroke-width="12"/>
+      <circle class="arc before" cx="66" cy="66" r="54" fill="none" stroke="var(--muted)" stroke-width="12" stroke-linecap="round" stroke-dasharray="339.3" stroke-dashoffset="339.3" transform="rotate(-90 66 66)"/>
+      <circle class="arc after" cx="66" cy="66" r="54" fill="none" stroke="var(--accent)" stroke-width="12" stroke-linecap="round" stroke-dasharray="339.3" stroke-dashoffset="339.3" transform="rotate(-90 66 66)"/>
+      <text x="66" y="72" text-anchor="middle" font-size="26" font-weight="700" id="gaugeText">0%</text>
+    </svg>
+    <div>
+      <div class="big" id="heroBig"></div>
+      <div class="was" id="heroWas"></div>
+      <div class="fleet" id="heroFleet"></div>
+    </div>
+  </div>
   <p class="lead" id="scoreLead"></p>
-  <div class="tiles" id="tiles"></div>
+  <div class="stats" id="tiles"></div>
   <h2>Detection against cost</h2>
-  <div class="chart"><img id="chartCost" alt="Detection versus cost per hour for twelve fleet configurations"><div class="cap" id="condLine"></div></div>
+  <div class="chart"><img id="chartCost" width="1600" height="960" alt="Detection versus cost per hour for twelve fleet configurations"><div class="cap" id="condLine"></div></div>
   <h2>Before and after the fix</h2>
-  <div class="chart"><img id="chartBA" alt="Before and after the fix on the same seeds"></div>
+  <div class="chart"><img id="chartBA" width="2200" height="840" alt="Before and after the fix on the same seeds"></div>
   <h2>Improvement over iterations</h2>
   <div id="minmaxBox"></div>
   <h2>All configurations</h2>
@@ -94,7 +117,7 @@ nav.tabs button{flex:1;background:transparent;border:0;font:inherit;font-size:12
   <p class="lead">The red team's worst tactic per family against the baseline fleet, ranked by how often it beat the deadline.</p>
   <div class="list" id="threatList"></div>
   <h2>Vulnerability map</h2>
-  <div class="chart"><img id="chartMap" alt="Site map with the worst tactic per family drawn on it"><div class="cap">Shading is watched ground from fixed cameras and dock halos. Lines are the four worst approaches.</div></div>
+  <div class="chart"><img id="chartMap" width="1600" height="1120" loading="lazy" alt="Site map with the worst tactic per family drawn on it"><div class="cap">Shading is watched ground from fixed cameras and dock halos. Lines are the four worst approaches.</div></div>
 </section>
 
 <section class="tab" id="tab-replay" role="tabpanel">
@@ -107,7 +130,7 @@ nav.tabs button{flex:1;background:transparent;border:0;font:inherit;font-size:12
   <div class="viewer" id="viewer"><div class="banner" id="banner"></div></div>
   <div class="controls"><input type="range" id="scrub" min="0" max="100" value="0" step="0.5" aria-label="Replay time"><span class="pill" id="tLabel">t = 0.0 s</span></div>
   <div class="legend"><span><i style="background:#e34948"></i>intruder</span><span><i style="background:#2a78d6"></i>drone</span><span><i style="background:#1baf7a"></i>ground robot</span><span><i style="background:#eda100"></i>guard</span><span><i style="background:#898781"></i>traffic</span><span><i style="background:#eb6834"></i>detection</span></div>
-  <div class="note" id="replayNote"></div>
+  <div class="note" id="replayNote" aria-live="polite"></div>
   <h2>Fleet memory at this moment</h2>
   <div class="list" id="memoryList"></div>
 </section>
@@ -115,19 +138,20 @@ nav.tabs button{flex:1;background:transparent;border:0;font:inherit;font-size:12
 <section class="tab" id="tab-approve" role="tabpanel">
   <h2>Human in the loop</h2>
   <p class="lead">The fleet proposes; a person decides. Silence never authorizes: a proposal that reaches its deadline is denied.</p>
-  <div id="proposalBox"></div>
+  <div id="proposalBox" aria-live="polite"></div>
   <h2>Decision log</h2>
-  <div class="hist list" id="history"></div>
-  <div class="note" id="dbNote">Decisions are shared with everyone who opens this page when the store is available; otherwise they stay on this device.</div>
+  <div class="hist list" id="history" aria-live="polite"></div>
+  <div class="note" id="dbNote" aria-live="polite">Decisions are shared with everyone who opens this page when the store is available; otherwise they stay on this device.</div>
 </section>
-</div>
+</div></main>
 
 <nav class="tabs" role="tablist">
-  <button role="tab" aria-selected="true" data-tab="tab-score">Score</button>
-  <button role="tab" aria-selected="false" data-tab="tab-threats">Threats</button>
-  <button role="tab" aria-selected="false" data-tab="tab-replay">Replay</button>
-  <button role="tab" aria-selected="false" data-tab="tab-approve">Approvals</button>
+  <button role="tab" aria-selected="true" data-tab="tab-score"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9"/><path d="M12 12l6-6"/></svg>Score</button>
+  <button role="tab" aria-selected="false" data-tab="tab-threats"><svg viewBox="0 0 24 24"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17v.5"/></svg>Threats</button>
+  <button role="tab" aria-selected="false" data-tab="tab-replay"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 16 0 8 8 0 0 0-16 0z"/><path d="M10 9l5 3-5 3z"/></svg>Replay</button>
+  <button role="tab" aria-selected="false" data-tab="tab-approve"><svg viewBox="0 0 24 24"><path d="M5 12l4 4L19 6"/></svg>Approvals</button>
 </nav>
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script id="data" type="application/json">__DATA__</script>
@@ -138,28 +162,38 @@ const $ = (s) => document.querySelector(s);
 const fmt = (v, d=2) => (v==null||Number.isNaN(v)) ? '–' : Number(v).toFixed(d);
 
 // ---------- tabs ----------
-document.querySelectorAll('nav.tabs button').forEach(b => b.addEventListener('click', () => {
+function showTab(id, push){
+  const b = document.querySelector(`nav.tabs button[data-tab="${id}"]`); if(!b) return;
   document.querySelectorAll('nav.tabs button').forEach(x => x.setAttribute('aria-selected', x===b ? 'true':'false'));
-  document.querySelectorAll('section.tab').forEach(s => s.classList.toggle('active', s.id === b.dataset.tab));
-  try { localStorage.setItem('airtight.tab', b.dataset.tab); } catch(e) {}
-  if (b.dataset.tab === 'tab-replay') resizeViewer();
-}));
-try { const t = localStorage.getItem('airtight.tab'); if (t) document.querySelector(`nav.tabs button[data-tab="${t}"]`)?.click(); } catch(e) {}
+  document.querySelectorAll('section.tab').forEach(s => s.classList.toggle('active', s.id === id));
+  document.querySelector('main').scrollTop = 0;
+  if (push) { try { history.replaceState(null, '', '#' + id.replace('tab-','')); } catch(e) {} }
+  if (id === 'tab-replay') setTimeout(resizeViewer, 0);
+}
+document.querySelectorAll('nav.tabs button').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab, true)));
+window.addEventListener('hashchange', () => showTab('tab-' + location.hash.slice(1), false));
+if (location.hash.length > 1) showTab('tab-' + location.hash.slice(1), false);
 
 // ---------- score ----------
-$('#siteName').textContent = D.site.name + ' · ' + D.report.n_seeds + ' seeds · ' + D.report.baseline;
+$('#siteName').textContent = `${D.site.name}, ${D.report.n_seeds} seeds per fleet`;
 const base = D.report.configs.find(c => c.name === D.report.baseline);
 const fixed = D.report.configs.find(c => c.name === D.report.fixed) || base;
-$('#scoreLead').textContent = `Against the worst tactic the red team found, ${base.name} detects in time ${Math.round(base.pd*100)}% of intrusions at one false alarm per hour. ${fixed.name} reaches ${Math.round(fixed.pd*100)}% for $${fixed.cost.toFixed(0)} an hour.`;
+const pct = (v) => Math.round(v*100);
+$('#heroBig').innerHTML = `${pct(fixed.pd)}%<small>timely detection</small>`;
+$('#heroWas').innerHTML = `was ${pct(base.pd)}% before the fix, <b>+${pct(fixed.pd - base.pd)} points</b> on the same seeds`;
+$('#heroFleet').textContent = `${fixed.name.replaceAll('_',' ')} at $${fixed.cost.toFixed(0)} an hour, against the worst tactic the red team found`;
+$('#gaugeText').textContent = `${pct(fixed.pd)}%`;
+const C = 339.3; const arcs = document.querySelectorAll('.gauge .arc');
+requestAnimationFrame(() => { arcs.forEach(a => { a.style.transition = 'stroke-dashoffset 900ms cubic-bezier(.2,.7,.2,1)'; }); requestAnimationFrame(() => { document.querySelector('.gauge .before').style.strokeDashoffset = C*(1-base.pd); document.querySelector('.gauge .after').style.strokeDashoffset = C*(1-fixed.pd); }); });
+$('#scoreLead').textContent = `Every number here comes from ${D.report.n_seeds} shared intrusion seeds per fleet at one false alarm per hour, scored offline from the episode logs.`;
+const dir = (a,b,higherBetter) => a===b ? 'flat' : ((higherBetter ? a>b : a<b) ? 'up' : 'down');
 const tiles = [
-  {k:'Detection now', v:fmt(base.pd), d:`${base.name}`},
-  {k:'Detection after fix', v:fmt(fixed.pd), d:`${fixed.name}`, cls:fixed.pd>base.pd?'up':'down'},
-  {k:'Worst tactic, after', v:fmt(fixed.worst_pd), d:`was ${fmt(base.worst_pd)}`, cls:fixed.worst_pd>base.worst_pd?'up':'down'},
-  {k:'Cost per hour', v:'$'+fixed.cost.toFixed(0), d:`was $${base.cost.toFixed(0)}`, cls:fixed.cost<=base.cost?'up':'down'},
-  {k:'Decisions per hour', v:fmt(fixed.decisions), d:`was ${fmt(base.decisions)}`, cls:fixed.decisions<=base.decisions?'up':'down'},
-  {k:'Coverage gap', v:fmt(fixed.gap,0)+' s/h', d:`was ${fmt(base.gap,0)} s/h`, cls:fixed.gap<=base.gap?'up':'down'},
+  {v:fmt(fixed.worst_pd), k:'detection against the worst tactic', d:`was ${fmt(base.worst_pd)}`, cls:dir(fixed.worst_pd, base.worst_pd, true)},
+  {v:'$'+fixed.cost.toFixed(0), unit:'/h', k:'fleet cost', d:`was $${base.cost.toFixed(0)}`, cls:dir(fixed.cost, base.cost, false)},
+  {v:fmt(fixed.decisions), unit:'/h', k:'human decisions', d:`was ${fmt(base.decisions)}`, cls:dir(fixed.decisions, base.decisions, false)},
+  {v:fmt(fixed.gap,0), unit:' s/h', k:'nobody on patrol', d:`was ${fmt(base.gap,0)} s/h`, cls:dir(fixed.gap, base.gap, false)},
 ];
-$('#tiles').innerHTML = tiles.map(t => `<div class="tile"><div class="k">${t.k}</div><div class="v">${t.v}</div><div class="d ${t.cls||''}">${t.d}</div></div>`).join('');
+$('#tiles').innerHTML = tiles.map(t => `<div class="stat"><div class="v">${t.v}<small>${t.unit||''}</small></div><div class="k">${t.k}</div><div class="d ${t.cls}">${t.d}</div></div>`).join('');
 $('#chartCost').src = D.images.cost; $('#chartBA').src = D.images.before_after; $('#chartMap').src = D.images.map;
 $('#condLine').textContent = D.report.conditions;
 $('#cfgTable tbody').innerHTML = D.report.configs.map(c => `<tr><td>${c.name}${c.name===D.report.baseline?' <span class="pill">baseline</span>':''}</td><td class="num">${c.cost.toFixed(0)}</td><td class="num">${fmt(c.pd)}</td><td class="num">${fmt(c.worst_pd)}</td><td class="num">${fmt(c.decisions)}</td></tr>`).join('');
@@ -171,7 +205,7 @@ if (D.minmax && D.minmax.length) {
 
 // ---------- threats ----------
 const sev = (m) => m >= 0.9 ? 'sev-high' : m >= 0.5 ? 'sev-med' : 'sev-low';
-$('#threatList').innerHTML = D.threats.map(t => `<div class="row ${sev(t.miss)}"><div class="stripe"></div><div><div class="t">${t.family.replace('_',' ')} via ${t.entry}</div><div class="s">phase ${fmt(t.phase)} of the charge cycle · ${fmt(t.speed,1)} m/s · found by ${t.origin}</div></div><div class="n">${Math.round(t.miss*100)}%<div class="s">missed</div></div></div>`).join('');
+$('#threatList').innerHTML = D.threats.map(t => `<div class="row ${sev(t.miss)}"><div class="dot"></div><div><div class="t">${t.family.replace('_',' ')} through the ${t.entry.replaceAll('_',' ')}</div><div class="s">enters at phase ${fmt(t.phase)} of the charge cycle at ${fmt(t.speed,1)} m/s, found by ${t.origin}</div></div><div class="n">${Math.round(t.miss*100)}%<span class="s">of runs missed</span></div></div>`).join('');
 
 // ---------- 3D replay ----------
 const viewer = $('#viewer'); let renderer, scene, camera, clock = 0, playing = false, current = 'miss';
@@ -221,16 +255,16 @@ $('#playBtn').addEventListener('click', () => { if(clock>=episode().t_end) clock
 $('#scrub').addEventListener('input', e => { clock=parseFloat(e.target.value); playing=false; $('#playBtn').textContent='Play'; draw(); });
 $('#pickMiss').addEventListener('click', () => loadEpisode('miss')); $('#pickCatch').addEventListener('click', () => loadEpisode('catch'));
 // fleet memory: last time each zone was within 25 m of an agent, up to t
-function memory(t){ const ep=episode(); const zones=[['north gate',site.entry_points[0]],['staff gate',site.entry_points[1]],['service gate',site.entry_points[2]],['rear fence gap',site.entry_points[3]],['asset',{position:site.asset}]]; const rows=zones.map(([name,z]) => { let seen=null, by=null; for(const id in ep.tracks){ if(['intruder','decoy'].includes(kindOf(id))||kindOf(id)==='benign') continue; for(const p of ep.tracks[id]){ if(p[0]>t) break; if(Math.hypot(p[1]-z.position.x, p[2]-z.position.y) <= 25 && (seen==null || p[0]>seen)){ seen=p[0]; by=id; } } } return {name, seen, by}; }); $('#memoryList').innerHTML = rows.map(r => `<div class="row ${r.seen==null?'sev-high':(t-r.seen>30?'sev-med':'sev-low')}"><div class="stripe"></div><div><div class="t">${r.name}</div><div class="s">${r.seen==null?'not seen yet this episode':'last seen by '+r.by}</div></div><div class="n">${r.seen==null?'—':(t-r.seen).toFixed(0)+' s'}<div class="s">age</div></div></div>`).join(''); }
+function memory(t){ const ep=episode(); const zones=[['north gate',site.entry_points[0]],['staff gate',site.entry_points[1]],['service gate',site.entry_points[2]],['rear fence gap',site.entry_points[3]],['asset',{position:site.asset}]]; const rows=zones.map(([name,z]) => { let seen=null, by=null; for(const id in ep.tracks){ if(['intruder','decoy'].includes(kindOf(id))||kindOf(id)==='benign') continue; for(const p of ep.tracks[id]){ if(p[0]>t) break; if(Math.hypot(p[1]-z.position.x, p[2]-z.position.y) <= 25 && (seen==null || p[0]>seen)){ seen=p[0]; by=id; } } } return {name, seen, by}; }); $('#memoryList').innerHTML = rows.map(r => `<div class="row ${r.seen==null?'sev-high':(t-r.seen>30?'sev-med':'sev-low')}"><div class="dot"></div><div><div class="t">${r.name}</div><div class="s">${r.seen==null?'not seen yet this episode':'last seen by '+r.by}</div></div><div class="n">${r.seen==null?'—':(t-r.seen).toFixed(0)+' s'}<span class="s">ago</span></div></div>`).join(''); }
 if (window.THREE) { initScene(); loadEpisode('miss'); } else { viewer.insertAdjacentHTML('afterbegin','<p style="padding:16px">3D viewer could not load.</p>'); }
 
 // ---------- approvals ----------
 const ep = D.episodes.catch; const prop = {id: `verify-${ep.seed}-${ep.tactic}`, title: `Verify track near ${ep.entry.replace('_',' ')}`, detail: `Score crossed the investigate threshold at ${(ep.first_detection??ep.t_alarm??0).toFixed(0)} s. Proposed responder: ${ep.responder}. Deadline in ${Math.max(1, Math.round(ep.t_cdp - (ep.first_detection??0)))} s.`, deadline_s: Math.max(1, Math.round(ep.t_cdp - (ep.first_detection??0)))};
 let dbNs = null, decisions = [], countdown = prop.deadline_s, timer = null, decided = false;
-function renderProposal(){ const box=$('#proposalBox'); if(decided){ const last=decisions[decisions.length-1]||{}; const ok=last.decision==='approved'; box.innerHTML = `<div class="proposal ${ok?'done':'denied'}"><div class="t">${prop.title}</div><div class="s">${prop.detail}</div><div class="success" style="color:${ok?'var(--good)':'var(--critical)'}"><i>${ok?'✓':'✕'}</i>${ok?'Dispatched '+ep.responder+'. The fleet is moving.':'Denied. The proposal is closed.'}</div></div>`; return; } box.innerHTML = `<div class="proposal"><div class="t">${prop.title}</div><div class="s">${prop.detail}</div><div class="count">auto-deny in ${countdown} s</div><div class="actions"><button class="btn primary" id="approve">Approve dispatch</button><button class="btn danger" id="deny">Deny</button></div></div>`; $('#approve').addEventListener('click', () => decide('approved')); $('#deny').addEventListener('click', () => decide('denied')); }
-function renderHistory(){ $('#history').innerHTML = decisions.length ? decisions.slice().sort((a,b)=>b.at-a.at).slice(0,12).map(d => `<div class="row ${d.decision==='approved'?'sev-low':'sev-high'}"><div><div class="t">${d.proposal}</div><div class="s">${new Date(d.at).toLocaleTimeString()} · ${d.source}</div></div><div class="n">${d.decision}</div></div>`).join('') : '<p>No decisions yet.</p>'; }
+function renderProposal(){ const box=$('#proposalBox'); if(decided){ const last=decisions[decisions.length-1]||{}; const ok=last.decision==='approved'; box.innerHTML = `<div class="proposal ${ok?'done':'denied'}"><div class="t">${prop.title}</div><div class="s">${prop.detail}</div><div class="success" style="color:${ok?'var(--good)':'var(--critical)'}"><i>${ok?'✓':'✕'}</i>${ok?'Dispatched '+ep.responder+'. The fleet is moving.':'Denied. The proposal is closed.'}</div></div>`; return; } box.innerHTML = `<div class="proposal"><span class="eyebrow"><i></i>Needs a decision</span><div class="t">${prop.title}</div><div class="s">${prop.detail}</div><div class="count">Denied automatically in ${countdown} s if nobody answers</div><div class="actions"><button class="btn primary" id="approve">Approve dispatch</button><button class="btn danger" id="deny">Deny</button></div></div>`; $('#approve').addEventListener('click', () => decide('approved')); $('#deny').addEventListener('click', () => decide('denied')); }
+function renderHistory(){ $('#history').innerHTML = decisions.length ? decisions.slice().sort((a,b)=>b.at-a.at).slice(0,12).map(d => `<div class="row ${d.decision==='approved'?'sev-low':'sev-high'}"><div><div class="t">${d.proposal}</div><div class="s">${new Date(d.at).toLocaleTimeString()}, ${d.source}</div></div><div class="n" style="font-size:14px">${d.decision}</div></div>`).join('') : '<div class="empty">No decisions yet. The first proposal is above; approve or deny it and it lands here for everyone who opens this page.</div>'; }
 async function decide(decision, source){ if(decided) return; decided=true; clearInterval(timer); const rec={proposal: prop.title, decision, at: Date.now(), source: source||'this phone'}; decisions.push(rec); renderProposal(); renderHistory(); if(dbNs){ try{ await dbNs.collection('approvals').doc(String(rec.at)).set(rec); }catch(e){ $('#dbNote').textContent = 'Could not save this decision to the shared store: ' + (e.message||e); } } }
-function startCountdown(){ timer=setInterval(() => { countdown -= 1; if(countdown<=0){ decide('denied','silence, deadline reached'); } else if(!decided) { const c=document.querySelector('#proposalBox .count'); if(c) c.textContent=`auto-deny in ${countdown} s`; } }, 1000); }
+function startCountdown(){ timer=setInterval(() => { countdown -= 1; if(countdown<=0){ decide('denied','silence, deadline reached'); } else if(!decided) { const c=document.querySelector('#proposalBox .count'); if(c) c.textContent=`Denied automatically in ${countdown} s if nobody answers`; } }, 1000); }
 renderProposal(); renderHistory(); startCountdown();
 (async () => { try { dbNs = window.claude && window.claude.use ? await window.claude.use('db') : null; } catch(e) { dbNs=null; } if(!dbNs){ $('#dbNote').textContent='Shared decision store not available in this view; decisions stay on this device.'; return; } try { dbNs.collection('approvals').orderBy('at','desc').limit(50).onSnapshot(snap => { decisions = snap.docs.map(d => d.data()).filter(Boolean); renderHistory(); }, err => { $('#dbNote').textContent='Live updates stopped (' + err.code + '); decisions made here still save.'; }); $('#dbNote').textContent='Decisions are shared with everyone who opens this page.'; } catch(e){ $('#dbNote').textContent='Shared store connected, but live updates are unavailable: ' + (e.message||e); } })();
 })();
