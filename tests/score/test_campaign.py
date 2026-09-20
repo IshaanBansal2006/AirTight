@@ -52,16 +52,43 @@ def test_with_gaps_attacks_every_gap_once() -> None:
 
 
 def _row(label: str, cost: float, pd: float, worst: float) -> dict[str, object]:
-    return {"label": label, "cost_per_hour": cost, "pd": pd, "worst_naive": {"pd": worst}}
+    return {
+        "label": label,
+        "cost_per_hour": cost,
+        "n_seeds": 40,
+        "pd": pd,
+        "pd_ci": [pd - 0.005, pd + 0.005],
+        "worst_naive": {"pd": worst, "ci": [worst - 0.1, worst + 0.1], "tactic": f"t-{label}"},
+    }
 
 
 def test_cheapest_to_target_reports_the_cheapest_or_the_ceiling() -> None:
-    rows = [_row("a", 50.0, 0.96, 0.5), _row("b", 40.0, 0.97, 0.7), _row("c", 30.0, 0.9, 0.2)]
+    rows = [_row("a", 50.0, 0.96, 0.5), _row("b", 40.0, 0.952, 0.7), _row("c", 30.0, 0.9, 0.2)]
     hit = campaign.cheapest_to_target(rows, "pd")
-    assert hit == {"reached": True, "label": "b", "cost_per_hour": 40.0, "value": 0.97}
+    assert hit["reached"] is True and hit["label"] == "b" and hit["cost_per_hour"] == 40.0
+    assert hit["value"] == 0.952 and hit["n_seeds"] == 40
+    # b reaches the target only on its point estimate; a is the cheapest whose interval does
+    assert hit["confirmed_label"] == "a" and hit["confirmed_cost_per_hour"] == 50.0
     miss = campaign.cheapest_to_target(rows, "worst_naive")
     assert miss["reached"] is False and miss["ceiling"] == 0.7 and miss["label"] == "b"
+    assert miss["worst_tactic_of_ceiling"] == "t-b"
     assert campaign.cheapest_to_target(rows, "worst_heldout") == {"reached": False, "ceiling": None}
+
+
+def test_targets_never_name_an_ingredient_row() -> None:
+    rows = [_row("baseline", 55.0, 0.5, 0.1), _row("ingredient:weight", 55.0, 0.99, 0.99)]
+    targets = campaign._targets({"final_standin": {"rows": rows}})
+    assert targets["strict"]["overall"]["reached"] is False
+    assert targets["strict"]["overall"]["label"] == "baseline"
+
+
+def test_duty_shares_compare_the_attack_window_with_steady_state() -> None:
+    fleet = scenarios.load_fleet("2drones")
+    shares = campaign.duty_shares(fleet)
+    assert set(shares) == {a.id for a in fleet.agents if a.charge_time_s > 0}
+    for share in shares.values():
+        assert 0.0 <= share["in_window"] <= 1.0
+        assert share["in_window"] == pytest.approx(share["steady_state"])
 
 
 def test_upgrades_are_exactly_one_purchase_away() -> None:

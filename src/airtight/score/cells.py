@@ -244,7 +244,11 @@ class Evaluator:
         n_seeds_max = max((len(r.seeds) for r in requests), default=0)
         if not ordered:
             return n_seeds_max
-        cut_chunk = self._execute(ordered, chunk_of, stop_at)
+        try:
+            cut_chunk = self._execute(ordered, chunk_of, stop_at)
+        except BaseException:
+            self.close()  # a dead worker breaks the pool for good; the next run starts a new one
+            raise
         self.busy_s += time.time() - started
         if cut_chunk is None:
             return n_seeds_max

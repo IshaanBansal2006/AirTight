@@ -33,6 +33,7 @@ import argparse
 import dataclasses
 import json
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -60,6 +61,7 @@ from airtight.score.cells import (
 from airtight.score.policy import Policy, named_policy, perturb, sample_policy
 from airtight.score.sweep import PHASE_DEDUP, gap_phases, grid_tactics
 from airtight.sim.constants import ENGINE_IGNORES, ENGINE_VERSION, TAU_INVESTIGATE
+from airtight.sim.coverage import uncovered_intervals
 from airtight.sim.episode import PARAMS_JSON_ENV, TASK_TIME_ENV, official_params
 
 if TYPE_CHECKING:
@@ -353,13 +355,16 @@ def score(
     assumption: dict[str, float] | None = None,
     heldout_worst: tuple[Tactic, Sequence[int]] | None = None,
     n_boot: int | None = None,
+    quiet_config: Config | None = None,
 ) -> Scored:
     """Score cached results. config, when given, is the variant actually simulated (a task
-    time or a response time what-if); its quiet nights come from entry.config, because a
-    quiet night has no intruder and so depends on neither."""
+    time or a response time what-if). Quiet nights come from quiet_config, by default
+    entry.config: a quiet night never reads the task time, so a task-time variant shares the
+    strict configuration's nights. It DOES read the response time (the band ring of the
+    patrol weight is v_ref * response_time_s), so a response-time variant passes its own."""
     sim_config = config or entry.config
     peaks = ctx.ev.peaks(sim_config, tactics, seeds)
-    quiet = ctx.ev.quiet(entry.config, quiet_seeds)
+    quiet = ctx.ev.quiet(quiet_config or entry.config, quiet_seeds)
     n_boot = ctx.sizes.n_boot if n_boot is None else n_boot
     op = roc.operating_point(peaks, quiet, FAR_TARGET)
     per_tactic, worst = roc.pd_by_tactic(peaks, op.tau)
@@ -396,9 +401,9 @@ def score(
         column = ctx.ev.peaks(sim_config, [tactic], more_seeds)
         col_reps = roc.replicates(column, quiet, n_boot, 0, FAR_TARGET)
         col_op = roc.operating_point(column, quiet, FAR_TARGET)
-        # the threshold is the configuration's own, from its quiet nights alone when the
-        # single column adds no candidate below it; report at the full set's threshold
-        detected = float(((column[:, 0] >= op.tau) & (column[:, 0] > -1e8)).mean())
+        # the point estimate and its interval both use the column's own operating point
+        per_column, _ = roc.pd_by_tactic(column, col_op.tau)
+        detected = float(per_column[0])
         summary["worst_heldout"] = {
             "tactic": tactic.id,
             "pd": detected,
@@ -426,6 +431,7 @@ def paired(a: Scored, b: Scored) -> dict[str, Any]:
         "pd_delta_ci": _ci(a.reps.pd_by_tactic.mean(axis=1) - b.reps.pd_by_tactic.mean(axis=1)),
         "worst_delta": a.summary["worst_naive"]["pd"] - b.summary["worst_naive"]["pd"],
         "worst_delta_ci": _ci(a.reps.pd_by_tactic[:, wa] - b.reps.pd_by_tactic[:, wb]),
+        "worst_delta_kind": "naive: each side's minimum on these seeds, tactics held fixed",
     }
 
 
@@ -489,7 +495,25 @@ def record_of(entry: Entry) -> dict[str, Any]:
         "config": entry.config.name,
         "fleet_hash": entry.config.fleet.content_hash(),
         "site_hash": entry.config.site.content_hash(),
+        "duty": duty_shares(entry.config.fleet),
     }
+
+
+def duty_shares(fleet: FleetConfig) -> dict[str, dict[str, float]]:
+    """For every agent that charges: its on-duty share inside the window an attack can fall in
+    ([0, reference cycle), which is what Tactic.phase spans) next to its steady-state share
+    endurance / cycle. A large difference means the window flatters or punishes the agent: a
+    charge period pushed outside the window is never seen by any tactic or quiet night."""
+    out = {}
+    for agent in fleet.agents:
+        if agent.charge_time_s <= 0:
+            continue
+        down = sum(g.end_phase - g.start_phase for g in uncovered_intervals(fleet, only=[agent.id]))
+        out[agent.id] = {
+            "in_window": 1.0 - float(down),
+            "steady_state": float(agent.endurance_s / (agent.endurance_s + agent.charge_time_s)),
+        }
+    return out
 
 
 # ---- stages ----------------------------------------------------------------------------------
@@ -615,6 +639,25 @@ def strong_evaluate(ctx: Ctx, entries: Sequence[Entry], stage: str) -> dict[str,
             ctx, entry, tactics, final_seeds, quiet_final, "final", "strong", heldout_worst=held
         )
         scored.summary["validation_worst_tactics"] = [t.id for t in worst_by_label[entry.label]]
+        if len(more) >= len(final_seeds):
+            five = ctx.ev.peaks(entry.config, worst_by_label[entry.label], more)
+            at_tau, _ = roc.pd_by_tactic(five, scored.summary["tau"])
+            scored.summary["validation_worst_on_final"] = {
+                t.id: float(v) for t, v in zip(worst_by_label[entry.label], at_tau, strict=True)
+            }
+            scored.summary["validation_worst_on_final_n_seeds"] = len(more)
+        # the quoted false alarm rate is in-sample: the threshold was picked on the nights it
+        # is measured on. Pick it on one half of the nights and measure it on the other.
+        nights = ctx.ev.quiet(entry.config, quiet_final)
+        half = len(nights) // 2
+        if half >= 1:
+            all_peaks = ctx.ev.peaks(entry.config, tactics, final_seeds)
+            tau_half = roc.operating_point(all_peaks, nights[:half], FAR_TARGET).tau
+            scored.summary["far_check"] = {
+                "tau_from_first_half": tau_half,
+                "far_on_second_half": float(roc.far_curve(nights[half:], np.array([tau_half]))[0]),
+                "nights_each": [half, len(nights) - half],
+            }
         rows.append(scored.summary)
         scored_by_label[entry.label] = scored
     deltas = [
@@ -756,6 +799,8 @@ def stage_search(ctx: Ctx) -> dict[str, Any]:
         if not any(ranked.values()):
             ctx.say(f"search: rung {rung} was cut before any seed finished")
             break
+        # from the first configuration's pool, as launched: a rescore must retrace the same
+        # survivors, or it would cascade into new finalists and hours of new episodes
         keep = max(2, -(-len(next(iter(survivors.values()))) // 5))
         survivors = {}
         for spec in specs:
@@ -843,6 +888,17 @@ def stage_validation(ctx: Ctx, search: dict[str, Any]) -> dict[str, Any]:
     seeds = seeds[:done]
     if not seeds:
         return {"complete": False, "reason": "cut before any seed finished"}
+    # the baseline and the fix are never candidates, but their worst tactic must also be
+    # named on validation seeds before it is scored on final ones
+    refs = [baseline_entry(ctx), fix_entry(ctx)]
+    ref_tactics = {e.label: with_gaps(common, e.config.site, [e.config.fleet], cap) for e in refs}
+    ctx.run(
+        [Request(e.config, tuple(ref_tactics[e.label]), seeds, quiet) for e in refs], "validation"
+    )
+    reference = {
+        e.label: score(ctx, e, ref_tactics[e.label], seeds, quiet, "validation", "stand-in").summary
+        for e in refs
+    }
     rows: dict[str, list[dict[str, Any]]] = {s.name: [] for s in specs}
     for spec, policy, entry, tactics in items:
         s = score(ctx, entry, tactics, seeds, quiet, "validation", "stand-in").summary
@@ -888,6 +944,7 @@ def stage_validation(ctx: Ctx, search: dict[str, Any]) -> dict[str, Any]:
         "n_seeds": len(seeds),
         "candidates": rows,
         "chosen": chosen,
+        "reference": reference,
         "recommended": recommended["hardware"],
         "recommended_rule": (
             f"the cheapest configuration reaching {TARGET} on both metrics on validation seeds; "
@@ -952,8 +1009,13 @@ def _final_set(ctx: Ctx, entries: Sequence[Entry]) -> list[Tactic]:
 def _validation_worst(
     validation: dict[str, Any], entry: Entry, tactics: Sequence[Tactic]
 ) -> Tactic | None:
-    row = validation["chosen"].get(entry.hardware)
-    if row is None or entry.label in (BASELINE_LABEL, FIX_LABEL):
+    if entry.label.startswith(INGREDIENT_PREFIX):
+        return None  # an ingredient was never on validation seeds, so it has no such tactic
+    if entry.label in (BASELINE_LABEL, FIX_LABEL):
+        row = validation.get("reference", {}).get(entry.label)
+    else:
+        row = validation["chosen"].get(entry.hardware)
+    if row is None:
         return None
     by_id = {t.id: t for t in tactics}
     return by_id.get(row["worst_naive"]["tactic"])
@@ -1094,6 +1156,15 @@ def stage_sensitivity(ctx: Ctx, validation: dict[str, Any]) -> dict[str, Any]:
     seeds = ctx.seeds.intrusion["final"][: int(plan["n"])]
     ctx.say(f"sensitivity: {len(entries)} configurations x {len(cells)} cells x {len(seeds)} seeds")
     ctx.run([Request(e.config, (), (), quiet) for e in entries], "final")
+
+    def quiet_variant(entry: Entry, resp: float) -> Config:
+        """Whose quiet nights a cell is scored with: its own when the response time differs."""
+        return entry.config if resp == strict_resp else variant(entry, 0.0, resp)
+
+    ctx.run(
+        [Request(quiet_variant(e, resp), (), (), quiet) for e in entries for _, resp in cells],
+        "final",
+    )
     requests = [
         Request(variant(e, task, resp), tuple(tactics), seeds)
         for e in entries
@@ -1117,6 +1188,7 @@ def stage_sensitivity(ctx: Ctx, validation: dict[str, Any]) -> dict[str, Any]:
                 "stand-in",
                 config=variant(entry, task, resp),
                 assumption=None if strict else {"task_time_s": task, "response_time_s": resp},
+                quiet_config=quiet_variant(entry, resp),
             ).summary
             s["task_time_s"], s["response_time_s"] = task, resp
             rows.append(s)
@@ -1164,12 +1236,12 @@ def stage_audit(ctx: Ctx, results: dict[str, Any]) -> dict[str, Any]:
 
     # 2. thresholds on the floor, 3. detection above 0.99
     final_rows = [
-        *results.get("final_standin", {}).get("rows", []),
-        *results.get("final_strong", {}).get("final", []),
-        *results.get("A", {}).get("final", []),
+        {**row, "stage": stage}
+        for stage, key in (("final_standin", "rows"), ("final_strong", "final"), ("A", "final"))
+        for row in results.get(stage, {}).get(key, [])
     ]
     out["threshold_flags"] = [
-        {k: r[k] for k in ("label", "adversary", "tau", "flag", "tau_on_floor")}
+        {k: r[k] for k in ("stage", "label", "adversary", "tau", "flag", "tau_on_floor")}
         for r in final_rows
         if r["flag"] != roc.FLAG_OK or r["tau_on_floor"]
     ]
@@ -1257,16 +1329,31 @@ def cheapest_to_target(
             return float(row["pd"])
         return float(row[metric]["pd"]) if metric in row else None
 
-    have = [(r, value(r)) for r in rows]
-    known = [(r, v) for r, v in have if v is not None]
+    def interval(row: dict[str, Any]) -> list[float]:
+        return list(row["pd_ci"] if metric == "pd" else row[metric]["ci"])
+
+    known = [(r, v) for r, v in ((r, value(r)) for r in rows) if v is not None]
     reached = [(r, v) for r, v in known if v >= target]
+    note = (
+        "chosen and reported on the same final seeds, so the value flatters the choice; "
+        "'confirmed' asks the lower end of the interval to reach the target as well"
+    )
     if reached:
         row, v = min(reached, key=lambda rv: (rv[0]["cost_per_hour"], rv[0]["label"]))
+        sure = [(r, x) for r, x in reached if interval(r)[0] >= target]
+        confirmed = (
+            min(sure, key=lambda rv: (rv[0]["cost_per_hour"], rv[0]["label"]))[0] if sure else None
+        )
         return {
             "reached": True,
             "label": row["label"],
             "cost_per_hour": row["cost_per_hour"],
             "value": v,
+            "ci": interval(row),
+            "n_seeds": row["n_seeds"],
+            "confirmed_label": confirmed["label"] if confirmed else None,
+            "confirmed_cost_per_hour": confirmed["cost_per_hour"] if confirmed else None,
+            "note": note,
         }
     if not known:
         return {"reached": False, "ceiling": None}
@@ -1274,8 +1361,12 @@ def cheapest_to_target(
     return {
         "reached": False,
         "ceiling": v,
+        "ci": interval(row),
+        "n_seeds": row["n_seeds"],
         "label": row["label"],
         "cost_per_hour": row["cost_per_hour"],
+        "worst_tactic_of_ceiling": row["worst_naive"]["tactic"],
+        "note": note,
     }
 
 
@@ -1306,6 +1397,12 @@ def main(argv: list[str] | None = None) -> int:
         "--frozen-root", type=Path, default=None, help="the worktree the code must run from"
     )
     parser.add_argument("--allow-new-code", action="store_true")
+    parser.add_argument(
+        "--rescore",
+        action="store_true",
+        help="run every stage again over the cache with the plans already made: scoring and "
+        "selection are recomputed, and only what the cache lacks is simulated",
+    )
     parser.add_argument("--stages", default=",".join(STAGES), help="comma separated; for debugging")
     args = parser.parse_args(argv)
 
@@ -1346,6 +1443,11 @@ def main(argv: list[str] | None = None) -> int:
     checkpoint.setdefault("started_at", now)
     checkpoint.setdefault("deadline_at", now + args.deadline_hours * 3600.0)
     checkpoint.setdefault("stages_done", [])
+    if args.rescore:
+        checkpoint["rescored_at"] = now
+        checkpoint["stages_done"] = []
+        checkpoint["started_at_rescore"] = now
+        checkpoint["deadline_at_rescore"] = now + args.deadline_hours * 3600.0
     checkpoint.setdefault("wall_s", 0.0)
     checkpoint.setdefault("episodes", 0)
     checkpoint.setdefault("quiet_nights", 0)
@@ -1394,8 +1496,8 @@ def main(argv: list[str] | None = None) -> int:
             seeds=split,
             ev=ev,
             lane_c_tactics=lane_c,
-            started=float(checkpoint["started_at"]),
-            deadline=float(checkpoint["deadline_at"]),
+            started=float(checkpoint["started_at_rescore" if args.rescore else "started_at"]),
+            deadline=float(checkpoint["deadline_at_rescore" if args.rescore else "deadline_at"]),
             checkpoint=checkpoint,
         )
         ctx.say(
@@ -1404,6 +1506,10 @@ def main(argv: list[str] | None = None) -> int:
         )
         ctx.save_checkpoint()
         results: dict[str, Any] = {}
+        if args.rescore and (out / "stages").is_dir():
+            keep_dir = out / f"stages_before_rescore_{int(now)}"
+            shutil.copytree(out / "stages", keep_dir)
+            ctx.say(f"rescore: the stage files as they were are kept in {keep_dir}")
         for stage in STAGES:
             path = out / "stages" / f"{stage}.json"
             if path.is_file():
@@ -1488,6 +1594,17 @@ def main(argv: list[str] | None = None) -> int:
             "seed_split": split.describe(),
             "costs": ctx.costs,
             "engine_ignores": list(ENGINE_IGNORES),
+            "constants": {
+                "target": TARGET,
+                "knee": KNEE,
+                "far_target_per_hour": FAR_TARGET,
+                "assumed_task_time_s": ASSUMED_TASK_TIME_S,
+                "strict_response_time_s": float(site.response_time_s),
+                "intruder_speed_min_mps": limits.speed_min_mps,
+                "intruder_speed_cap_mps": limits.speed_cap_mps,
+            },
+            "finished_at": time.time(),
+            "deadline_passed": time.time() > ctx.deadline,
             "shares": SHARES,
         }
         _write_json(out / "results.json", summary)
@@ -1506,6 +1623,7 @@ def _targets(results: dict[str, Any]) -> dict[str, Any]:
         ("task_time_60s_assumption", assumed),
         ("strict_strong_finalists", strong),
     ):
+        rows = [r for r in rows if not str(r["label"]).startswith(INGREDIENT_PREFIX)]
         if rows:
             out[name] = {
                 "overall": cheapest_to_target(rows, "pd"),
