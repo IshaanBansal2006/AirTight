@@ -40,12 +40,32 @@ def _select_engine(args: argparse.Namespace) -> str:
     return os.environ.get("AIRTIGHT_ENGINE", "stub")
 
 
+SCEN = REPO_ROOT / "scenarios" / "logistics_yard"
+
+
+def _scene_default(scenario: str, example: str | None) -> Path | None:
+    """The scenario file in a repo checkout; the packaged example when installed elsewhere."""
+    path = SCEN / scenario
+    if path.exists():
+        return path
+    return _example(example) if example else None
+
+
 def _add_scene_args(p: argparse.ArgumentParser) -> None:
-    p.add_argument("--site", type=Path, default=_example("site.json"))
-    p.add_argument("--fleet", type=Path, default=_example("fleet_config.json"))
-    p.add_argument("--curves", type=Path, default=_example("sensor_curve.json"))
+    p.add_argument("--site", type=Path, default=_scene_default("site.json", "site.json"))
     p.add_argument(
-        "--config", type=Path, default=None, help="RedTeamConfig JSON; defaults apply when omitted"
+        "--fleet",
+        type=Path,
+        default=_scene_default("fleets/d2_go2_guard_sync.json", "fleet_config.json"),
+    )
+    p.add_argument(
+        "--curves", type=Path, default=_scene_default("sensor_curve.json", "sensor_curve.json")
+    )
+    p.add_argument(
+        "--config",
+        type=Path,
+        default=_scene_default("redteam_config.json", None),
+        help="RedTeamConfig JSON; the scenario's file in a checkout, library defaults otherwise",
     )
 
 
