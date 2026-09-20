@@ -249,5 +249,5 @@ function pvThemeChanged(){ pvTok = null; if (p3.ready) { const k = pvTokens(); f
 new MutationObserver(pvThemeChanged).observe(document.documentElement, {attributes: true, attributeFilter: ['data-theme']});
 if (window.matchMedia) { const mq = window.matchMedia('(prefers-color-scheme: dark)'); if (mq.addEventListener) mq.addEventListener('change', pvThemeChanged); }
 
-// ---- deep link: ?mode=perceived&ep=miss|catch&t=<s>&src=drones|swarm&prio=0|1&cam=top|angled ----
-if (pvQ.get('mode') === 'perceived') { const ep = pvQ.get('ep'); if (rpEps[ep]) rp.ep = ep; rp.mode = 'perceived'; const t = parseFloat(pvQ.get('t')); if (!Number.isNaN(t)) { rp.opened = true; rp.t = Math.max(0, t); } rpRefresh(); } else pvRefresh();
+// ---- deep link: ?mode=perceived|single|compare&ep=miss|catch&t=<s>&src=drones|swarm&prio=0|1&cam=top|angled ----
+if (['perceived', 'single', 'compare'].includes(pvQ.get('mode'))) { const ep = pvQ.get('ep'); if (rpEps[ep]) rp.ep = ep; rp.mode = pvQ.get('mode'); const t = parseFloat(pvQ.get('t')); if (!Number.isNaN(t)) { rp.opened = true; rp.t = Math.max(0, t); } rpRefresh(); } else pvRefresh();

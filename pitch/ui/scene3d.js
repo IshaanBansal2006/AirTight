@@ -207,6 +207,7 @@ function updateScene(){
     const p = positionAt(a.track, t), q = positionAt(a.track, Math.max(a.t0, t-5)), n = positionAt(a.track, Math.min(a.t1, t+0.5)), b = positionAt(a.track, Math.max(a.t0, t-0.5));
     const X = p[1]-cx, Z = -(p[2]-cz); const dx = n[1]-b[1], dy = n[2]-b[2]; if (Math.hypot(dx, dy) > 0.05) a.heading = Math.atan2(dy, dx);
     let docked = false; if (a.cover && Math.hypot(p[1]-q[1], p[2]-q[2]) < 0.2 && (t - a.t0 >= 5 || Math.hypot(p[1]-positionAt(a.track, t+5)[1], p[2]-positionAt(a.track, t+5)[2]) < 0.2)) for (const d of DOCKS) if (Math.hypot(d[0]-p[1], d[1]-p[2]) <= 3) docked = true;
+    { const tm = a.cover && window.__agentMode ? window.__agentMode(ep, a.id, t) : null; if (tm != null) docked = tm === 2; }
     if (docked !== a.docked || !a.inited) { a.docked = docked; a.inited = true; const m = docked ? dim(a.kind) : solid(a.kind); for (const c of a.glyph.children) c.material = m; }
     a.flat = docked; a.glyph.position.set(X, a.kind === 'drone' && !docked ? DRONE_ALT : (docked ? 0.3 : 0), Z); a.glyph.rotation.y = a.kind === 'drone' ? 0 : a.heading;
     if (a.cover && !docked) { const on = toggles.cover; a.cover.visible = on; a.edge.mesh.visible = on; a.cover.position.x = X; a.cover.position.z = Z; a.cover.rotation.y = a.heading; a.edge.mesh.position.set(X, 0, Z); a.edge.mesh.rotation.y = a.heading; }
