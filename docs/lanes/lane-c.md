@@ -18,7 +18,7 @@ Built and tested on the stub simulator, with the design recorded in decisions 00
 | C6 | pipeline done; numbers from the ledger | `redteam/accounting.py`; `airtight-redteam ledger`; `pitch/make_token_chart.py` |
 | C7 | done as the `comms_cut` family | `redteam/families.py` |
 | C8 | charts, deck and write-up draft built from the real 200-seed report (`pitch/report.json`); video pending lane A's clips, MP4 fallback exists | `pitch/make_charts.py`, `make_token_chart.py`, `build_deck.py`, `render_deck.sh`, `render_replay.py`, `writeup.md` |
-| B5-B7, B10 (taken by C) | done: offline scorer, `airtight-sweep`, 12 configs x 8 tactics x 200 seeds, paired deltas. Moved to `score/report/` so lane B's own scorer (quiet nights, coverage intervals, on `lane-b-part3`) can land beside it; pick one at the next sync | `src/airtight/score/report/`, `data/v2/report.json` |
+| B5-B7, B10 (taken by C) | done: offline scorer, `airtight-sweep`, 12 configs x 8 tactics x 200 seeds, paired deltas. Moved to `score/logreport/` so lane B's own scorer (quiet nights, coverage intervals, on `lane-b-part3`) can land beside it; pick one at the next sync | `src/airtight/score/logreport/`, `data/v2/report.json` |
 | C4b | done: the injected re-search kept no LLM-origin tactic in any family's elites; the nano model's single proposal was outcompeted by search. Slide 3 says so | `data/v2/tactics_llm/` |
 
 Commands that matter:

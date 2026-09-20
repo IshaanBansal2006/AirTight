@@ -10,7 +10,7 @@ from airtight.contracts import RocPoint
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from airtight.score.report.logs import EpisodeSummary
+    from airtight.score.logreport.logs import EpisodeSummary
 
 Z95 = 1.959964
 
