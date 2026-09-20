@@ -139,6 +139,13 @@ def moves(fleet: FleetConfig) -> dict[Move, FleetConfig]:
     return out
 
 
+def choose(candidates: Sequence[Candidate], tolerance: float) -> Candidate:
+    """Best worst case wins; worst cases within one seed's resolution tie, and ties go to the higher mean, then the lower cost."""
+    top = max(c.worst_pd for c in candidates)
+    tied = [c for c in candidates if c.worst_pd >= top - tolerance - 1e-9]
+    return max(tied, key=lambda c: (c.mean_pd, -c.cost_per_hour))
+
+
 def worst_case(
     fleet: FleetConfig,
     tactics: Sequence[Tactic],
@@ -259,7 +266,7 @@ def run_minmax(
         if not it.candidates:
             result.iterations.append(it)
             break
-        best = max(it.candidates, key=lambda c: (c.worst_pd, -c.cost_per_hour))
+        best = choose(it.candidates, tolerance=1.0 / max(1, len(seeds)))
         it.move = best.move
         result.iterations.append(it)
         (out_dir / f"iter{k + 1}_fleet.json").write_text(best.fleet.model_dump_json(indent=2))
