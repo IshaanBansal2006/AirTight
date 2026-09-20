@@ -1,0 +1,91 @@
+[37579:10547426:0920/090601.284150:INFO:components/enterprise/browser/controller/chrome_browser_cloud_management_controller.cc:241] No machine level policy manager exists.
+[37592:10547517:0920/090601.696097:ERROR:ui/display/mac/cv_display_link_mac.mm:195] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+[37592:10547589:0920/090601.696529:ERROR:ui/display/mac/cv_display_link_mac.mm:195] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+[37592:10547517:0920/090601.697776:ERROR:ui/display/mac/cv_display_link_mac.mm:195] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+[37592:10547589:0920/090601.697815:ERROR:ui/display/mac/cv_display_link_mac.mm:195] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+[37592:10547517:0920/090601.698462:ERROR:ui/display/mac/cv_display_link_mac.mm:195] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+[37592:10547589:0920/090601.698500:ERROR:ui/display/mac/cv_display_link_mac.mm:195] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+[37592:10547517:0920/090601.698594:ERROR:ui/display/mac/cv_display_link_mac.mm:195] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+[37592:10547589:0920/090601.698626:ERROR:ui/display/mac/cv_display_link_mac.mm:195] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+[37592:10547517:0920/090601.698715:ERROR:ui/display/mac/cv_display_link_mac.mm:195] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+[37592:10547589:0920/090601.698743:ERROR:ui/display/mac/cv_display_link_mac.mm:195] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+[37592:10547517:0920/090601.698813:ERROR:ui/display/mac/cv_display_link_mac.mm:195] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+[37592:10547589:0920/090601.698839:ERROR:ui/display/mac/cv_display_link_mac.mm:195] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+[37592:10547517:0920/090601.718744:ERROR:ui/display/mac/cv_display_link_mac.mm:195] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+[37592:10547589:0920/090601.718783:ERROR:ui/display/mac/cv_display_link_mac.mm:195] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+Trying to load the allocator multiple times. This is *not* supported.
+[37592:10547517:0920/090603.324854:ERROR:gpu/command_buffer/service/gl_utils.cc:430] [.WebGL-0x134000cf000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[37592:10547517:0920/090603.667188:ERROR:ui/display/mac/cv_display_link_mac.mm:195] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+[37592:10547589:0920/090603.667254:ERROR:ui/display/mac/cv_display_link_mac.mm:195] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+[37592:10547517:0920/090603.677983:ERROR:gpu/command_buffer/service/gl_utils.cc:430] [.WebGL-0x134000cf000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[37592:10547517:0920/090603.678592:ERROR:gpu/command_buffer/service/gl_utils.cc:430] [.WebGL-0x134000cf000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[37592:10547517:0920/090603.705411:ERROR:gpu/command_buffer/service/gl_utils.cc:430] [.WebGL-0x134000cf000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
+[37592:10547517:0920/090604.124141:ERROR:ui/display/mac/cv_display_link_mac.mm:195] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+[37592:10547589:0920/090604.124231:ERROR:ui/display/mac/cv_display_link_mac.mm:195] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+[37592:10547517:0920/090604.150520:ERROR:ui/display/mac/cv_display_link_mac.mm:195] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+[37592:10547589:0920/090604.150597:ERROR:ui/display/mac/cv_display_link_mac.mm:195] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+[37592:10547517:0920/090604.195578:ERROR:ui/display/mac/cv_display_link_mac.mm:195] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+[37592:10547589:0920/090604.195648:ERROR:ui/display/mac/cv_display_link_mac.mm:195] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+[37579:10547426:0920/090604.200930:INFO:CONSOLE:946] "[.WebGL-0x134000cf000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels", source: file:///Users/rishabghosh/Projects/AirTight-ui/pitch/app.html?cam=top&t=5&ep=miss#map (946)
+[37579:10547426:0920/090604.201215:INFO:CONSOLE:946] "[.WebGL-0x134000cf000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels", source: file:///Users/rishabghosh/Projects/AirTight-ui/pitch/app.html?cam=top&t=5&ep=miss#map (946)
+[37579:10547426:0920/090604.201247:INFO:CONSOLE:946] "[.WebGL-0x134000cf000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels", source: file:///Users/rishabghosh/Projects/AirTight-ui/pitch/app.html?cam=top&t=5&ep=miss#map (946)
+[37579:10547426:0920/090604.201266:INFO:CONSOLE:946] "[.WebGL-0x134000cf000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)", source: file:///Users/rishabghosh/Projects/AirTight-ui/pitch/app.html?cam=top&t=5&ep=miss#map (946)
+[37579:10547503:0920/090604.601046:ERROR:google_apis/gcm/engine/registration_request.cc:291] Registration response error message: DEPRECATED_ENDPOINT
+[37592:10547517:0920/090605.129651:ERROR:ui/display/mac/cv_display_link_mac.mm:195] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+[37592:10547589:0920/090605.129766:ERROR:ui/display/mac/cv_display_link_mac.mm:195] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+[37579:10547516:0920/090605.199946:ERROR:base/process/process_mac.cc:53] task_policy_set TASK_CATEGORY_POLICY: (os/kern) invalid argument (4)
+[37579:10547516:0920/090605.199967:ERROR:base/process/process_mac.cc:98] task_policy_set TASK_SUPPRESSION_POLICY: (os/kern) invalid argument (4)
+[37579:10547516:0920/090605.207081:ERROR:base/process/process_mac.cc:53] task_policy_set TASK_CATEGORY_POLICY: (os/kern) invalid argument (4)
+[37579:10547516:0920/090605.207104:ERROR:base/process/process_mac.cc:98] task_policy_set TASK_SUPPRESSION_POLICY: (os/kern) invalid argument (4)
+[37592:10547517:0920/090605.207597:ERROR:ui/display/mac/cv_display_link_mac.mm:195] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+[37592:10547589:0920/090605.207659:ERROR:ui/display/mac/cv_display_link_mac.mm:195] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+[37592:10547517:0920/090605.215937:ERROR:ui/display/mac/cv_display_link_mac.mm:195] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+[37592:10547589:0920/090605.220377:ERROR:ui/display/mac/cv_display_link_mac.mm:195] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+[37579:10547516:0920/090605.228695:ERROR:base/process/process_mac.cc:53] task_policy_set TASK_CATEGORY_POLICY: (os/kern) invalid argument (4)
+[37579:10547516:0920/090605.231503:ERROR:base/process/process_mac.cc:98] task_policy_set TASK_SUPPRESSION_POLICY: (ipc/send) invalid destination port (0x10000003)
+[37681:10548316:0920/090620.359246:VERBOSE1:chrome/updater/updater.cc:374] Version: 152.0.7933.0, opt, ARM_64, command line: /Users/rishabghosh/Library/Application Support/Google/GoogleUpdater/152.0.7933.0/GoogleUpdater.app/Contents/MacOS/GoogleUpdater --wake-all --enable-logging --vmodule=*/components/update_client/*=2,*/chrome/enterprise_companion/*=2,*/chrome/updater/*=2
+[37681:10548316:0920/090620.359929:VERBOSE1:chrome/updater/updater.cc:377] OS version: 26.6.2, arch: arm64, System uptime (seconds): 465528, parent pid: 37579
+[37681:10548316:0920/090620.361567:VERBOSE1:chrome/updater/updater.cc:382] Available disk space in install directory (/Users/rishabghosh/Library/Application Support/Google/GoogleUpdater): 86756491264B (80.798GiB) / 494384795648B (460.432GiB)
+[37681:10548316:0920/090620.361582:VERBOSE1:chrome/updater/updater.cc:386] Available disk space in temporary directory (/var/folders/kr/8r4yhpgx5s17m6f7b26l1x9r0000gn/T/): 86756491264B (80.798GiB) / 494384795648B (460.432GiB)
+[37681:10548316:0920/090620.361656:VERBOSE2:chrome/updater/event_history.cc:265] Emitted a UPDATER_PROCESS START event to the history log
+[37683:10548320:0920/090620.370435:VERBOSE1:chrome/updater/updater.cc:374] Version: 152.0.7933.0, opt, ARM_64, command line: /Users/rishabghosh/Library/Application Support/Google/GoogleUpdater/152.0.7933.0/GoogleUpdater.app/Contents/MacOS/GoogleUpdater --crash-handler --database=/Users/rishabghosh/Library/Application Support/Google/GoogleUpdater/152.0.7933.0/Crashpad --url=https://clients2.google.com/cr/report --annotation=prod=Update4 --annotation=ver=152.0.7933.0 --handshake-fd=6 --enable-logging --vmodule=*/components/update_client/*=2,*/chrome/enterprise_companion/*=2,*/chrome/updater/*=2
+[37683:10548320:0920/090620.370857:VERBOSE1:chrome/updater/updater.cc:377] OS version: 26.6.2, arch: arm64, System uptime (seconds): 465528, parent pid: 1
+[37683:10548320:0920/090620.372235:VERBOSE1:chrome/updater/updater.cc:382] Available disk space in install directory (/Users/rishabghosh/Library/Application Support/Google/GoogleUpdater): 86756483072B (80.798GiB) / 494384795648B (460.432GiB)
+[37683:10548320:0920/090620.372247:VERBOSE1:chrome/updater/updater.cc:386] Available disk space in temporary directory (/var/folders/kr/8r4yhpgx5s17m6f7b26l1x9r0000gn/T/): 86756483072B (80.798GiB) / 494384795648B (460.432GiB)
+[37683:10548320:0920/090620.372304:VERBOSE2:chrome/updater/event_history.cc:265] Emitted a UPDATER_PROCESS START event to the history log
+[37681:10548316:0920/090620.372671:VERBOSE1:chrome/updater/crash_reporter.cc:124] Crash handler launched and ready.
+[37681:10548316:0920/090620.373262:VERBOSE1:chrome/updater/crash_client.cc:108] Found 0 completed crash reports
+[37681:10548316:0920/090620.373323:VERBOSE1:chrome/updater/crash_client.cc:132] Found 0 pending crash reports
+[37681:10548316:0920/090620.373381:ERROR:third_party/crashpad/crashpad/util/file/file_io_posix.cc:145] open /Users/rishabghosh/Library/Application Support/Google/RLZ/Crashpad/settings.dat: No such file or directory (2)
+[37681:10548316:0920/090620.373421:VERBOSE1:chrome/updater/updater.cc:105] Crash reporting initialized.
+[37681:10548328:0920/090620.373636:VERBOSE1:chrome/updater/app/app_wakeall.cc:58] Launching `/Users/rishabghosh/Library/Application Support/Google/GoogleUpdater/152.0.7933.0/GoogleUpdater.app/Contents/MacOS/GoogleUpdater --wake`
+[37684:10548332:0920/090620.380777:VERBOSE1:chrome/updater/updater.cc:374] Version: 152.0.7933.0, opt, ARM_64, command line: /Users/rishabghosh/Library/Application Support/Google/GoogleUpdater/152.0.7933.0/GoogleUpdater.app/Contents/MacOS/GoogleUpdater --wake --enable-logging --vmodule=*/components/update_client/*=2,*/chrome/enterprise_companion/*=2,*/chrome/updater/*=2
+[37684:10548332:0920/090620.381196:VERBOSE1:chrome/updater/updater.cc:377] OS version: 26.6.2, arch: arm64, System uptime (seconds): 465528, parent pid: 37681
+[37684:10548332:0920/090620.382407:VERBOSE1:chrome/updater/updater.cc:382] Available disk space in install directory (/Users/rishabghosh/Library/Application Support/Google/GoogleUpdater): 86756483072B (80.798GiB) / 494384795648B (460.432GiB)
+[37684:10548332:0920/090620.382418:VERBOSE1:chrome/updater/updater.cc:386] Available disk space in temporary directory (/var/folders/kr/8r4yhpgx5s17m6f7b26l1x9r0000gn/T/): 86756483072B (80.798GiB) / 494384795648B (460.432GiB)
+[37684:10548332:0920/090620.382466:VERBOSE2:chrome/updater/event_history.cc:265] Emitted a UPDATER_PROCESS START event to the history log
+[37686:10548336:0920/090620.390217:VERBOSE1:chrome/updater/updater.cc:374] Version: 152.0.7933.0, opt, ARM_64, command line: /Users/rishabghosh/Library/Application Support/Google/GoogleUpdater/152.0.7933.0/GoogleUpdater.app/Contents/MacOS/GoogleUpdater --crash-handler --database=/Users/rishabghosh/Library/Application Support/Google/GoogleUpdater/152.0.7933.0/Crashpad --url=https://clients2.google.com/cr/report --annotation=prod=Update4 --annotation=ver=152.0.7933.0 --handshake-fd=6 --enable-logging --vmodule=*/components/update_client/*=2,*/chrome/enterprise_companion/*=2,*/chrome/updater/*=2
+[37686:10548336:0920/090620.390622:VERBOSE1:chrome/updater/updater.cc:377] OS version: 26.6.2, arch: arm64, System uptime (seconds): 465528, parent pid: 1
+[37686:10548336:0920/090620.391875:VERBOSE1:chrome/updater/updater.cc:382] Available disk space in install directory (/Users/rishabghosh/Library/Application Support/Google/GoogleUpdater): 86756483072B (80.798GiB) / 494384795648B (460.432GiB)
+[37686:10548336:0920/090620.391885:VERBOSE1:chrome/updater/updater.cc:386] Available disk space in temporary directory (/var/folders/kr/8r4yhpgx5s17m6f7b26l1x9r0000gn/T/): 86756483072B (80.798GiB) / 494384795648B (460.432GiB)
+[37686:10548336:0920/090620.391940:VERBOSE2:chrome/updater/event_history.cc:265] Emitted a UPDATER_PROCESS START event to the history log
+[37684:10548332:0920/090620.392285:VERBOSE1:chrome/updater/crash_reporter.cc:124] Crash handler launched and ready.
+[37684:10548332:0920/090620.392874:VERBOSE1:chrome/updater/crash_client.cc:108] Found 0 completed crash reports
+[37684:10548332:0920/090620.392929:VERBOSE1:chrome/updater/crash_client.cc:132] Found 0 pending crash reports
+[37684:10548332:0920/090620.392983:ERROR:third_party/crashpad/crashpad/util/file/file_io_posix.cc:145] open /Users/rishabghosh/Library/Application Support/Google/RLZ/Crashpad/settings.dat: No such file or directory (2)
+[37684:10548332:0920/090620.393020:VERBOSE1:chrome/updater/updater.cc:105] Crash reporting initialized.
+[37684:10548332:0920/090620.393149:VERBOSE1:chrome/updater/ipc/update_service_internal_proxy_mojo.cc:61] Run
+[37684:10548332:0920/090638.502042:VERBOSE1:chrome/updater/app/app.cc:52] Shutdown: 0
+[37684:10548332:0920/090638.503280:VERBOSE2:chrome/updater/event_history.cc:265] Emitted a UPDATER_PROCESS END event to the history log
+[37684:10548332:0920/090638.503354:VERBOSE1:chrome/updater/updater.cc:419] UpdaterMain (--wake) returned 0.
+[37681:10548328:0920/090638.727950:VERBOSE1:chrome/updater/app/app_wakeall.cc:68] `/Users/rishabghosh/Library/Application Support/Google/GoogleUpdater/152.0.7933.0/GoogleUpdater.app/Contents/MacOS/GoogleUpdater --wake` exited 0
+[37681:10548316:0920/090638.729493:VERBOSE1:chrome/updater/app/app.cc:52] Shutdown: 0
+[37681:10548316:0920/090638.731215:VERBOSE2:chrome/updater/event_history.cc:265] Emitted a UPDATER_PROCESS END event to the history log
+[37681:10548316:0920/090638.731323:VERBOSE1:chrome/updater/updater.cc:419] UpdaterMain (--wake-all) returned 0.
+[37686:10548336:0920/090648.524719:VERBOSE2:chrome/updater/event_history.cc:265] Emitted a UPDATER_PROCESS END event to the history log
+[37686:10548336:0920/090648.525098:VERBOSE1:chrome/updater/updater.cc:419] UpdaterMain (--crash-handler) returned 0.
+[37683:10548320:0920/090648.528395:VERBOSE2:chrome/updater/event_history.cc:265] Emitted a UPDATER_PROCESS END event to the history log
+[37683:10548320:0920/090648.528582:VERBOSE1:chrome/updater/updater.cc:419] UpdaterMain (--crash-handler) returned 0.
+[37579:10547426:0920/090824.726791:ERROR:content/browser/network_service_instance_impl.cc:655] Network service crashed or was terminated, restarting service.
+[37579:10547426:0920/090824.728855:ERROR:content/browser/gpu/gpu_process_host.cc:1054] GPU process exited unexpectedly: exit_code=15
+[37579:10547426:0920/090824.728878:WARNING:content/browser/gpu/gpu_process_host.cc:1506] The GPU process has crashed 1 time(s)
