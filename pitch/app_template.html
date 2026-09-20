@@ -1,0 +1,232 @@
+<title>Airtight Console</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --surface:#fcfcfb; --page:#f4f3ee; --ink:#0b0b0b; --ink2:#52514e; --muted:#898781; --grid:#e1e0d9; --line:#c3c2b7;
+  --accent:#2a78d6; --alert:#eb6834; --good:#1baf7a; --critical:#d03b3b; --warn:#eda100;
+  --card:#ffffff; --tab:#fcfcfb;
+  --font-body:"IBM Plex Sans",system-ui,sans-serif; --font-display:"Archivo","IBM Plex Sans",system-ui,sans-serif; --font-mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --surface:#1a1a19; --page:#111110; --ink:#ffffff; --ink2:#c3c2b7; --muted:#898781; --grid:#2c2c2a; --line:#383835;
+  --accent:#3987e5; --alert:#d95926; --good:#199e70; --critical:#e66767; --warn:#c98500; --card:#232322; --tab:#1a1a19; }}
+:root[data-theme="dark"]{
+  --surface:#1a1a19; --page:#111110; --ink:#ffffff; --ink2:#c3c2b7; --muted:#898781; --grid:#2c2c2a; --line:#383835;
+  --accent:#3987e5; --alert:#d95926; --good:#199e70; --critical:#e66767; --warn:#c98500; --card:#232322; --tab:#1a1a19; }
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--page);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.45}
+.wrap{padding-inline:16px;padding-block:0 84px;max-width:760px;margin:0 auto}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--grid);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+header.top h1{font-family:var(--font-display);font-size:18px;margin:0;letter-spacing:.01em}
+header.top .site{font-size:12px;color:var(--ink2)}
+.pill{font-family:var(--font-mono);font-size:11px;padding:3px 8px;border-radius:999px;border:1px solid var(--line);color:var(--ink2);white-space:nowrap}
+.pill.good{border-color:var(--good);color:var(--good)} .pill.bad{border-color:var(--critical);color:var(--critical)}
+section.tab{display:none;padding-block:16px} section.tab.active{display:block}
+h2{font-family:var(--font-display);font-size:16px;margin:16px 0 8px;text-wrap:balance}
+h2:first-child{margin-top:4px}
+p{margin:6px 0;color:var(--ink2)} p.lead{color:var(--ink);max-width:62ch}
+.tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.tile{background:var(--card);border:1px solid var(--grid);border-radius:10px;padding:12px}
+.tile .k{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.tile .v{font-family:var(--font-mono);font-size:26px;font-weight:500;font-variant-numeric:tabular-nums;margin-top:2px}
+.tile .d{font-size:12px;color:var(--ink2)} .up{color:var(--good)} .down{color:var(--critical)}
+.chart{background:var(--surface);border:1px solid var(--grid);border-radius:10px;padding:8px}
+.chart img{width:100%;height:auto;display:block;border-radius:6px}
+.cap{font-size:11px;color:var(--muted);margin-top:6px}
+.list{display:flex;flex-direction:column;gap:8px}
+.row{background:var(--card);border:1px solid var(--grid);border-radius:10px;padding:10px 12px;display:grid;grid-template-columns:6px 1fr auto;gap:10px;align-items:center}
+.row .stripe{width:6px;height:100%;min-height:36px;border-radius:3px;background:var(--alert)}
+.row .t{font-weight:600} .row .s{font-size:12px;color:var(--ink2)} .row .n{font-family:var(--font-mono);font-size:14px;font-variant-numeric:tabular-nums;text-align:right}
+.row.sev-high .stripe{background:var(--critical)} .row.sev-med .stripe{background:var(--warn)} .row.sev-low .stripe{background:var(--good)}
+table{border-collapse:collapse;width:100%;font-size:13px} th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--grid)} th{color:var(--muted);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.05em} td.num,th.num{text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.tablewrap{overflow-x:auto;border:1px solid var(--grid);border-radius:10px;background:var(--card)}
+.viewer{position:relative;background:var(--surface);border:1px solid var(--grid);border-radius:10px;overflow:hidden;aspect-ratio:4/3;max-width:100%;touch-action:none}
+.viewer canvas{width:100%;height:100%;display:block}
+.banner{position:absolute;left:8px;right:8px;bottom:8px;padding:8px 10px;border-radius:8px;font-family:var(--font-mono);font-size:12px;background:var(--card);border:1px solid var(--grid);color:var(--ink)}
+.banner.hit{border-color:var(--good);color:var(--good)} .banner.miss{border-color:var(--critical);color:var(--critical)}
+.controls{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{background:transparent;border:0;padding:8px 12px;font:inherit;color:var(--ink2);cursor:pointer} .seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
+button.btn{font:inherit;font-weight:600;border-radius:8px;padding:10px 14px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;min-width:44px;min-height:44px}
+button.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff} button.btn.danger{background:transparent;border-color:var(--critical);color:var(--critical)}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+input[type=range]{flex:1;min-width:120px;accent-color:var(--accent)}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--ink2);margin-top:6px} .legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;vertical-align:-1px}
+.proposal{background:var(--card);border:1px solid var(--grid);border-left:4px solid var(--alert);border-radius:10px;padding:12px}
+.proposal .t{font-weight:600} .proposal .s{font-size:13px;color:var(--ink2);margin:4px 0 8px} .proposal .count{font-family:var(--font-mono);font-size:12px;color:var(--muted)}
+.actions{display:flex;gap:8px;margin-top:8px}
+.hist{margin-top:10px} .hist .row{grid-template-columns:1fr auto}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--tab);border-top:1px solid var(--grid);display:flex;padding:6px 8px;padding-bottom:calc(6px + env(safe-area-inset-bottom,0px));z-index:6}
+nav.tabs button{flex:1;background:transparent;border:0;font:inherit;font-size:12px;color:var(--muted);padding:8px 4px;border-radius:8px;cursor:pointer;min-height:44px} nav.tabs button[aria-selected="true"]{color:var(--accent);font-weight:600;background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.note{font-size:12px;color:var(--muted);border-left:2px solid var(--grid);padding-left:8px;margin-top:10px}
+@media (min-width:600px){ .tiles{grid-template-columns:repeat(4,1fr)} }
+@media (prefers-reduced-motion: reduce){ *{transition:none!important} }
+</style>
+
+<header class="top">
+  <div><h1>Airtight Console</h1><div class="site" id="siteName"></div></div>
+  <span class="pill" id="statusPill">report loaded</span>
+</header>
+
+<div class="wrap">
+<section class="tab active" id="tab-score" role="tabpanel">
+  <h2>Security score</h2>
+  <p class="lead" id="scoreLead"></p>
+  <div class="tiles" id="tiles"></div>
+  <h2>Detection against cost</h2>
+  <div class="chart"><img id="chartCost" alt="Detection versus cost per hour for twelve fleet configurations"><div class="cap" id="condLine"></div></div>
+  <h2>Before and after the fix</h2>
+  <div class="chart"><img id="chartBA" alt="Before and after the fix on the same seeds"></div>
+  <h2>Improvement over iterations</h2>
+  <div id="minmaxBox"></div>
+  <h2>All configurations</h2>
+  <div class="tablewrap"><table id="cfgTable"><thead><tr><th>Fleet</th><th class="num">$/h</th><th class="num">Detect</th><th class="num">Worst</th><th class="num">Dec/h</th></tr></thead><tbody></tbody></table></div>
+</section>
+
+<section class="tab" id="tab-threats" role="tabpanel">
+  <h2>Vulnerabilities found</h2>
+  <p class="lead">The red team's worst tactic per family against the baseline fleet, ranked by how often it beat the deadline.</p>
+  <div class="list" id="threatList"></div>
+  <h2>Vulnerability map</h2>
+  <div class="chart"><img id="chartMap" alt="Site map with the worst tactic per family drawn on it"><div class="cap">Shading is watched ground from fixed cameras and dock halos. Lines are the four worst approaches.</div></div>
+</section>
+
+<section class="tab" id="tab-replay" role="tabpanel">
+  <h2>Replay in 3D</h2>
+  <p class="lead">Same intrusion, same seed. Drag to orbit, pinch or scroll to zoom.</p>
+  <div class="controls">
+    <div class="seg" role="group" aria-label="Which fleet"><button id="pickMiss" aria-pressed="true">Baseline: miss</button><button id="pickCatch" aria-pressed="false">Fixed fleet: catch</button></div>
+    <button class="btn" id="playBtn" aria-label="Play or pause">Play</button>
+  </div>
+  <div class="viewer" id="viewer"><div class="banner" id="banner"></div></div>
+  <div class="controls"><input type="range" id="scrub" min="0" max="100" value="0" step="0.5" aria-label="Replay time"><span class="pill" id="tLabel">t = 0.0 s</span></div>
+  <div class="legend"><span><i style="background:#e34948"></i>intruder</span><span><i style="background:#2a78d6"></i>drone</span><span><i style="background:#1baf7a"></i>ground robot</span><span><i style="background:#eda100"></i>guard</span><span><i style="background:#898781"></i>traffic</span><span><i style="background:#eb6834"></i>detection</span></div>
+  <div class="note" id="replayNote"></div>
+  <h2>Fleet memory at this moment</h2>
+  <div class="list" id="memoryList"></div>
+</section>
+
+<section class="tab" id="tab-approve" role="tabpanel">
+  <h2>Human in the loop</h2>
+  <p class="lead">The fleet proposes; a person decides. Silence never authorizes: a proposal that reaches its deadline is denied.</p>
+  <div id="proposalBox"></div>
+  <h2>Decision log</h2>
+  <div class="hist list" id="history"></div>
+  <div class="note" id="dbNote">Decisions are shared with everyone who opens this page when the store is available; otherwise they stay on this device.</div>
+</section>
+</div>
+
+<nav class="tabs" role="tablist">
+  <button role="tab" aria-selected="true" data-tab="tab-score">Score</button>
+  <button role="tab" aria-selected="false" data-tab="tab-threats">Threats</button>
+  <button role="tab" aria-selected="false" data-tab="tab-replay">Replay</button>
+  <button role="tab" aria-selected="false" data-tab="tab-approve">Approvals</button>
+</nav>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script id="data" type="application/json">__DATA__</script>
+<script>
+(function(){
+const D = JSON.parse(document.getElementById('data').textContent);
+const $ = (s) => document.querySelector(s);
+const fmt = (v, d=2) => (v==null||Number.isNaN(v)) ? '–' : Number(v).toFixed(d);
+
+// ---------- tabs ----------
+document.querySelectorAll('nav.tabs button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('nav.tabs button').forEach(x => x.setAttribute('aria-selected', x===b ? 'true':'false'));
+  document.querySelectorAll('section.tab').forEach(s => s.classList.toggle('active', s.id === b.dataset.tab));
+  try { localStorage.setItem('airtight.tab', b.dataset.tab); } catch(e) {}
+  if (b.dataset.tab === 'tab-replay') resizeViewer();
+}));
+try { const t = localStorage.getItem('airtight.tab'); if (t) document.querySelector(`nav.tabs button[data-tab="${t}"]`)?.click(); } catch(e) {}
+
+// ---------- score ----------
+$('#siteName').textContent = D.site.name + ' · ' + D.report.n_seeds + ' seeds · ' + D.report.baseline;
+const base = D.report.configs.find(c => c.name === D.report.baseline);
+const fixed = D.report.configs.find(c => c.name === D.report.fixed) || base;
+$('#scoreLead').textContent = `Against the worst tactic the red team found, ${base.name} detects in time ${Math.round(base.pd*100)}% of intrusions at one false alarm per hour. ${fixed.name} reaches ${Math.round(fixed.pd*100)}% for $${fixed.cost.toFixed(0)} an hour.`;
+const tiles = [
+  {k:'Detection now', v:fmt(base.pd), d:`${base.name}`},
+  {k:'Detection after fix', v:fmt(fixed.pd), d:`${fixed.name}`, cls:fixed.pd>base.pd?'up':'down'},
+  {k:'Worst tactic, after', v:fmt(fixed.worst_pd), d:`was ${fmt(base.worst_pd)}`, cls:fixed.worst_pd>base.worst_pd?'up':'down'},
+  {k:'Cost per hour', v:'$'+fixed.cost.toFixed(0), d:`was $${base.cost.toFixed(0)}`, cls:fixed.cost<=base.cost?'up':'down'},
+  {k:'Decisions per hour', v:fmt(fixed.decisions), d:`was ${fmt(base.decisions)}`, cls:fixed.decisions<=base.decisions?'up':'down'},
+  {k:'Coverage gap', v:fmt(fixed.gap,0)+' s/h', d:`was ${fmt(base.gap,0)} s/h`, cls:fixed.gap<=base.gap?'up':'down'},
+];
+$('#tiles').innerHTML = tiles.map(t => `<div class="tile"><div class="k">${t.k}</div><div class="v">${t.v}</div><div class="d ${t.cls||''}">${t.d}</div></div>`).join('');
+$('#chartCost').src = D.images.cost; $('#chartBA').src = D.images.before_after; $('#chartMap').src = D.images.map;
+$('#condLine').textContent = D.report.conditions;
+$('#cfgTable tbody').innerHTML = D.report.configs.map(c => `<tr><td>${c.name}${c.name===D.report.baseline?' <span class="pill">baseline</span>':''}</td><td class="num">${c.cost.toFixed(0)}</td><td class="num">${fmt(c.pd)}</td><td class="num">${fmt(c.worst_pd)}</td><td class="num">${fmt(c.decisions)}</td></tr>`).join('');
+if (D.minmax && D.minmax.length) {
+  $('#minmaxBox').innerHTML = `<div class="tablewrap"><table><thead><tr><th>Round</th><th>Fleet</th><th class="num">$/h</th><th class="num">Worst-case detect</th><th>Fix chosen</th></tr></thead><tbody>${D.minmax.map(i => `<tr><td class="num">${i.k}</td><td>${i.fleet}</td><td class="num">${i.cost.toFixed(0)}</td><td class="num">${fmt(i.worst_pd)}</td><td>${i.move||'—'}</td></tr>`).join('')}</tbody></table></div><div class="cap">Each round the red team attacks the current fleet, every affordable fix is scored against what it found, and the best worst-case wins.</div>`;
+} else {
+  $('#minmaxBox').innerHTML = `<div class="tile"><div class="k">Attack, fix, re-attack</div><div class="v">running</div><div class="d">three rounds against the baseline; this page updates when they finish</div></div>`;
+}
+
+// ---------- threats ----------
+const sev = (m) => m >= 0.9 ? 'sev-high' : m >= 0.5 ? 'sev-med' : 'sev-low';
+$('#threatList').innerHTML = D.threats.map(t => `<div class="row ${sev(t.miss)}"><div class="stripe"></div><div><div class="t">${t.family.replace('_',' ')} via ${t.entry}</div><div class="s">phase ${fmt(t.phase)} of the charge cycle · ${fmt(t.speed,1)} m/s · found by ${t.origin}</div></div><div class="n">${Math.round(t.miss*100)}%<div class="s">missed</div></div></div>`).join('');
+
+// ---------- 3D replay ----------
+const viewer = $('#viewer'); let renderer, scene, camera, clock = 0, playing = false, current = 'miss';
+const objs = {}, rings = [];
+const site = D.site; const cx = (site.bounds[0]+site.bounds[2])/2, cz = (site.bounds[1]+site.bounds[3])/2;
+const COLORS = {intruder:0xe34948, drone:0x2a78d6, go2:0x1baf7a, guard:0xeda100, benign:0x898781, decoy:0xeb6834};
+function kindOf(id){ if(id==='intruder') return 'intruder'; if(id.startsWith('decoy')) return 'decoy'; if(id.startsWith('drone')) return 'drone'; if(id.startsWith('go2')) return 'go2'; if(id.startsWith('guard')) return 'guard'; return 'benign'; }
+function toV(x,y,h){ return new THREE.Vector3(x - cx, h, -(y - cz)); }
+let orbit = {theta: -0.9, phi: 0.95, r: 190}, dragging = false, last = null, pinch = null;
+function setCam(){ camera.position.set(orbit.r*Math.sin(orbit.phi)*Math.cos(orbit.theta), orbit.r*Math.cos(orbit.phi), orbit.r*Math.sin(orbit.phi)*Math.sin(orbit.theta)); camera.lookAt(0,0,0); }
+function initScene(){
+  renderer = new THREE.WebGLRenderer({antialias:true, alpha:false}); renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, 2));
+  viewer.insertBefore(renderer.domElement, viewer.firstChild);
+  scene = new THREE.Scene(); scene.background = new THREE.Color(getComputedStyle(document.documentElement).getPropertyValue('--surface').trim() || '#fcfcfb');
+  camera = new THREE.PerspectiveCamera(45, 4/3, 1, 2000); setCam();
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x888888, 0.9)); const sun = new THREE.DirectionalLight(0xffffff, 0.6); sun.position.set(80,120,40); scene.add(sun);
+  const w = site.bounds[2]-site.bounds[0], d = site.bounds[3]-site.bounds[1];
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(w, d), new THREE.MeshLambertMaterial({color:0xe9e7df})); ground.rotation.x = -Math.PI/2; scene.add(ground);
+  const grid = new THREE.GridHelper(Math.max(w,d), Math.max(w,d)/10, 0xc3c2b7, 0xe1e0d9); grid.position.y = 0.05; scene.add(grid);
+  const fenceMat = new THREE.MeshLambertMaterial({color:0x52514e});
+  const P = site.perimeter; for (let i=0;i<P.length;i++){ const a=P[i], b=P[(i+1)%P.length]; const len=Math.hypot(b.x-a.x,b.y-a.y); const m=new THREE.Mesh(new THREE.BoxGeometry(len,2.4,0.4), fenceMat); const mid=toV((a.x+b.x)/2,(a.y+b.y)/2,1.2); m.position.copy(mid); m.rotation.y = -Math.atan2(b.y-a.y, b.x-a.x); scene.add(m); }
+  site.entry_points.forEach(e => { const g=new THREE.Mesh(new THREE.BoxGeometry(4,3,1.2), new THREE.MeshLambertMaterial({color:0x0b0b0b})); g.position.copy(toV(e.position.x,e.position.y,1.5)); scene.add(g); });
+  site.docks.forEach(dk => { const m=new THREE.Mesh(new THREE.BoxGeometry(6,0.6,6), new THREE.MeshLambertMaterial({color:0x9ec5f4})); m.position.copy(toV(dk.position.x,dk.position.y,0.3)); scene.add(m); });
+  const asset = new THREE.Mesh(new THREE.BoxGeometry(8,6,8), new THREE.MeshLambertMaterial({color:0xd03b3b})); asset.position.copy(toV(site.asset.x, site.asset.y, 3)); scene.add(asset);
+  site.fixed_sensors.forEach(s => { const c=D.curves[s.sensor_type]||{fov_deg:60,range:30}; const wedge=new THREE.Mesh(new THREE.CircleGeometry(c.range, 24, THREE.MathUtils.degToRad(s.heading_deg - c.fov_deg/2), THREE.MathUtils.degToRad(c.fov_deg)), new THREE.MeshBasicMaterial({color:0x2a78d6, transparent:true, opacity:0.12, side:THREE.DoubleSide})); wedge.rotation.x = -Math.PI/2; wedge.rotation.z = 0; wedge.position.copy(toV(s.position.x,s.position.y,0.2)); scene.add(wedge); const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.4,0.4,5,8), new THREE.MeshLambertMaterial({color:0x0b0b0b})); pole.position.copy(toV(s.position.x,s.position.y,2.5)); scene.add(pole); });
+  resizeViewer(); requestAnimationFrame(loop);
+}
+function resizeViewer(){ if(!renderer) return; const r = viewer.getBoundingClientRect(); if(r.width<10) return; renderer.setSize(r.width, r.height, false); camera.aspect = r.width/r.height; camera.updateProjectionMatrix(); }
+window.addEventListener('resize', resizeViewer);
+viewer.addEventListener('pointerdown', e => { dragging = true; last = {x:e.clientX, y:e.clientY}; viewer.setPointerCapture(e.pointerId); });
+viewer.addEventListener('pointermove', e => { if(!dragging||!last) return; orbit.theta += (e.clientX-last.x)*0.006; orbit.phi = Math.min(1.45, Math.max(0.25, orbit.phi - (e.clientY-last.y)*0.006)); last={x:e.clientX,y:e.clientY}; setCam(); });
+viewer.addEventListener('pointerup', () => { dragging=false; last=null; });
+viewer.addEventListener('wheel', e => { e.preventDefault(); orbit.r = Math.min(500, Math.max(60, orbit.r * (1 + Math.sign(e.deltaY)*0.08))); setCam(); }, {passive:false});
+viewer.addEventListener('touchmove', e => { if(e.touches.length===2){ const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY); if(pinch){ orbit.r = Math.min(500, Math.max(60, orbit.r * pinch/d)); setCam(); } pinch=d; } }, {passive:true});
+viewer.addEventListener('touchend', () => { pinch=null; });
+function mesh(kind){ let g, h; if(kind==='drone'){ g=new THREE.ConeGeometry(2,3,4); h=10; } else if(kind==='go2'){ g=new THREE.BoxGeometry(3,1.6,1.6); h=0.8; } else if(kind==='guard'){ g=new THREE.CapsuleGeometry ? new THREE.CapsuleGeometry(0.9,1.4,4,8) : new THREE.CylinderGeometry(0.9,0.9,2.4,8); h=1.3; } else if(kind==='intruder'){ g=new THREE.SphereGeometry(1.4,12,12); h=1.4; } else if(kind==='decoy'){ g=new THREE.SphereGeometry(1.2,10,10); h=1.2; } else { g=new THREE.BoxGeometry(4,2,2.2); h=1.1; } const m=new THREE.Mesh(g,new THREE.MeshLambertMaterial({color:COLORS[kind]})); m.userData.h=h; return m; }
+function episode(){ return D.episodes[current]; }
+function positionAt(track, t){ let lo=0, hi=track.length-1; if(t<=track[0][0]) return track[0]; if(t>=track[hi][0]) return track[hi]; while(hi-lo>1){ const m=(lo+hi)>>1; if(track[m][0]<=t) lo=m; else hi=m; } const a=track[lo], b=track[hi], f=(t-a[0])/((b[0]-a[0])||1); return [t, a[1]+(b[1]-a[1])*f, a[2]+(b[2]-a[2])*f]; }
+function loadEpisode(which){ current=which; Object.values(objs).forEach(o => scene.remove(o)); for(const k in objs) delete objs[k]; rings.forEach(r=>scene.remove(r)); rings.length=0; const ep=episode(); for(const id in ep.tracks){ const m=mesh(kindOf(id)); objs[id]=m; scene.add(m);} $('#scrub').max = ep.t_end; clock=0; $('#pickMiss').setAttribute('aria-pressed', which==='miss'); $('#pickCatch').setAttribute('aria-pressed', which==='catch'); $('#replayNote').textContent = `${ep.fleet}: ${ep.tactic} through ${ep.entry}, seed ${ep.seed}. Deadline ${ep.t_cdp.toFixed(0)} s. ${ep.timely ? 'Alarm at '+ep.t_alarm.toFixed(0)+' s: timely detection.' : 'No timely alarm: missed.'}`; draw(); }
+function draw(){ const ep=episode(); const t=clock; for(const id in ep.tracks){ const p=positionAt(ep.tracks[id], t); const m=objs[id]; const alive = t <= ep.tracks[id][ep.tracks[id].length-1][0] + 0.6; m.visible = alive; m.position.copy(toV(p[1],p[2],m.userData.h)); if(kindOf(id)==='drone') m.rotation.y += 0.05; }
+  rings.forEach(r=>scene.remove(r)); rings.length=0; ep.detections.filter(d => t-1.2 <= d[0] && d[0] <= t && ep.tracks[d[2]]).forEach(d => { const p=positionAt(ep.tracks[d[2]], t); const r=new THREE.Mesh(new THREE.RingGeometry(2.2,3,24), new THREE.MeshBasicMaterial({color:0xeb6834, side:THREE.DoubleSide, transparent:true, opacity:0.9})); r.rotation.x=-Math.PI/2; r.position.copy(toV(p[1],p[2],0.3)); scene.add(r); rings.push(r); });
+  const b=$('#banner'); if(ep.t_alarm!=null && t>=ep.t_alarm){ b.textContent = `ALARM at ${ep.t_alarm.toFixed(0)} s · ${ep.timely?'TIMELY DETECTION':'LATE, deadline was '+ep.t_cdp.toFixed(0)+' s'}`; b.className='banner '+(ep.timely?'hit':'miss'); } else if(t>=ep.t_cdp && ep.t_cdp>0 && !ep.timely){ b.textContent=`Deadline ${ep.t_cdp.toFixed(0)} s passed, no alarm`; b.className='banner miss'; } else { b.textContent = `t = ${t.toFixed(1)} s · deadline ${ep.t_cdp.toFixed(0)} s`; b.className='banner'; }
+  $('#tLabel').textContent = `t = ${t.toFixed(1)} s`; $('#scrub').value = t; memory(t); }
+let lastFrame = performance.now();
+function loop(now){ const dt=(now-lastFrame)/1000; lastFrame=now; if(playing){ clock += dt*3; if(clock>=episode().t_end){ clock=episode().t_end; playing=false; $('#playBtn').textContent='Replay'; } draw(); } renderer.render(scene,camera); requestAnimationFrame(loop); }
+$('#playBtn').addEventListener('click', () => { if(clock>=episode().t_end) clock=0; playing=!playing; $('#playBtn').textContent = playing?'Pause':'Play'; });
+$('#scrub').addEventListener('input', e => { clock=parseFloat(e.target.value); playing=false; $('#playBtn').textContent='Play'; draw(); });
+$('#pickMiss').addEventListener('click', () => loadEpisode('miss')); $('#pickCatch').addEventListener('click', () => loadEpisode('catch'));
+// fleet memory: last time each zone was within 25 m of an agent, up to t
+function memory(t){ const ep=episode(); const zones=[['north gate',site.entry_points[0]],['staff gate',site.entry_points[1]],['service gate',site.entry_points[2]],['rear fence gap',site.entry_points[3]],['asset',{position:site.asset}]]; const rows=zones.map(([name,z]) => { let seen=null, by=null; for(const id in ep.tracks){ if(['intruder','decoy'].includes(kindOf(id))||kindOf(id)==='benign') continue; for(const p of ep.tracks[id]){ if(p[0]>t) break; if(Math.hypot(p[1]-z.position.x, p[2]-z.position.y) <= 25 && (seen==null || p[0]>seen)){ seen=p[0]; by=id; } } } return {name, seen, by}; }); $('#memoryList').innerHTML = rows.map(r => `<div class="row ${r.seen==null?'sev-high':(t-r.seen>30?'sev-med':'sev-low')}"><div class="stripe"></div><div><div class="t">${r.name}</div><div class="s">${r.seen==null?'not seen yet this episode':'last seen by '+r.by}</div></div><div class="n">${r.seen==null?'—':(t-r.seen).toFixed(0)+' s'}<div class="s">age</div></div></div>`).join(''); }
+if (window.THREE) { initScene(); loadEpisode('miss'); } else { viewer.insertAdjacentHTML('afterbegin','<p style="padding:16px">3D viewer could not load.</p>'); }
+
+// ---------- approvals ----------
+const ep = D.episodes.catch; const prop = {id: `verify-${ep.seed}-${ep.tactic}`, title: `Verify track near ${ep.entry.replace('_',' ')}`, detail: `Score crossed the investigate threshold at ${(ep.first_detection??ep.t_alarm??0).toFixed(0)} s. Proposed responder: ${ep.responder}. Deadline in ${Math.max(1, Math.round(ep.t_cdp - (ep.first_detection??0)))} s.`, deadline_s: Math.max(1, Math.round(ep.t_cdp - (ep.first_detection??0)))};
+let dbNs = null, decisions = [], countdown = prop.deadline_s, timer = null, decided = false;
+function renderProposal(){ const box=$('#proposalBox'); if(decided){ box.innerHTML = `<div class="proposal"><div class="t">${prop.title}</div><div class="s">${prop.detail}</div><div class="count">decided</div></div>`; return; } box.innerHTML = `<div class="proposal"><div class="t">${prop.title}</div><div class="s">${prop.detail}</div><div class="count">auto-deny in ${countdown} s</div><div class="actions"><button class="btn primary" id="approve">Approve dispatch</button><button class="btn danger" id="deny">Deny</button></div></div>`; $('#approve').addEventListener('click', () => decide('approved')); $('#deny').addEventListener('click', () => decide('denied')); }
+function renderHistory(){ $('#history').innerHTML = decisions.length ? decisions.slice().sort((a,b)=>b.at-a.at).slice(0,12).map(d => `<div class="row ${d.decision==='approved'?'sev-low':'sev-high'}"><div><div class="t">${d.proposal}</div><div class="s">${new Date(d.at).toLocaleTimeString()} · ${d.source}</div></div><div class="n">${d.decision}</div></div>`).join('') : '<p>No decisions yet.</p>'; }
+async function decide(decision, source){ if(decided) return; decided=true; clearInterval(timer); const rec={proposal: prop.title, decision, at: Date.now(), source: source||'this phone'}; decisions.push(rec); renderProposal(); renderHistory(); if(dbNs){ try{ await dbNs.collection('approvals').doc(String(rec.at)).set(rec); }catch(e){ $('#dbNote').textContent = 'Could not save this decision to the shared store: ' + (e.message||e); } } }
+function startCountdown(){ timer=setInterval(() => { countdown -= 1; if(countdown<=0){ decide('denied','silence, deadline reached'); } else if(!decided) { const c=document.querySelector('#proposalBox .count'); if(c) c.textContent=`auto-deny in ${countdown} s`; } }, 1000); }
+renderProposal(); renderHistory(); startCountdown();
+(async () => { try { dbNs = window.claude && window.claude.use ? await window.claude.use('db') : null; } catch(e) { dbNs=null; } if(!dbNs){ $('#dbNote').textContent='Shared decision store not available in this view; decisions stay on this device.'; return; } try { dbNs.collection('approvals').orderBy('at','desc').limit(50).onSnapshot(snap => { decisions = snap.docs.map(d => d.data()).filter(Boolean); renderHistory(); }, err => { $('#dbNote').textContent='Live updates stopped (' + err.code + '); decisions made here still save.'; }); $('#dbNote').textContent='Decisions are shared with everyone who opens this page.'; } catch(e){ $('#dbNote').textContent='Shared store connected, but live updates are unavailable: ' + (e.message||e); } })();
+})();
+</script>
