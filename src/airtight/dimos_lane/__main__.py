@@ -5,6 +5,7 @@ python -m airtight.dimos_lane calibrate --out data/sensor_curve.json
 python -m airtight.dimos_lane replay --example --pitch pitch
 python -m airtight.dimos_lane replay --example --rrd data/replay --speed 0
 python -m airtight.dimos_lane replay --log path/to/episode.jsonl --live --speed 1
+python -m airtight.dimos_lane replay --handoff --pitch pitch
 """
 
 from __future__ import annotations
@@ -106,6 +107,12 @@ def _cmd_replay(args: argparse.Namespace) -> int:
     )
 
     log: Path | None = None
+    if args.handoff:
+        from airtight.dimos_lane.clips import write_handoff_clips
+
+        manifest = write_handoff_clips(Path(args.pitch))
+        print(f"clips={manifest}")
+        return 0
     if args.example:
         example = Path(
             str(resources.files("airtight.contracts.examples").joinpath("episode.jsonl"))
@@ -205,6 +212,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     rep.add_argument("--rrd", default=None, help="write a Rerun .rrd (file or directory)")
     rep.add_argument("--speed", type=float, default=0.0, help="realtime scale; 1=wall clock")
+    rep.add_argument(
+        "--handoff",
+        action="store_true",
+        help="A9: same-seed miss/catch clips in pitch/clips for lane C",
+    )
     rep.set_defaults(func=_cmd_replay)
 
     args = parser.parse_args(argv)

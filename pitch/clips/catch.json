@@ -1,8 +1,8 @@
 {
   "title": "catch",
-  "seed": 7,
-  "tactic_id": "hand_charging_window_north",
+  "seed": 70017,
+  "tactic_id": "charging_window-a9-stale",
   "timely_detected": true,
-  "t_alarm": 14.0,
-  "dispatch_result": "task=verify-60-74 winner=guard_1 auction={'guard_1': ['verify-60-74']} proposal=p-a92718e8"
+  "t_alarm": 6.5,
+  "dispatch_result": null
 }

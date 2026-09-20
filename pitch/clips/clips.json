@@ -1,0 +1,12 @@
+{
+  "tactic_id": "charging_window-a9-stale",
+  "family": "charging_window",
+  "entry": "rear_fence_gap",
+  "phase": 0.4821428571428571,
+  "seed": 70017,
+  "baseline": "d2_go2_guard_sync",
+  "fixed": "d3_go2_guard_stagger",
+  "miss_t_alarm": null,
+  "catch_t_alarm": 6.5,
+  "t_cdp": 22.310822851006407
+}
