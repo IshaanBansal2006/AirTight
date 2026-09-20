@@ -37,6 +37,13 @@ def test_person_path_reaches_last_waypoint() -> None:
     assert samples[-1][0] == 5.0
 
 
+def test_interpolate_path_empty_and_rejects_nonpositive_speed() -> None:
+    assert interpolate_path([], speed_mps=1.0, dt=0.5) == []
+    assert interpolate_path([XY(x=1, y=1)], speed_mps=1.0, dt=0.5) == [(0.0, XY(x=1, y=1))]
+    with pytest.raises(ValueError, match="positive"):
+        interpolate_path([XY(x=0, y=0), XY(x=1, y=0)], speed_mps=0.0, dt=0.5)
+
+
 def test_replay_parses_example_episode() -> None:
     plan = plan_replay(EXAMPLE_LOG)
     assert plan.timely_detected is True
@@ -159,6 +166,26 @@ def test_write_handoff_clips_from_pair(tmp_path: Path) -> None:
     assert "Replay A — miss" in miss_html
     assert "Replay B — catch" in catch_html
     assert "proposal=" not in miss_html
+
+
+def test_committed_clips_json_matches_handoff_schema() -> None:
+    from airtight.dimos_lane.clips import CLIPS_JSON_KEYS
+
+    payload = json.loads(Path("pitch/clips/clips.json").read_text())
+    assert tuple(payload) == CLIPS_JSON_KEYS
+    assert payload["family"] == "charging_window"
+    assert payload["entry"] == "rear_fence_gap"
+    assert payload["miss_t_alarm"] is None
+    assert payload["catch_t_alarm"] is not None
+    assert payload["catch_t_alarm"] < payload["t_cdp"]
+
+
+def test_miss_log_from_catch_is_idempotent(tmp_path: Path) -> None:
+    once = miss_log_from_catch(EXAMPLE_LOG, tmp_path / "once.jsonl")
+    twice = miss_log_from_catch(once, tmp_path / "twice.jsonl")
+    assert plan_replay(once).timely_detected is False
+    assert plan_replay(twice).timely_detected is False
+    assert plan_replay(twice).t_alarm is None
 
 
 def test_miss_replay_does_not_dispatch(tmp_path: Path) -> None:
