@@ -4,12 +4,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;700&family=Barlow+Semi+Condensed:wght@700&display=swap">
 <style>
 :root{
-  --ground:#ffffff; --ground2:#f6f6f8; --surface:#ffffff; --hair:#ececf0; --hair2:#e2e2e8;
-  --ink:#242428; --ink2:#6d6d78; --ink3:#9a9aa5;
-  --brand:#d9400a; --brand2:#ea6a35; --brand-soft:rgba(217,64,10,.10); --on-brand:#ffffff;
-  --sec:#2a78d6; --sec-soft:rgba(42,120,214,.12); --atk:#d7263d; --atk-soft:rgba(215,38,61,.12);
-  --good:#1baf7a; --good-soft:rgba(27,175,122,.14); --warn:#eda100; --warn-soft:rgba(237,161,0,.16);
-  --shadow:0 10px 30px rgba(36,36,40,.08); --shadow2:0 2px 10px rgba(36,36,40,.06);
+  --ground:#fff9f2; --ground2:#fff3e6; --surface:#ffffff; --hair:#f0e4d4; --hair2:#e4d6c3;
+  --ink:#2b3157; --ink2:#5d627f; --ink3:#8d90a6;
+  --brand:#2b3157; --brand2:#2e6f6b; --brand-soft:rgba(43,49,87,.08); --on-brand:#fff3e6;
+  --sec:#2b3157; --sec-soft:rgba(43,49,87,.12); --atk:#a07070; --atk-soft:rgba(160,112,112,.16);
+  --good:#2e6f6b; --good-soft:rgba(46,111,107,.14); --warn:#8c8262; --warn-soft:rgba(187,176,146,.3);
+  --shadow:0 10px 30px rgba(43,49,87,.10); --shadow2:0 2px 10px rgba(43,49,87,.07);
   --r:18px; --r2:14px; --r3:10px;
   --font:'Barlow',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
   --display:'Barlow Semi Condensed','Barlow',system-ui,-apple-system,sans-serif;
@@ -17,16 +17,16 @@
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --ground:#121214; --ground2:#17171b; --surface:#1e1e24; --hair:#2a2a32; --hair2:#34343d;
-    --ink:#f3f3f6; --ink2:#a8a8b4; --ink3:#73737f; --brand-soft:rgba(234,106,53,.2);
-    --sec-soft:rgba(42,120,214,.24); --atk-soft:rgba(215,38,61,.22); --good-soft:rgba(27,175,122,.22); --warn-soft:rgba(237,161,0,.22);
+    --ground:#171a2e; --ground2:#1b1f36; --surface:#252a47; --hair:#343a5c; --hair2:#404768;
+    --ink:#fff3e6; --ink2:#cfc7b8; --ink3:#9a9db3; --brand:#3f8f8a; --brand2:#2e6f6b; --brand-soft:rgba(63,143,138,.2);
+    --sec:#8f9be0; --sec-soft:rgba(143,155,224,.22); --atk:#c99090; --atk-soft:rgba(201,144,144,.22); --good:#5fb3ad; --good-soft:rgba(95,179,173,.2); --warn:#bbb092; --warn-soft:rgba(187,176,146,.22);
     --shadow:0 10px 30px rgba(0,0,0,.45); --shadow2:0 2px 10px rgba(0,0,0,.35); color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
-  --ground:#121214; --ground2:#17171b; --surface:#1e1e24; --hair:#2a2a32; --hair2:#34343d;
-  --ink:#f3f3f6; --ink2:#a8a8b4; --ink3:#73737f; --brand-soft:rgba(234,106,53,.2);
-  --sec-soft:rgba(42,120,214,.24); --atk-soft:rgba(215,38,61,.22); --good-soft:rgba(27,175,122,.22); --warn-soft:rgba(237,161,0,.22);
+  --ground:#171a2e; --ground2:#1b1f36; --surface:#252a47; --hair:#343a5c; --hair2:#404768;
+  --ink:#fff3e6; --ink2:#cfc7b8; --ink3:#9a9db3; --brand:#3f8f8a; --brand2:#2e6f6b; --brand-soft:rgba(63,143,138,.2);
+  --sec:#8f9be0; --sec-soft:rgba(143,155,224,.22); --atk:#c99090; --atk-soft:rgba(201,144,144,.22); --good:#5fb3ad; --good-soft:rgba(95,179,173,.2); --warn:#bbb092; --warn-soft:rgba(187,176,146,.22);
   --shadow:0 10px 30px rgba(0,0,0,.45); --shadow2:0 2px 10px rgba(0,0,0,.35); color-scheme:dark;
 }
 html,body{height:100%}
@@ -51,7 +51,7 @@ main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;o
 .sub{color:var(--ink2);font-size:13px}
 .card{background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow2);padding:14px}
 .card.flat{box-shadow:none;background:var(--ground)}
-.hero{background:linear-gradient(135deg,#c93a08 0%,var(--brand) 55%,var(--brand2) 100%);color:var(--on-brand);border-radius:var(--r);padding:16px;box-shadow:0 14px 34px rgba(217,64,10,.26);position:relative;overflow:hidden}
+.hero{background:linear-gradient(135deg,#232a4f 0%,var(--brand) 55%,var(--brand2) 100%);color:var(--on-brand);border-radius:var(--r);padding:16px;box-shadow:0 14px 34px rgba(43,49,87,.26);position:relative;overflow:hidden}
 .hero::after{content:"";position:absolute;right:-40px;top:-60px;width:220px;height:220px;border-radius:50%;background:rgba(255,255,255,.12)}
 .hero .k{font-size:12px;opacity:.9;font-weight:500}
 .hero .big{font-family:var(--display);font-size:44px;line-height:1;font-weight:700;letter-spacing:-.5px;margin-top:4px;font-variant-numeric:tabular-nums}
@@ -79,7 +79,7 @@ main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;o
 .costrow .v small{font-family:var(--font);font-size:11px;font-weight:500;color:var(--ink2)}
 .savings{display:flex;flex-direction:column;gap:6px}
 .saving{display:flex;gap:10px;align-items:flex-start;padding:10px;border-radius:var(--r2);background:var(--good-soft)}
-.saving .ico{width:26px;height:26px;font-size:12px;border-radius:50%;background:var(--good);color:#fff;display:grid;place-items:center;flex:none;font-weight:700}
+.saving .ico{width:26px;height:26px;font-size:12px;border-radius:50%;background:var(--good);color:#fff3e6;display:grid;place-items:center;flex:none;font-weight:700}
 .saving .t{font-weight:700;font-size:13px}
 .saving .s{font-size:12px;color:var(--ink2)}
 .list{display:flex;flex-direction:column;background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow2);overflow:hidden}
@@ -132,7 +132,7 @@ main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;o
 .proposal .count{font-size:12px;color:var(--atk);margin-top:8px;font-weight:500}
 .actions{display:flex;gap:8px;margin-top:10px}
 .btn{flex:1;padding:11px 14px;border-radius:999px;border:0;font-weight:700;font-size:14px;cursor:pointer;min-height:44px}
-.btn.primary{background:var(--brand);color:var(--on-brand);box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 8px 20px rgba(217,64,10,.26)}
+.btn.primary{background:var(--brand);color:var(--on-brand);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 8px 20px rgba(43,49,87,.26)}
 .btn.ghost{background:var(--ground2);color:var(--ink)}
 .btn.danger{background:var(--atk-soft);color:var(--atk)}
 .success{display:flex;align-items:center;gap:8px;margin-top:10px;font-weight:700;font-size:13px}
@@ -152,8 +152,8 @@ main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;o
 .composer{display:flex;gap:8px;align-items:center}
 .composer input{flex:1;min-width:0;padding:10px 14px;border-radius:999px;border:1px solid var(--hair2);background:var(--ground2);color:var(--ink);font:inherit;font-size:14px;min-height:42px}
 .composer input:focus{outline:2px solid var(--brand);outline-offset:1px}
-.composer button{width:42px;height:42px;border-radius:50%;border:0;background:var(--brand);color:#fff;display:grid;place-items:center;cursor:pointer}
-.composer button svg{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.composer button{width:42px;height:42px;border-radius:50%;border:0;background:var(--brand);color:var(--on-brand);display:grid;place-items:center;cursor:pointer}
+.composer button svg{width:20px;height:20px;stroke:var(--on-brand);fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
 .note{font-size:12px;color:var(--ink3)}
 .usecases{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .usecase{text-align:left;padding:11px;border-radius:var(--r2);border:0;background:var(--surface);box-shadow:var(--shadow2);cursor:pointer;display:flex;flex-direction:column;gap:4px;min-height:44px}
@@ -179,7 +179,7 @@ main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;o
 .contacts{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px}
 .contacts::-webkit-scrollbar{display:none}
 .contact{flex:none;width:132px;padding:11px;border-radius:var(--r2);background:var(--surface);box-shadow:var(--shadow2);display:flex;flex-direction:column;gap:4px}
-.contact .av{width:34px;height:34px;font-size:12px;border-radius:50%;display:grid;place-items:center;font-weight:700;color:#fff}
+.contact .av{width:34px;height:34px;font-size:12px;border-radius:50%;display:grid;place-items:center;font-weight:700;color:#fff3e6}
 .contact .t{font-weight:700;font-size:13px}
 .contact .s{font-size:11px;color:var(--ink2)}
 .contact .acts{display:flex;gap:5px;margin-top:3px}
@@ -205,8 +205,8 @@ nav.tabbar button{border:0;background:none;display:flex;flex-direction:column;al
 nav.tabbar button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 nav.tabbar button[aria-selected="true"]{color:var(--brand);font-weight:700}
 nav.tabbar button.center{color:var(--ink3)}
-nav.tabbar button.center span.orb{width:48px;height:48px;border-radius:50%;background:var(--brand);display:grid;place-items:center;margin-top:-22px;box-shadow:0 10px 24px rgba(217,64,10,.36),inset 0 1px 0 rgba(255,255,255,.35)}
-nav.tabbar button.center span.orb svg{stroke:#fff;width:22px;height:22px}
+nav.tabbar button.center span.orb{width:48px;height:48px;border-radius:50%;background:var(--brand);display:grid;place-items:center;margin-top:-22px;box-shadow:0 10px 24px rgba(43,49,87,.34),inset 0 1px 0 rgba(255,255,255,.22)}
+nav.tabbar button.center span.orb svg{stroke:var(--on-brand);width:22px;height:22px}
 nav.tabbar button.center[aria-selected="true"]{color:var(--brand)}
 nav.tabbar button:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 /* sheet + toast */
@@ -246,7 +246,7 @@ nav.tabbar button:focus-visible{outline:2px solid var(--brand);outline-offset:2p
       <div class="stats" id="tiles"></div>
       <div class="sect">
         <h2>Every fleet mix, scored</h2>
-        <div class="card" style="padding:12px 8px 8px"><svg class="chart" id="frontier" viewBox="0 0 360 230" role="img" aria-label="Detection versus cost for every fleet configuration"></svg><div class="legend" style="padding:4px 6px 0;font-size:11px"><span><i style="background:var(--brand)"></i>deployed</span><span><i style="background:var(--ink3)"></i>baseline</span><span><i style="background:var(--sec)"></i>other mixes</span></div></div>
+        <div class="card" style="padding:12px 8px 8px"><svg class="chart" id="frontier" viewBox="0 0 360 230" role="img" aria-label="Detection versus cost for every fleet configuration"></svg><div class="legend" style="padding:4px 6px 0;font-size:11px"><span><i style="background:var(--good)"></i>deployed</span><span><i style="background:var(--atk)"></i>baseline</span><span><i style="background:var(--ink3)"></i>other mixes</span></div></div>
         <div class="sub" id="condLine"></div>
       </div>
       <div class="sect">
@@ -262,7 +262,7 @@ nav.tabbar button:focus-visible{outline:2px solid var(--brand);outline-offset:2p
         <div class="hint">drag to orbit, pinch to zoom, two fingers to pan</div>
       </div>
       <div class="seg" id="roundSeg"></div>
-      <div class="legend"><span><i style="background:var(--sec)"></i>where the fleet patrolled</span><span><i style="background:var(--atk)"></i>attack paths that still landed</span><span><i style="background:var(--warn)"></i>decoy</span></div>
+      <div class="legend"><span><i style="background:var(--sec)"></i>where the fleet patrolled</span><span><i style="background:var(--atk)"></i>attack paths that still landed</span><span><i style="background:#bbb092"></i>decoy</span></div>
       <div class="sect"><h2>Holes the red team found</h2><div class="list" id="holeList"></div></div>
     </section>
 
@@ -418,8 +418,8 @@ $('#condLine').textContent = report.conditions;
   s += `<text x="${(L+W-R)/2}" y="${H-6}" text-anchor="middle">fleet cost per hour</text>`;
   // frontier: best detection at each cost or less
   const sorted = [...configs].sort((a,b)=>a.cost-b.cost || b.pd-a.pd); const front=[]; let best=-1; sorted.forEach(c => { if(c.pd > best){ best=c.pd; front.push(c);} });
-  s += `<path d="${front.map((c,i)=>`${i?'L':'M'}${X(c.cost).toFixed(1)},${Y(c.pd).toFixed(1)}`).join(' ')}" fill="none" stroke="var(--sec)" stroke-width="2" stroke-linejoin="round" opacity=".7"/>`;
-  configs.forEach(c => { const col = c.name===fixed.name ? 'var(--brand)' : c.name===base.name ? 'var(--ink3)' : 'var(--sec)'; const r = (c.name===fixed.name||c.name===base.name) ? 7 : 5; s += `<line x1="${X(c.cost)}" x2="${X(c.cost)}" y1="${Y(c.ci[0])}" y2="${Y(c.ci[1])}" stroke="${col}" stroke-width="1.5" opacity=".6"/><circle cx="${X(c.cost)}" cy="${Y(c.pd)}" r="${r}" fill="${col}" stroke="var(--surface)" stroke-width="2"><title>${esc(prettyFleet(c.name))}: ${Math.round(c.pd*100)} at $${c.cost.toFixed(0)}/h</title></circle>`; });
+  s += `<path d="${front.map((c,i)=>`${i?'L':'M'}${X(c.cost).toFixed(1)},${Y(c.pd).toFixed(1)}`).join(' ')}" fill="none" stroke="var(--warn)" stroke-width="2" stroke-linejoin="round" opacity=".7"/>`;
+  configs.forEach(c => { const col = c.name===fixed.name ? 'var(--good)' : c.name===base.name ? 'var(--atk)' : 'var(--ink3)'; const r = (c.name===fixed.name||c.name===base.name) ? 7 : 5; s += `<line x1="${X(c.cost)}" x2="${X(c.cost)}" y1="${Y(c.ci[0])}" y2="${Y(c.ci[1])}" stroke="${col}" stroke-width="1.5" opacity=".6"/><circle cx="${X(c.cost)}" cy="${Y(c.pd)}" r="${r}" fill="${col}" stroke="var(--surface)" stroke-width="2"><title>${esc(prettyFleet(c.name))}: ${Math.round(c.pd*100)} at $${c.cost.toFixed(0)}/h</title></circle>`; });
   [[fixed,'deployed'],[base,'baseline']].forEach(([c,l]) => { const above = c.pd < 0.5; s += `<text class="lbl" x="${X(c.cost)}" y="${Y(c.pd) + (above ? -12 : 20)}" text-anchor="middle">${l} ${Math.round(c.pd*100)}</text>`; });
   $('#frontier').innerHTML = s;
 })();
@@ -436,7 +436,7 @@ let orbit = {...HOME_VIEW};
 const layers = {sec: [], atk: [], labels: []}; let roundFilter = 'all';
 function setCam(){ camera.position.set(orbit.tx + orbit.r*Math.sin(orbit.phi)*Math.cos(orbit.theta), orbit.r*Math.cos(orbit.phi), orbit.tz + orbit.r*Math.sin(orbit.phi)*Math.sin(orbit.theta)); camera.lookAt(orbit.tx, 0, orbit.tz); }
 function tube(points, color, radius, opacity){ const curve = new THREE.CatmullRomCurve3(points); const g = new THREE.TubeGeometry(curve, Math.max(8, points.length*2), radius, 6, false); const m = new THREE.Mesh(g, new THREE.MeshLambertMaterial({color, transparent: opacity < 1, opacity})); return m; }
-function label(text, x, y, h, color){ const c = document.createElement('canvas'); c.width = 128; c.height = 64; const ctx = c.getContext('2d'); ctx.fillStyle = color; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(8, 8, 112, 48, 24) : ctx.rect(8,8,112,48); ctx.fill(); ctx.fillStyle = '#fff'; ctx.font = 'bold 30px Barlow, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(text, 64, 33); const tex = new THREE.CanvasTexture(c); const s = new THREE.Sprite(new THREE.SpriteMaterial({map: tex, depthTest: false})); s.scale.set(16, 8, 1); s.position.copy(toV(x, y, h)); return s; }
+function label(text, x, y, h, color){ const c = document.createElement('canvas'); c.width = 128; c.height = 64; const ctx = c.getContext('2d'); ctx.fillStyle = color; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(8, 8, 112, 48, 24) : ctx.rect(8,8,112,48); ctx.fill(); ctx.fillStyle = '#fff3e6'; ctx.font = 'bold 30px Barlow, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(text, 64, 33); const tex = new THREE.CanvasTexture(c); const s = new THREE.Sprite(new THREE.SpriteMaterial({map: tex, depthTest: false})); s.scale.set(16, 8, 1); s.position.copy(toV(x, y, h)); return s; }
 function initScene(){
   renderer = new THREE.WebGLRenderer({antialias:true}); renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, 2));
   viewer.insertBefore(renderer.domElement, viewer.firstChild);
@@ -445,19 +445,19 @@ function initScene(){
   camera = new THREE.PerspectiveCamera(42, 1, 1, 2500); setCam();
   scene.add(new THREE.HemisphereLight(0xffffff, 0x777777, dark ? 0.75 : 1.0)); const sun = new THREE.DirectionalLight(0xffffff, 0.55); sun.position.set(80,140,60); scene.add(sun);
   const w = site.bounds[2]-site.bounds[0], d = site.bounds[3]-site.bounds[1];
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(w+40, d+40), new THREE.MeshLambertMaterial({color: dark ? 0x26262d : 0xf1f1f4})); ground.rotation.x = -Math.PI/2; ground.position.y = -0.2; scene.add(ground);
-  const yard = new THREE.Mesh(new THREE.PlaneGeometry(w, d), new THREE.MeshLambertMaterial({color: dark ? 0x2e2e36 : 0xe7e7ec})); yard.rotation.x = -Math.PI/2; scene.add(yard);
-  const fenceMat = new THREE.MeshLambertMaterial({color: dark ? 0x9a9aa5 : 0x52525b});
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(w+40, d+40), new THREE.MeshLambertMaterial({color: dark ? 0x20243d : 0xf8eedf})); ground.rotation.x = -Math.PI/2; ground.position.y = -0.2; scene.add(ground);
+  const yard = new THREE.Mesh(new THREE.PlaneGeometry(w, d), new THREE.MeshLambertMaterial({color: dark ? 0x2a2f4d : 0xefe2cf})); yard.rotation.x = -Math.PI/2; scene.add(yard);
+  const fenceMat = new THREE.MeshLambertMaterial({color: dark ? 0x9a9db3 : 0x5d627f});
   const P = site.perimeter; for (let i=0;i<P.length;i++){ const a=P[i], b=P[(i+1)%P.length]; const len=Math.hypot(b.x-a.x,b.y-a.y); const m=new THREE.Mesh(new THREE.BoxGeometry(len,2.4,0.4), fenceMat); m.position.copy(toV((a.x+b.x)/2,(a.y+b.y)/2,1.2)); m.rotation.y = -Math.atan2(b.y-a.y, b.x-a.x); scene.add(m); }
-  site.entry_points.forEach(e => { const g=new THREE.Mesh(new THREE.BoxGeometry(5,3.2,1.4), new THREE.MeshLambertMaterial({color:0x242428})); g.position.copy(toV(e.position.x,e.position.y,1.6)); scene.add(g); });
-  site.docks.forEach(dk => { const m=new THREE.Mesh(new THREE.CylinderGeometry(3.4,3.4,0.6,20), new THREE.MeshLambertMaterial({color:0x9ec5f4})); m.position.copy(toV(dk.position.x,dk.position.y,0.3)); scene.add(m); });
-  const asset = new THREE.Mesh(new THREE.BoxGeometry(9,7,9), new THREE.MeshLambertMaterial({color:0xd9400a})); asset.position.copy(toV(site.asset.x, site.asset.y, 3.5)); scene.add(asset);
-  site.fixed_sensors.forEach(s => { const c=D.curves[s.sensor_type]||{fov_deg:60,range:30}; const wedge=new THREE.Mesh(new THREE.CircleGeometry(c.range, 24, THREE.MathUtils.degToRad(s.heading_deg - c.fov_deg/2), THREE.MathUtils.degToRad(c.fov_deg)), new THREE.MeshBasicMaterial({color:0x2a78d6, transparent:true, opacity:0.14, side:THREE.DoubleSide})); wedge.rotation.x = -Math.PI/2; wedge.position.copy(toV(s.position.x,s.position.y,0.15)); scene.add(wedge); const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.4,0.4,6,8), new THREE.MeshLambertMaterial({color:0x242428})); pole.position.copy(toV(s.position.x,s.position.y,3)); scene.add(pole); });
+  site.entry_points.forEach(e => { const g=new THREE.Mesh(new THREE.BoxGeometry(5,3.2,1.4), new THREE.MeshLambertMaterial({color:0x2b3157})); g.position.copy(toV(e.position.x,e.position.y,1.6)); scene.add(g); });
+  site.docks.forEach(dk => { const m=new THREE.Mesh(new THREE.CylinderGeometry(3.4,3.4,0.6,20), new THREE.MeshLambertMaterial({color:0x8fbfbb})); m.position.copy(toV(dk.position.x,dk.position.y,0.3)); scene.add(m); });
+  const asset = new THREE.Mesh(new THREE.BoxGeometry(9,7,9), new THREE.MeshLambertMaterial({color:0x2b3157})); asset.position.copy(toV(site.asset.x, site.asset.y, 3.5)); scene.add(asset);
+  site.fixed_sensors.forEach(s => { const c=D.curves[s.sensor_type]||{fov_deg:60,range:30}; const wedge=new THREE.Mesh(new THREE.CircleGeometry(c.range, 24, THREE.MathUtils.degToRad(s.heading_deg - c.fov_deg/2), THREE.MathUtils.degToRad(c.fov_deg)), new THREE.MeshBasicMaterial({color:0x2b3157, transparent:true, opacity:0.12, side:THREE.DoubleSide})); wedge.rotation.x = -Math.PI/2; wedge.position.copy(toV(s.position.x,s.position.y,0.15)); scene.add(wedge); const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.4,0.4,6,8), new THREE.MeshLambertMaterial({color:0x2b3157})); pole.position.copy(toV(s.position.x,s.position.y,3)); scene.add(pole); });
   // where the fleet patrolled: the fixed fleet's recorded tracks
-  const blues = {drone: 0x2a78d6, go2: 0x1f8fd0, guard: 0x5aa0e6};
-  agentsOf(catchEp).forEach(id => { const tr = catchEp.tracks[id]; const pts = []; for (let i=0;i<tr.length;i+= Math.max(1, Math.floor(tr.length/60))) pts.push(toV(tr[i][1], tr[i][2], kindOf(id)==='drone' ? 8 : 1.0)); if (pts.length > 2) { const m = tube(pts, blues[kindOf(id)] || 0x2a78d6, kindOf(id)==='drone' ? 0.9 : 0.7, 0.85); layers.sec.push(m); scene.add(m); } });
+  const blues = {drone: 0x2b3157, go2: 0x2e6f6b, guard: 0x5c6aa3};
+  agentsOf(catchEp).forEach(id => { const tr = catchEp.tracks[id]; const pts = []; for (let i=0;i<tr.length;i+= Math.max(1, Math.floor(tr.length/60))) pts.push(toV(tr[i][1], tr[i][2], kindOf(id)==='drone' ? 8 : 1.0)); if (pts.length > 2) { const m = tube(pts, blues[kindOf(id)] || 0x2b3157, kindOf(id)==='drone' ? 0.9 : 0.7, 0.85); layers.sec.push(m); scene.add(m); } });
   // attack paths that still landed, one per round
-  D.rounds.forEach(r => { if(!r.tactic || !r.tactic.path.length) return; const pts = [...r.tactic.path.map(p => toV(p[0], p[1], 1.2)), toV(site.asset.x, site.asset.y, 1.2)]; const m = tube(pts, 0xd7263d, 1.1, 0.95); m.userData.round = r.k; layers.atk.push(m); scene.add(m); const disc = new THREE.Mesh(new THREE.CircleGeometry(6 + 6*(r.tactic.miss||0), 28), new THREE.MeshBasicMaterial({color:0xd7263d, transparent:true, opacity:0.22 + 0.4*(r.tactic.miss||0), side:THREE.DoubleSide})); disc.rotation.x = -Math.PI/2; disc.position.copy(toV(r.tactic.path[0][0], r.tactic.path[0][1], 0.25)); disc.userData.round = r.k; layers.atk.push(disc); scene.add(disc); const lb = label('R' + r.k, r.tactic.path[0][0], r.tactic.path[0][1], 9, '#d7263d'); lb.userData.round = r.k; layers.labels.push(lb); scene.add(lb); if (r.tactic.decoy) { const ring = new THREE.Mesh(new THREE.RingGeometry(2.4, 3.4, 24), new THREE.MeshBasicMaterial({color:0xeda100, side:THREE.DoubleSide})); ring.rotation.x = -Math.PI/2; ring.position.copy(toV(r.tactic.decoy[0], r.tactic.decoy[1], 0.3)); ring.userData.round = r.k; layers.atk.push(ring); scene.add(ring); } });
+  D.rounds.forEach(r => { if(!r.tactic || !r.tactic.path.length) return; const pts = [...r.tactic.path.map(p => toV(p[0], p[1], 1.2)), toV(site.asset.x, site.asset.y, 1.2)]; const m = tube(pts, 0xa07070, 1.1, 0.95); m.userData.round = r.k; layers.atk.push(m); scene.add(m); const disc = new THREE.Mesh(new THREE.CircleGeometry(6 + 6*(r.tactic.miss||0), 28), new THREE.MeshBasicMaterial({color:0xa07070, transparent:true, opacity:0.25 + 0.45*(r.tactic.miss||0), side:THREE.DoubleSide})); disc.rotation.x = -Math.PI/2; disc.position.copy(toV(r.tactic.path[0][0], r.tactic.path[0][1], 0.25)); disc.userData.round = r.k; layers.atk.push(disc); scene.add(disc); const lb = label('R' + r.k, r.tactic.path[0][0], r.tactic.path[0][1], 9, '#a07070'); lb.userData.round = r.k; layers.labels.push(lb); scene.add(lb); if (r.tactic.decoy) { const ring = new THREE.Mesh(new THREE.RingGeometry(2.4, 3.4, 24), new THREE.MeshBasicMaterial({color:0xbbb092, side:THREE.DoubleSide})); ring.rotation.x = -Math.PI/2; ring.position.copy(toV(r.tactic.decoy[0], r.tactic.decoy[1], 0.3)); ring.userData.round = r.k; layers.atk.push(ring); scene.add(ring); } });
   threeOk = true; resizeViewer(); requestAnimationFrame(renderMap);
 }
 function applyMapFilter(){ const on = (o) => roundFilter === 'all' || o.userData.round === roundFilter; layers.atk.forEach(o => o.visible = toggles.atk && on(o)); layers.labels.forEach(o => o.visible = toggles.atk && on(o)); layers.sec.forEach(o => o.visible = toggles.sec); }
@@ -546,14 +546,14 @@ function drawPerception(){ const W = pc.width, H = pc.height, s = W/200; const c
   pctx.clearRect(0,0,W,H); pctx.fillStyle = surf; pctx.fillRect(0,0,W,H);
   pctx.strokeStyle = hair; pctx.lineWidth = 1; for (let x=0;x<=200;x+=20){ const [px]=P2(x,0); pctx.beginPath(); pctx.moveTo(px,0); pctx.lineTo(px,H); pctx.stroke(); } for (let y=0;y<=120;y+=20){ const [,py]=P2(0,y); pctx.beginPath(); pctx.moveTo(0,py); pctx.lineTo(W,py); pctx.stroke(); }
   pctx.strokeStyle = ink; pctx.lineWidth = 2*s; pctx.beginPath(); site.perimeter.forEach((p,i) => { const [x,y]=P2(p.x,p.y); i ? pctx.lineTo(x,y) : pctx.moveTo(x,y); }); pctx.closePath(); pctx.stroke();
-  site.fixed_sensors.forEach(sn => { const c = D.curves[sn.sensor_type]||{fov_deg:60,range:30}; const [x,y]=P2(sn.position.x, sn.position.y); pctx.fillStyle = 'rgba(42,120,214,.12)'; pctx.beginPath(); pctx.moveTo(x,y); pctx.arc(x,y,c.range*s, -(sn.heading_deg + c.fov_deg/2)*Math.PI/180, -(sn.heading_deg - c.fov_deg/2)*Math.PI/180); pctx.closePath(); pctx.fill(); });
-  site.docks.forEach(d => { const [x,y]=P2(d.position.x,d.position.y); pctx.fillStyle='rgba(42,120,214,.25)'; pctx.beginPath(); pctx.arc(x,y,4*s,0,7); pctx.fill(); });
+  site.fixed_sensors.forEach(sn => { const c = D.curves[sn.sensor_type]||{fov_deg:60,range:30}; const [x,y]=P2(sn.position.x, sn.position.y); pctx.fillStyle = 'rgba(43,49,87,.12)'; pctx.beginPath(); pctx.moveTo(x,y); pctx.arc(x,y,c.range*s, -(sn.heading_deg + c.fov_deg/2)*Math.PI/180, -(sn.heading_deg - c.fov_deg/2)*Math.PI/180); pctx.closePath(); pctx.fill(); });
+  site.docks.forEach(d => { const [x,y]=P2(d.position.x,d.position.y); pctx.fillStyle='rgba(46,111,107,.35)'; pctx.beginPath(); pctx.arc(x,y,4*s,0,7); pctx.fill(); });
   site.entry_points.forEach(e => { const [x,y]=P2(e.position.x,e.position.y); pctx.fillStyle = ink; pctx.fillRect(x-3*s,y-3*s,6*s,6*s); });
-  const [ax,ay]=P2(site.asset.x, site.asset.y); pctx.fillStyle='#d9400a'; pctx.fillRect(ax-4*s,ay-4*s,8*s,8*s);
-  agentsOf(pep).forEach(id => { const p = positionAt(pep.tracks[id], pt); const [x,y]=P2(p[1],p[2]); const a = fleetAgents.find(z=>z.id===id)||{}; const c = D.curves[a.sensor_type] || {range: kindOf(id)==='drone'?40:kindOf(id)==='go2'?30:60, fov_deg: 360}; const docked = isDocked(id,p[1],p[2]); if(!docked){ pctx.fillStyle = 'rgba(42,120,214,.10)'; pctx.beginPath(); pctx.arc(x,y,c.range*s,0,7); pctx.fill(); } const tr = pep.tracks[id]; pctx.strokeStyle='rgba(42,120,214,.5)'; pctx.lineWidth=1.5*s; pctx.beginPath(); let started=false; for(const q of tr){ if(q[0]>pt) break; if(q[0] < pt-40) continue; const [qx,qy]=P2(q[1],q[2]); started ? pctx.lineTo(qx,qy) : pctx.moveTo(qx,qy); started=true; } pctx.stroke(); pctx.fillStyle = docked ? '#eda100' : '#2a78d6'; pctx.beginPath(); pctx.arc(x,y,3.2*s,0,7); pctx.fill(); pctx.fillStyle = ink; pctx.font = `${Math.round(9*s)}px Barlow, sans-serif`; pctx.fillText(id.replace('_',' '), x+5*s, kindOf(id)==='drone' ? y-4*s : y+11*s); });
-  const itr = pep.tracks.intruder; if (itr) { const p = positionAt(itr, pt); if (pt >= itr[0][0] && pt <= itr[itr.length-1][0] + 1) { const [x,y]=P2(p[1],p[2]); const sc = scoreAt(pt); const conf = sc==null ? 0 : Math.max(0, Math.min(1, (sc + 2)/6)); pctx.strokeStyle = `rgba(215,38,61,${0.25+0.6*conf})`; pctx.lineWidth = 1.5*s; pctx.beginPath(); let st=false; for(const q of itr){ if(q[0]>pt) break; const [qx,qy]=P2(q[1],q[2]); st ? pctx.lineTo(qx,qy) : pctx.moveTo(qx,qy); st=true; } pctx.stroke(); pctx.fillStyle = sc==null ? ink3 : `rgba(215,38,61,${0.35+0.65*conf})`; pctx.beginPath(); pctx.arc(x,y,3.6*s,0,7); pctx.fill(); pctx.fillStyle = ink; pctx.fillText(sc==null ? 'unknown object' : `track ${sc.toFixed(1)}`, x+5*s, y+10*s); } }
-  pep.detections.filter(d => pt-1.5 <= d[0] && d[0] <= pt && pep.tracks[d[2]]).forEach(d => { const p = positionAt(pep.tracks[d[2]], pt); const [x,y]=P2(p[1],p[2]); pctx.strokeStyle = d[3] ? '#d7263d' : '#eda100'; pctx.lineWidth = 2*s; pctx.beginPath(); pctx.arc(x,y,(6 + 4*(pt-d[0]))*s,0,7); pctx.stroke(); });
-  if (pep.t_alarm != null && pt >= pep.t_alarm) { pctx.fillStyle = '#d7263d'; pctx.font = `bold ${Math.round(11*s)}px Barlow, sans-serif`; pctx.fillText(`ALARM ${pep.t_alarm.toFixed(0)} s via ${(pep.via||'').replace('_',' ')}`, 8*s, 14*s); }
+  const [ax,ay]=P2(site.asset.x, site.asset.y); pctx.fillStyle='#2b3157'; pctx.fillRect(ax-4*s,ay-4*s,8*s,8*s);
+  agentsOf(pep).forEach(id => { const p = positionAt(pep.tracks[id], pt); const [x,y]=P2(p[1],p[2]); const a = fleetAgents.find(z=>z.id===id)||{}; const c = D.curves[a.sensor_type] || {range: kindOf(id)==='drone'?40:kindOf(id)==='go2'?30:60, fov_deg: 360}; const docked = isDocked(id,p[1],p[2]); if(!docked){ pctx.fillStyle = 'rgba(43,49,87,.10)'; pctx.beginPath(); pctx.arc(x,y,c.range*s,0,7); pctx.fill(); } const tr = pep.tracks[id]; pctx.strokeStyle='rgba(43,49,87,.5)'; pctx.lineWidth=1.5*s; pctx.beginPath(); let started=false; for(const q of tr){ if(q[0]>pt) break; if(q[0] < pt-40) continue; const [qx,qy]=P2(q[1],q[2]); started ? pctx.lineTo(qx,qy) : pctx.moveTo(qx,qy); started=true; } pctx.stroke(); pctx.fillStyle = docked ? '#8c8262' : '#2b3157'; pctx.beginPath(); pctx.arc(x,y,3.2*s,0,7); pctx.fill(); pctx.fillStyle = ink; pctx.font = `${Math.round(9*s)}px Barlow, sans-serif`; pctx.fillText(id.replace('_',' '), x+5*s, kindOf(id)==='drone' ? y-4*s : y+11*s); });
+  const itr = pep.tracks.intruder; if (itr) { const p = positionAt(itr, pt); if (pt >= itr[0][0] && pt <= itr[itr.length-1][0] + 1) { const [x,y]=P2(p[1],p[2]); const sc = scoreAt(pt); const conf = sc==null ? 0 : Math.max(0, Math.min(1, (sc + 2)/6)); pctx.strokeStyle = `rgba(160,112,112,${0.35+0.6*conf})`; pctx.lineWidth = 1.5*s; pctx.beginPath(); let st=false; for(const q of itr){ if(q[0]>pt) break; const [qx,qy]=P2(q[1],q[2]); st ? pctx.lineTo(qx,qy) : pctx.moveTo(qx,qy); st=true; } pctx.stroke(); pctx.fillStyle = sc==null ? ink3 : `rgba(160,112,112,${0.45+0.55*conf})`; pctx.beginPath(); pctx.arc(x,y,3.6*s,0,7); pctx.fill(); pctx.fillStyle = ink; pctx.fillText(sc==null ? 'unknown object' : `track ${sc.toFixed(1)}`, x+5*s, y+10*s); } }
+  pep.detections.filter(d => pt-1.5 <= d[0] && d[0] <= pt && pep.tracks[d[2]]).forEach(d => { const p = positionAt(pep.tracks[d[2]], pt); const [x,y]=P2(p[1],p[2]); pctx.strokeStyle = d[3] ? '#a07070' : '#bbb092'; pctx.lineWidth = 2*s; pctx.beginPath(); pctx.arc(x,y,(6 + 4*(pt-d[0]))*s,0,7); pctx.stroke(); });
+  if (pep.t_alarm != null && pt >= pep.t_alarm) { pctx.fillStyle = '#a07070'; pctx.font = `bold ${Math.round(11*s)}px Barlow, sans-serif`; pctx.fillText(`ALARM ${pep.t_alarm.toFixed(0)} s via ${(pep.via||'').replace('_',' ')}`, 8*s, 14*s); }
   $('#pT').textContent = `t = ${pt.toFixed(0)} s`; $('#pBar').style.width = `${(pt/pep.t_end*100).toFixed(1)}%`;
 }
 function perceptionLoop(now){ const dt = (now - plast)/1000; plast = now; if ($('#tab-perception').classList.contains('active')) { pt += dt*2.5; if (pt > pep.t_end + 2) { pt = 0; } drawPerception(); renderAgentCards(); } requestAnimationFrame(perceptionLoop); }
@@ -563,8 +563,8 @@ function renderAgentCards(){ if (Math.abs(pt - cardsAt) < 2) return; cardsAt = p
 resizePerception(); drawPerception(); renderAgentCards(); requestAnimationFrame(perceptionLoop); window.addEventListener('resize', () => { resizePerception(); drawPerception(); });
 
 // ---------- logs ----------
-const colorFor = {drone:'#2a78d6', go2:'#1f8fd0', guard:'#5aa0e6'};
-$('#contacts').innerHTML = [`<div class="contact"><div class="av" style="background:var(--brand)">OP</div><div class="t">Operator</div><div class="s">you, on duty</div><div class="acts"><button type="button" data-act="handover">Handover</button></div></div>`, ...fleetAgents.map((a,i) => `<div class="contact"><div class="av" style="background:${colorFor[a.type]||'#6d6d78'}">${a.type==='guard' ? 'G' : a.type==='go2' ? 'Q' : 'D'}${a.id.replace(/\D/g,'')}</div><div class="t">${esc(a.id.replace('_',' '))}</div><div class="s">${a.type==='guard' ? 'radio channel 3 (placeholder)' : a.type==='go2' ? 'telemetry link, go2 dock' : 'telemetry link, ' + (i % 2 ? 'dock se' : 'dock nw')}</div><div class="acts"><button type="button" data-act="ping" data-id="${a.id}">${a.type==='guard' ? 'Call' : 'Ping'}</button><button type="button" data-act="msg" data-id="${a.id}">Message</button></div></div>`)].join('');
+const colorFor = {drone:'#2b3157', go2:'#2e6f6b', guard:'#5c6aa3'};
+$('#contacts').innerHTML = [`<div class="contact"><div class="av" style="background:var(--brand)">OP</div><div class="t">Operator</div><div class="s">you, on duty</div><div class="acts"><button type="button" data-act="handover">Handover</button></div></div>`, ...fleetAgents.map((a,i) => `<div class="contact"><div class="av" style="background:${colorFor[a.type]||'#8c8262'}">${a.type==='guard' ? 'G' : a.type==='go2' ? 'Q' : 'D'}${a.id.replace(/\D/g,'')}</div><div class="t">${esc(a.id.replace('_',' '))}</div><div class="s">${a.type==='guard' ? 'radio channel 3 (placeholder)' : a.type==='go2' ? 'telemetry link, go2 dock' : 'telemetry link, ' + (i % 2 ? 'dock se' : 'dock nw')}</div><div class="acts"><button type="button" data-act="ping" data-id="${a.id}">${a.type==='guard' ? 'Call' : 'Ping'}</button><button type="button" data-act="msg" data-id="${a.id}">Message</button></div></div>`)].join('');
 $('#contacts').addEventListener('click', e => { const b = e.target.closest('button[data-act]'); if(!b) return; if (b.dataset.act === 'handover') { showTab('tab-swarm', true); ask('Summarise the shift'); return; } if (b.dataset.act === 'msg') { showTab('tab-swarm', true); $('#ask').value = `Tell ${b.dataset.id.replace('_',' ')} to `; $('#ask').focus(); return; } toast(`${b.dataset.id.replace('_',' ')} pinged: acknowledged`); });
 function buildLogs(){ const L = []; const seedTime = (t) => `t = ${t.toFixed(0)} s`;
   L.push({kind:'alert', t:`Missed intrusion, ${missEp.entry.replaceAll('_',' ')}`, when: `${prettyFleet(missEp.fleet)} · seed ${missEp.seed}`, outcome:'bad', what:`Alert: ${missEp.family.replaceAll('_',' ')} tactic entered through the ${missEp.entry.replaceAll('_',' ')} at phase ${fmt(missEp.phase)} of the charge cycle. Deadline ${fmt(missEp.t_cdp,0)} s.`, result: missEp.t_alarm==null ? 'No alarm before the deadline; the intruder reached the asset.' : `Alarm at ${fmt(missEp.t_alarm,0)} s, after the ${fmt(missEp.t_cdp,0)} s deadline.`, improve:`The synchronized fleet had every drone on the dock at once. Staggering the charge schedule (the fix that was adopted) lifts the same seeds from ${Math.round(base.pd*100)} to ${Math.round(fixed.pd*100)}.`, order: 3});
