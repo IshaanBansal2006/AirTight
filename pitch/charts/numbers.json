@@ -194,6 +194,10 @@
       0.045,
       0.495
     ],
+    "worst_tactic_pd_schedule_blind": [
+      0.53,
+      0.505
+    ],
     "human_decisions_per_hour": [
       0.09642857142857143,
       0.20869565217391303
@@ -227,6 +231,56 @@
           0.0
         ]
       }
+    ]
+  },
+  "schedule_blind": {
+    "d2_nogo2_noguard_stagger": [
+      0.0,
+      0.2
+    ],
+    "d2_go2_noguard_stagger": [
+      0.0,
+      0.305
+    ],
+    "d0_go2_guard_sync": [
+      0.0,
+      0.085
+    ],
+    "d2_nogo2_guard_stagger": [
+      0.06,
+      0.385
+    ],
+    "d1_go2_guard_stagger": [
+      0.04,
+      0.28
+    ],
+    "d1_go2_guard_sync": [
+      0.04,
+      0.28
+    ],
+    "d2_go2_guard_stagger": [
+      0.045,
+      0.525
+    ],
+    "d2_go2_guard_sync": [
+      0.045,
+      0.53
+    ],
+    "d3_go2_guard_stagger": [
+      0.495,
+      0.505
+    ],
+    "d3_go2_guard_sync": [
+      0.145,
+      0.49
+    ],
+    "d4_go2_guard_stagger": [
+      0.34,
+      0.39
+    ],
+    "d4_go2_guard_sync": [
+      0.14,
+      0.505
     ]
   }
 }

@@ -348,28 +348,34 @@ def chart_schedule_blind(r: Report, p: Palette, out: Path, numbers: dict) -> Non
         ax.scatter(
             [hidden], [y], s=56, color=p.series[0], edgecolor=p.surface, linewidth=1.5, zorder=3
         )
-        ax.annotate(
-            f"{hidden:.2f}",
-            (hidden, y),
-            xytext=(8, 0),
-            textcoords="offset points",
-            va="center",
-            fontsize=7,
-            color=p.ink,
-        )
+        known_right = hidden - known > 0.15
+        for v, dx, ha in (
+            (known, 8 if known_right else -8, "left" if known_right else "right"),
+            (hidden, 8, "left"),
+        ):
+            ax.annotate(
+                f"{v:.2f}",
+                (v, y),
+                xytext=(dx, 0),
+                textcoords="offset points",
+                va="center",
+                ha=ha,
+                fontsize=7,
+                color=p.ink,
+            )
     ax.scatter([], [], s=56, color=p.series[1], label="adversary has the charge schedule")
     ax.scatter([], [], s=56, color=p.series[0], label="adversary knows the site, not the schedule")
     ax.set_yticks(
         ys,
         [
-            c.config_name + (" (baseline)" if c.config_name == r.baseline_config else "")
+            f"{c.config_name}{' (baseline)' if c.config_name == r.baseline_config else ''}, ${c.cost_per_hour:.0f}/h"
             for c in rows
         ],
         fontsize=7,
     )
-    ax.set_xlim(-0.02, 1.08)
+    ax.set_xlim(-0.1, 1.08)
     ax.set_xlabel("Timely detection against the worst tactic at the operating point")
-    ax.set_title("What hiding the charge schedule is worth, same fleets and same tactics")
+    ax.set_title("What hiding the charge schedule is worth", loc="left")
     ax.legend(loc="lower right", fontsize=7, frameon=False)
     fig.text(0.01, 0.01, conditions_line(r), fontsize=7, color=p.muted)
     fig.tight_layout(rect=(0, 0.06, 1, 1))
@@ -413,6 +419,21 @@ def chart_before_after(r: Report, fixed: str | None, p: Palette, out: Path, numb
             None,
             True,
         ),
+        *(
+            [
+                (
+                    "Worst tactic, adversary\nblind to the schedule",
+                    base.worst_tactic_pd_schedule_blind,
+                    after.worst_tactic_pd_schedule_blind,
+                    None,
+                    None,
+                    True,
+                )
+            ]
+            if base.worst_tactic_pd_schedule_blind is not None
+            and after.worst_tactic_pd_schedule_blind is not None
+            else []
+        ),
         (
             "Human decisions\nper hour",
             base.human_decisions_per_hour,
@@ -446,8 +467,8 @@ def chart_before_after(r: Report, fixed: str | None, p: Palette, out: Path, numb
                 fontsize=8,
                 color=p.ink,
             )
-        if a == b:
-            verdict, color = "unchanged", p.muted
+        if abs(a - b) <= (0.05 if higher_is_better else 0.0):
+            verdict, color = ("unchanged" if a == b else "about the same"), p.muted
         elif (a > b) if higher_is_better else (a < b):
             verdict, color = "better", p.good
         else:
@@ -457,7 +478,11 @@ def chart_before_after(r: Report, fixed: str | None, p: Palette, out: Path, numb
             [0, 1], [two_lines(base.config_name), two_lines(after.config_name)], fontsize=7
         )
         ax.set_xlim(-0.4, 1.4)
-        ax.margins(y=0.3)
+        if higher_is_better:
+            ax.set_ylim(0, 1.05)
+        else:
+            top = max(a, b) * 1.45 or 1.0
+            ax.set_ylim(-0.04 * top, top)
     fig.suptitle(
         f"Before and after the fix: {base.config_name} to {after.config_name} on the same seeds",
         x=0.01,
@@ -474,6 +499,10 @@ def chart_before_after(r: Report, fixed: str | None, p: Palette, out: Path, numb
         "fixed": after.config_name,
         "pd": [base.pd_at_operating_point, after.pd_at_operating_point],
         "worst_tactic_pd": [base.worst_tactic_pd, after.worst_tactic_pd],
+        "worst_tactic_pd_schedule_blind": [
+            base.worst_tactic_pd_schedule_blind,
+            after.worst_tactic_pd_schedule_blind,
+        ],
         "human_decisions_per_hour": [base.human_decisions_per_hour, after.human_decisions_per_hour],
         "coverage_gap_s_per_hour": [base.coverage_gap_s_per_hour, after.coverage_gap_s_per_hour],
         "paired_deltas": [d.model_dump() for d in after.paired_vs_baseline],
