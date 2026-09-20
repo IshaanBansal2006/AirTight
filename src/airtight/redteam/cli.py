@@ -219,9 +219,9 @@ def cmd_difficulty(args: argparse.Namespace) -> int:
             f"{r.family:16s} mean Pd={r.mean_pd:.2f} worst Pd={r.worst_pd:.2f} over {r.n_tactics} random tactics"
         )
     print(f"{rep.verdict} (engine={engine})")
-    if args.out:
-        args.out.parent.mkdir(parents=True, exist_ok=True)
-        args.out.write_text(rep.model_dump_json(indent=2))
+    out = args.out or (args.log_dir / "difficulty.json")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(rep.model_dump_json(indent=2))
     return 0 if rep.in_band() else 3
 
 

@@ -1,0 +1,310 @@
+{
+  "family": "blind_spot",
+  "seeds": [
+    63663,
+    70017,
+    81040,
+    147908,
+    195632,
+    226512,
+    240213,
+    269396,
+    291656,
+    377049,
+    388056,
+    393957,
+    395215,
+    419021,
+    533251,
+    557281,
+    609063,
+    611521,
+    697677,
+    753955
+  ],
+  "n_episodes": 6400,
+  "scores": [
+    {
+      "tactic_id": "blind_spot-823883722",
+      "family": "blind_spot",
+      "n_episodes": 20,
+      "miss_rate": 0.95,
+      "mean_margin_s": -14.575666560825116,
+      "adversary_score": 0.9532087036449028
+    },
+    {
+      "tactic_id": "blind_spot-848705593",
+      "family": "blind_spot",
+      "n_episodes": 20,
+      "miss_rate": 0.95,
+      "mean_margin_s": -14.625264964770654,
+      "adversary_score": 0.9532084805359837
+    },
+    {
+      "tactic_id": "blind_spot-709026275",
+      "family": "blind_spot",
+      "n_episodes": 20,
+      "miss_rate": 0.95,
+      "mean_margin_s": -14.305668445661649,
+      "adversary_score": 0.9532028342228308
+    },
+    {
+      "tactic_id": "blind_spot-981439535",
+      "family": "blind_spot",
+      "n_episodes": 20,
+      "miss_rate": 0.95,
+      "mean_margin_s": -14.28059509576104,
+      "adversary_score": 0.9531902975478805
+    },
+    {
+      "tactic_id": "blind_spot-293685866",
+      "family": "blind_spot",
+      "n_episodes": 20,
+      "miss_rate": 0.95,
+      "mean_margin_s": -14.29722077709975,
+      "adversary_score": 0.9531861103885498
+    },
+    {
+      "tactic_id": "blind_spot-853174166",
+      "family": "blind_spot",
+      "n_episodes": 20,
+      "miss_rate": 0.95,
+      "mean_margin_s": -14.23167412857882,
+      "adversary_score": 0.9530658370642894
+    },
+    {
+      "tactic_id": "blind_spot-569058122",
+      "family": "blind_spot",
+      "n_episodes": 20,
+      "miss_rate": 0.95,
+      "mean_margin_s": -15.19238133583091,
+      "adversary_score": 0.9530264883348943
+    },
+    {
+      "tactic_id": "blind_spot-719591297",
+      "family": "blind_spot",
+      "n_episodes": 20,
+      "miss_rate": 0.95,
+      "mean_margin_s": -15.064015858086595,
+      "adversary_score": 0.9530087599113041
+    },
+    {
+      "tactic_id": "blind_spot-783130378",
+      "family": "blind_spot",
+      "n_episodes": 20,
+      "miss_rate": 0.95,
+      "mean_margin_s": -15.445709003403834,
+      "adversary_score": 0.9528098181271274
+    },
+    {
+      "tactic_id": "blind_spot-153315863",
+      "family": "blind_spot",
+      "n_episodes": 20,
+      "miss_rate": 0.95,
+      "mean_margin_s": -15.014009825581109,
+      "adversary_score": 0.9526025061409882
+    }
+  ],
+  "tactics": [
+    {
+      "id": "blind_spot-823883722",
+      "family": "blind_spot",
+      "entry_id": "rear_fence_gap",
+      "phase": 0.3345602565126827,
+      "speed_mps": 2.0,
+      "waypoints": [
+        {
+          "x": 152.01619254319442,
+          "y": 59.040721750270336
+        },
+        {
+          "x": 140.0,
+          "y": 70.0
+        }
+      ],
+      "decoy": null,
+      "comms_event": null,
+      "origin": "search"
+    },
+    {
+      "id": "blind_spot-848705593",
+      "family": "blind_spot",
+      "entry_id": "rear_fence_gap",
+      "phase": 0.47980544223528493,
+      "speed_mps": 2.0,
+      "waypoints": [
+        {
+          "x": 147.33700719673283,
+          "y": 63.56685755598311
+        },
+        {
+          "x": 140.0,
+          "y": 70.0
+        }
+      ],
+      "decoy": null,
+      "comms_event": null,
+      "origin": "search"
+    },
+    {
+      "id": "blind_spot-709026275",
+      "family": "blind_spot",
+      "entry_id": "rear_fence_gap",
+      "phase": 0.5047591027168027,
+      "speed_mps": 2.0,
+      "waypoints": [
+        {
+          "x": 146.84563092127343,
+          "y": 64.913806865969
+        },
+        {
+          "x": 140.0,
+          "y": 70.0
+        }
+      ],
+      "decoy": null,
+      "comms_event": null,
+      "origin": "search"
+    },
+    {
+      "id": "blind_spot-981439535",
+      "family": "blind_spot",
+      "entry_id": "rear_fence_gap",
+      "phase": 0.37207908286816704,
+      "speed_mps": 2.0,
+      "waypoints": [
+        {
+          "x": 145.56394659074022,
+          "y": 66.71506878920125
+        },
+        {
+          "x": 140.0,
+          "y": 70.0
+        }
+      ],
+      "decoy": null,
+      "comms_event": null,
+      "origin": "search"
+    },
+    {
+      "id": "blind_spot-293685866",
+      "family": "blind_spot",
+      "entry_id": "rear_fence_gap",
+      "phase": 0.5663797963738498,
+      "speed_mps": 2.0,
+      "waypoints": [
+        {
+          "x": 143.9583174859397,
+          "y": 68.04266756134413
+        },
+        {
+          "x": 140.0,
+          "y": 70.0
+        }
+      ],
+      "decoy": null,
+      "comms_event": null,
+      "origin": "search"
+    },
+    {
+      "id": "blind_spot-853174166",
+      "family": "blind_spot",
+      "entry_id": "rear_fence_gap",
+      "phase": 0.508745735487528,
+      "speed_mps": 1.97484435570435,
+      "waypoints": [
+        {
+          "x": 146.2061220481666,
+          "y": 66.48241420380968
+        },
+        {
+          "x": 140.0,
+          "y": 70.0
+        }
+      ],
+      "decoy": null,
+      "comms_event": null,
+      "origin": "search"
+    },
+    {
+      "id": "blind_spot-569058122",
+      "family": "blind_spot",
+      "entry_id": "rear_fence_gap",
+      "phase": 0.386451684421054,
+      "speed_mps": 1.9616947140536913,
+      "waypoints": [
+        {
+          "x": 151.29766954764688,
+          "y": 60.249405852219546
+        },
+        {
+          "x": 140.0,
+          "y": 70.0
+        }
+      ],
+      "decoy": null,
+      "comms_event": null,
+      "origin": "search"
+    },
+    {
+      "id": "blind_spot-719591297",
+      "family": "blind_spot",
+      "entry_id": "rear_fence_gap",
+      "phase": 0.37417251157654463,
+      "speed_mps": 1.9579316776454476,
+      "waypoints": [
+        {
+          "x": 148.86673792128366,
+          "y": 61.637059828651005
+        },
+        {
+          "x": 140.0,
+          "y": 70.0
+        }
+      ],
+      "decoy": null,
+      "comms_event": null,
+      "origin": "search"
+    },
+    {
+      "id": "blind_spot-783130378",
+      "family": "blind_spot",
+      "entry_id": "rear_fence_gap",
+      "phase": 0.4482154118076827,
+      "speed_mps": 1.918395408576006,
+      "waypoints": [
+        {
+          "x": 149.24897701298542,
+          "y": 60.53633445101297
+        },
+        {
+          "x": 140.0,
+          "y": 70.0
+        }
+      ],
+      "decoy": null,
+      "comms_event": null,
+      "origin": "search"
+    },
+    {
+      "id": "blind_spot-153315863",
+      "family": "blind_spot",
+      "entry_id": "rear_fence_gap",
+      "phase": 0.4829075881384002,
+      "speed_mps": 1.8787600883196183,
+      "waypoints": [
+        {
+          "x": 152.0370153677556,
+          "y": 60.54246990884037
+        },
+        {
+          "x": 140.0,
+          "y": 70.0
+        }
+      ],
+      "decoy": null,
+      "comms_event": null,
+      "origin": "search"
+    }
+  ]
+}

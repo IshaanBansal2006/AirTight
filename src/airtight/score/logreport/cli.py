@@ -57,6 +57,12 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--only", nargs="*", default=None, help="subset of config names")
     ap.add_argument("--out", type=Path, default=REPO_ROOT / "data" / "report.json")
     ap.add_argument(
+        "--detail-dir",
+        type=Path,
+        default=None,
+        help="per-config episode summaries, quiet stats and coverage gap; default <out>_detail/",
+    )
+    ap.add_argument(
         "--sensor-calibration", default="hand-written stub curve with a 360-degree drone disc"
     )
     ap.add_argument("-v", "--verbose", action="store_true")
@@ -123,6 +129,26 @@ def main(argv: list[str] | None = None) -> int:
     )
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(report.model_dump_json(indent=2))
+    detail = args.detail_dir or args.out.with_name(args.out.stem + "_detail")
+    detail.mkdir(parents=True, exist_ok=True)
+    for name, inp in per_config.items():
+        (detail / f"{name}.json").write_text(inp.model_dump_json())
+    (detail / "run.json").write_text(
+        json.dumps(
+            {
+                "engine": engine,
+                "site": str(args.site),
+                "curves": str(args.curves),
+                "tactics_dir": str(args.tactics_dir),
+                "per_family": args.per_family,
+                "n_seeds": len(seeds),
+                "quiet_seeds": quiet_seeds,
+                "far_target": args.far,
+                "tactic_ids": [t.id for t in tactics],
+            },
+            indent=2,
+        )
+    )
     for c in report.configs:
         print(
             f"{c.config_name:28s} pd@op={c.pd_at_operating_point:.2f} [{c.pd_at_operating_point_ci[0]:.2f},{c.pd_at_operating_point_ci[1]:.2f}]  worst={c.worst_tactic_pd:.2f} ({c.worst_tactic_id})  cost=${c.cost_per_hour:.0f}/h  decisions/h={c.human_decisions_per_hour:.2f}"

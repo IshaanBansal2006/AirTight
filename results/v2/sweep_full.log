@@ -1,0 +1,38 @@
+INFO airtight.score.sweep: d1_go2_guard_sync: 1600 episodes, timely at ref 0.15
+d1_go2_guard_sync             1600 episodes  timely@ref=0.15
+INFO airtight.score.sweep: d1_go2_guard_stagger: 1600 episodes, timely at ref 0.15
+d1_go2_guard_stagger          1600 episodes  timely@ref=0.15
+INFO airtight.score.sweep: d2_go2_guard_sync: 1600 episodes, timely at ref 0.07
+d2_go2_guard_sync             1600 episodes  timely@ref=0.07
+INFO airtight.score.sweep: d2_go2_guard_stagger: 1600 episodes, timely at ref 0.22
+d2_go2_guard_stagger          1600 episodes  timely@ref=0.22
+INFO airtight.score.sweep: d3_go2_guard_sync: 1600 episodes, timely at ref 0.56
+d3_go2_guard_sync             1600 episodes  timely@ref=0.56
+INFO airtight.score.sweep: d3_go2_guard_stagger: 1600 episodes, timely at ref 0.47
+d3_go2_guard_stagger          1600 episodes  timely@ref=0.47
+INFO airtight.score.sweep: d4_go2_guard_sync: 1600 episodes, timely at ref 0.62
+d4_go2_guard_sync             1600 episodes  timely@ref=0.62
+INFO airtight.score.sweep: d4_go2_guard_stagger: 1600 episodes, timely at ref 0.53
+d4_go2_guard_stagger          1600 episodes  timely@ref=0.53
+INFO airtight.score.sweep: d2_nogo2_guard_stagger: 1600 episodes, timely at ref 0.24
+d2_nogo2_guard_stagger        1600 episodes  timely@ref=0.24
+INFO airtight.score.sweep: d2_go2_noguard_stagger: 1600 episodes, timely at ref 0.07
+d2_go2_noguard_stagger        1600 episodes  timely@ref=0.07
+INFO airtight.score.sweep: d2_nogo2_noguard_stagger: 1600 episodes, timely at ref 0.11
+d2_nogo2_noguard_stagger      1600 episodes  timely@ref=0.11
+INFO airtight.score.sweep: d0_go2_guard_sync: 1600 episodes, timely at ref 0.03
+d0_go2_guard_sync             1600 episodes  timely@ref=0.03
+d1_go2_guard_sync            pd@op=0.27 [0.24,0.29]  worst=0.06 (charging_window-439068210)  cost=$48/h  decisions/h=18.55
+d1_go2_guard_stagger         pd@op=0.27 [0.25,0.29]  worst=0.06 (charging_window-439068210)  cost=$48/h  decisions/h=18.55
+d2_go2_guard_sync            pd@op=0.17 [0.15,0.19]  worst=0.07 (charging_window-439068210)  cost=$55/h  decisions/h=12.04
+d2_go2_guard_stagger         pd@op=0.36 [0.33,0.38]  worst=0.07 (charging_window-439068210)  cost=$55/h  decisions/h=25.32
+d3_go2_guard_sync            pd@op=0.64 [0.62,0.66]  worst=0.14 (blind_spot-823883722)  cost=$62/h  decisions/h=45.26
+d3_go2_guard_stagger         pd@op=0.58 [0.54,0.60]  worst=0.45 (blind_spot-823883722)  cost=$62/h  decisions/h=41.03
+d4_go2_guard_sync            pd@op=0.67 [0.64,0.70]  worst=0.14 (blind_spot-823883722)  cost=$69/h  decisions/h=47.37
+d4_go2_guard_stagger         pd@op=0.62 [0.59,0.66]  worst=0.34 (comms_cut-350976884)  cost=$69/h  decisions/h=43.40
+d2_nogo2_guard_stagger       pd@op=0.34 [0.32,0.39]  worst=0.07 (blind_spot-848705593)  cost=$46/h  decisions/h=23.90
+d2_go2_noguard_stagger       pd@op=0.09 [0.08,0.11]  worst=0.00 (charging_window-439068210)  cost=$23/h  decisions/h=6.95
+d2_nogo2_noguard_stagger     pd@op=0.13 [0.12,0.16]  worst=0.00 (blind_spot-848705593)  cost=$14/h  decisions/h=9.97
+d0_go2_guard_sync            pd@op=0.08 [0.07,0.10]  worst=0.00 (charging_window-439068210)  cost=$41/h  decisions/h=5.87
+engine=v0; 8 tactics x 200 seeds x 12 configs; report written to data/v2/report.json
+exit=0

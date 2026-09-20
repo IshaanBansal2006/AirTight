@@ -60,3 +60,13 @@ uv run airtight-sweep --engine v0 --tactics-dir data/tactics --n-seeds 200 --qui
 scripts/rebuild_pitch.sh data/report.json data/tactics                                          # charts, clips, deck, write-up, rendered deck
 uv run python pitch/render_replay.py <episode.jsonl>                                            # one episode as MP4
 ```
+
+## Results archive
+
+`data/` is ignored by git and holds raw episode logs. Everything a run measures is copied into
+`results/<run>/` with `scripts/archive_run.sh <run> data/<run>` and committed: search elites and
+every scored tactic (`tactics/top_<family>.json`), the sweep report and its per-configuration
+detail (`report.json`, `report_detail/`), difficulty and campaign reports, min-max iterations,
+replay logs for each family's best tactic, the LLM ledger, and a `manifest.json` with the git
+commit and scenario hashes. Prune later by deleting what is not needed; the manifest lists every
+file.
