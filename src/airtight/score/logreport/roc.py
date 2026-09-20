@@ -70,7 +70,8 @@ def _far_curve(quiet: QuietStats, thresholds: Sequence[float]) -> np.ndarray:
     if quiet.hours <= 0 or taus.size == 0 or not quiet.benign_peaks:
         return np.zeros_like(taus, dtype=np.float64)
     peaks = np.asarray(quiet.benign_peaks, dtype=np.float64)
-    return np.count_nonzero(peaks[:, None] >= taus, axis=0).astype(np.float64) / quiet.hours
+    counts: np.ndarray = np.count_nonzero(peaks[:, None] >= taus, axis=0)
+    return counts.astype(np.float64) / quiet.hours
 
 
 def roc_curve(

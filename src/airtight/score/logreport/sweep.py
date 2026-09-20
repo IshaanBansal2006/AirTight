@@ -107,13 +107,13 @@ def run_config(
     """
     engine = os.environ.get("AIRTIGHT_ENGINE", "stub")
     if engine == "v0" and prune_logs:
-        jobs = [(site, fleet, t, curves, s, randomize_phase) for t in tactics for s in seeds]
+        live = [(site, fleet, t, curves, s, randomize_phase) for t in tactics for s in seeds]
         if workers <= 1:
-            out = [_v0_summary_job(j) for j in jobs]
+            out = [_v0_summary_job(j) for j in live]
         else:
             with ProcessPoolExecutor(max_workers=workers) as pool:
                 out = list(
-                    pool.map(_v0_summary_job, jobs, chunksize=max(1, len(jobs) // (workers * 8)))
+                    pool.map(_v0_summary_job, live, chunksize=max(1, len(live) // (workers * 8)))
                 )
     else:
         cfg_dir = log_dir / (fleet.name + ("_blind" if randomize_phase else ""))

@@ -163,7 +163,30 @@ def test_summarize_from_scores_matches_full_log(tmp_path: Path) -> None:
     scores = simulate(site, fleet, tactic, curves, 3, official_params())
     from_scores = summarize_from_scores(fleet, tactic, scores)
     from_log = summarize_log(run_episode(site, fleet, tactic, curves, 3, tmp_path).log_path)
-    assert from_scores.intruder_peak_before_cdp == from_log.intruder_peak_before_cdp
-    assert from_scores.timely_at_ref == from_log.timely_at_ref
-    assert from_scores.has_score_series == from_log.has_score_series
+    assert from_scores == from_log
 
+
+def test_summarize_from_scores_matches_full_log_with_a_decoy(tmp_path: Path) -> None:
+    from airtight.score.logreport.logs import summarize_from_scores
+    from airtight.sim.episode import official_params, simulate
+
+    site, curves = _scene()
+    fleet = FleetConfig.model_validate_json(
+        (SCEN / "fleets" / "d0_go2_guard_sync.json").read_text()
+    )
+    tactic = Tactic.model_validate(
+        {
+            "id": "decoy",
+            "family": "decoy",
+            "entry_id": "main_gate",
+            "phase": 0.98,
+            "speed_mps": 1.6,
+            "waypoints": [site.asset],
+            "decoy": {"position": {"x": 157.9, "y": 6.5}, "lead_time_s": 78.3},
+        }
+    )
+    for seed in (1, 2, 3):
+        scores = simulate(site, fleet, tactic, curves, seed, official_params())
+        from_scores = summarize_from_scores(fleet, tactic, scores)
+        log = run_episode(site, fleet, tactic, curves, seed, tmp_path).log_path
+        assert from_scores == summarize_log(log)

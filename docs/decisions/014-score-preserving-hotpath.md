@@ -1,4 +1,4 @@
-# Decision 012: Score-preserving hot-path optimizations
+# Decision 014: Score-preserving hot-path optimizations
 
 ## Context
 - Episode loops, quiet nights, red-team search, and clip rendering spend most of their time in a few inner kernels: `mark_seen` / `retarget` over the patrol grid, polyline queries, log replay, coverage maps, JPDA/UKF, and JSONL summaries.

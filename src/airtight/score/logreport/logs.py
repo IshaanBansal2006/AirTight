@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 from pydantic import BaseModel, Field
 
 from airtight.contracts import OutcomeEvent, ScoreEvent, read_episode_log
+from airtight.sim.constants import NEVER_SEEN
 from airtight.sim.recorder import timely_at_ref
 
 if TYPE_CHECKING:
@@ -46,11 +47,20 @@ def summarize_from_scores(
         t_end_s=scores.t_end,
         t_cdp=scores.t_cdp,
         timely_at_ref=timely_at_ref(scores),
-        intruder_peak_before_cdp=scores.intruder_peak,
+        intruder_peak_before_cdp=_peak_or_neg_inf(scores.intruder_peak),
         benign_peaks=dict(scores.benign_peaks),
-        decoy_peak=scores.decoy_peak,
+        decoy_peak=None if scores.decoy_peak is None else _peak_or_none(scores.decoy_peak),
         has_score_series=scores.n_looks > 0,
     )
+
+
+def _peak_or_neg_inf(peak: float) -> float:
+    """The engine's never-seen sentinel becomes -inf, as a log with no score events reads."""
+    return -math.inf if peak <= NEVER_SEEN else peak
+
+
+def _peak_or_none(peak: float) -> float | None:
+    return None if peak <= NEVER_SEEN else peak
 
 
 def summarize_log(path: Path) -> EpisodeSummary:
