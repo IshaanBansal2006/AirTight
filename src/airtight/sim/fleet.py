@@ -109,7 +109,10 @@ class PatrolController:
         # Staleness is never negative however long the warm-up is.
         self.last_seen: Array = np.full(grid.shape, t_start - stale_init_s, dtype=np.float64)
         self._centres = grid.cell_centers()
+        self._weighted = weight > 0
         self._rngs: dict[str, np.random.Generator] = {}
+        # Fixed sensors never move: the disk+wedge mask is constant for the episode.
+        self._static_footprint: dict[int, tuple[int, int, int, int, np.ndarray]] = {}
 
     def rng_for(self, agent_id: str) -> np.random.Generator:
         if agent_id not in self._rngs:
@@ -118,25 +121,67 @@ class PatrolController:
 
     def staleness(self, t: float) -> Array:
         """max(t - last_seen, 0) where weight > 0, and 0 elsewhere."""
-        stale: Array = np.where(self.weight > 0, np.maximum(t - self.last_seen, 0.0), 0.0)
+        stale: Array = np.zeros(self.grid.shape, dtype=np.float64)
+        stale[self._weighted] = np.maximum(t - self.last_seen[self._weighted], 0.0)
         return stale
 
+    def weighted_staleness(self, t: float) -> Array:
+        """1-D staleness of cells with positive patrol weight. Same values as staleness(t)[weight>0]."""
+        vals: Array = np.maximum(t - self.last_seen[self._weighted], 0.0)
+        return vals
+
+    def _footprint_window(
+        self, pos: Array, heading: float, fov_deg: float, radius_m: float
+    ) -> tuple[int, int, int, int, np.ndarray]:
+        """Boolean mask of cell centres inside the observer's disk and wedge, plus its bbox."""
+        xmin, ymin = self.grid.xmin, self.grid.ymin
+        cs = self.grid.cell_size
+        rows, cols = self.grid.rows, self.grid.cols
+        x, y = float(pos[0]), float(pos[1])
+        col0 = max(0, int(math.floor((x - radius_m - xmin) / cs)) - 1)
+        col1 = min(cols, int(math.ceil((x + radius_m - xmin) / cs)) + 1)
+        row0 = max(0, int(math.floor((y - radius_m - ymin) / cs)) - 1)
+        row1 = min(rows, int(math.ceil((y + radius_m - ymin) / cs)) + 1)
+        if row0 >= row1 or col0 >= col1:
+            return row0, row1, col0, col1, np.zeros((0, 0), dtype=np.bool_)
+        window = self._centres[row0:row1, col0:col1]
+        seen = np.hypot(window[..., 0] - x, window[..., 1] - y) <= radius_m
+        seen &= in_wedge(pos, heading, fov_deg, window)
+        return row0, row1, col0, col1, seen
+
     def mark_seen(self, observers: Sequence[Observer], t: float) -> None:
-        """Any active observer marks cells seen, fixed sensors included. Only agents retarget."""
+        """Any active observer marks cells seen, fixed sensors included. Only agents retarget.
+
+        Only cells whose centre can sit inside the footprint disk are tested. The disk test and
+        the wedge test are unchanged, so the set of marked cells is identical to a full-grid pass.
+        Fixed sensors reuse a cached mask: their pose never changes.
+        """
         for agent in observers:
             if not agent.active:
                 continue
-            distance = np.hypot(
-                self._centres[..., 0] - agent.pos[0], self._centres[..., 1] - agent.pos[1]
-            )
-            seen = distance <= agent.footprint_radius_m
-            seen &= in_wedge(agent.pos, agent.heading, agent.fov_deg, self._centres)
-            self.last_seen[seen] = t
+            static = not hasattr(agent, "speed_mps")
+            if static:
+                cached = self._static_footprint.get(id(agent))
+                if cached is None:
+                    cached = self._footprint_window(
+                        agent.pos, agent.heading, agent.fov_deg, agent.footprint_radius_m
+                    )
+                    self._static_footprint[id(agent)] = cached
+                row0, row1, col0, col1, seen = cached
+            else:
+                row0, row1, col0, col1, seen = self._footprint_window(
+                    agent.pos, agent.heading, agent.fov_deg, agent.footprint_radius_m
+                )
+            if seen.size:
+                self.last_seen[row0:row1, col0:col1][seen] = t
 
     def retarget(self, agents: list[AgentState], t: float) -> None:
         active = sorted((a for a in agents if a.patrolling), key=lambda a: a.index)
+        weighted_stale: Array | None = None
         for agent in active:
-            to_target = float(np.linalg.norm(agent.target - agent.pos))
+            dx = float(agent.target[0] - agent.pos[0])
+            dy = float(agent.target[1] - agent.pos[1])
+            to_target = math.hypot(dx, dy)
             arrived = to_target <= agent.footprint_radius_m / 2.0
             if not arrived and t - agent.last_retarget_t < self.retarget_period_s:
                 continue
@@ -145,7 +190,9 @@ class PatrolController:
             distance = np.hypot(
                 self._centres[..., 0] - agent.pos[0], self._centres[..., 1] - agent.pos[1]
             )
-            base = self.staleness(t) * self.weight / (1.0 + distance / self.d0_m)
+            if weighted_stale is None:
+                weighted_stale = self.staleness(t) * self.weight
+            base = weighted_stale / (1.0 + distance / self.d0_m)
             utility = base * region
             if not np.any(utility > 0):
                 utility = base
@@ -168,10 +215,11 @@ def step_agents(agents: list[AgentState], dt: float) -> None:
         if not agent.active:
             continue
         delta = agent.target - agent.pos
-        distance = float(np.linalg.norm(delta))
+        dx, dy = float(delta[0]), float(delta[1])
+        distance = math.hypot(dx, dy)
         if distance == 0.0:
             continue
-        agent.heading = math.atan2(float(delta[1]), float(delta[0]))
+        agent.heading = math.atan2(dy, dx)
         step = agent.speed_mps * dt
         if distance <= step + _ARRIVE_EPS_M:
             agent.pos = agent.target.copy()

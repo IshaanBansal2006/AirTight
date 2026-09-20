@@ -15,7 +15,7 @@ from airtight.contracts.episode import (
     read_episode_log,
     write_episode_log,
 )
-from airtight.dimos_lane.replay import ReplayPlan, densify_intruder, plan_replay
+from airtight.dimos_lane.replay import ReplayPlan, densify_intruder, plan_replay, pose_at_or_before
 from airtight.dimos_lane.site_io import (
     load_example_site,
     load_logistics_curves,
@@ -74,11 +74,13 @@ def render_html(plan: ReplayPlan, site: Site, *, clean: bool = False) -> str:
     )
     if not times:
         times = [0.0]
+    intruder_t = [ts for ts, _ in plan.intruder]
+    marker_t = {oid: [ts for ts, _ in pts] for oid, pts in plan.markers.items()}
     for t in times:
-        intruder = next((p for ts, p in reversed(plan.intruder) if ts <= t), None)
+        intruder = pose_at_or_before(plan.intruder, t, intruder_t)
         agents = {}
         for oid, pts in plan.markers.items():
-            pos = next((p for ts, p in reversed(pts) if ts <= t), None)
+            pos = pose_at_or_before(pts, t, marker_t[oid])
             if pos is not None:
                 agents[oid] = {"x": pos.x, "y": pos.y}
         if intruder is not None:

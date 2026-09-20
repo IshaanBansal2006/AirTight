@@ -71,24 +71,17 @@ class UKF:
         # right scale, WRONG correlation directions (latent bug found 2026-07-29,
         # regression-tested in tests/test_ukf.py).
         sqrt_P = L.T
-        for i in range(self.n):
-            sigma[i + 1] = state.x + sqrt_P[i]
-            sigma[self.n + i + 1] = state.x - sqrt_P[i]
+        sigma[1 : self.n + 1] = state.x + sqrt_P
+        sigma[self.n + 1 :] = state.x - sqrt_P
         return sigma
 
     def predict(self, state: TrackState) -> TrackState:
         """Predict state forward by dt. Unscented transform through f(x), add Q."""
-        sigma = self.generate_sigma_points(state)
-        # Apply motion model to each sigma point
-        for i in range(2 * self.n + 1):
-            sigma[i] = self.f(sigma[i])
-        # Compute predicted state and covariance
-        x_pred = np.dot(self.Wm, sigma)
-        P_pred = np.zeros((self.n, self.n))
-        for i in range(2 * self.n + 1):
-            diff = sigma[i] - x_pred
-            P_pred += self.Wc[i] * np.outer(diff, diff)
-        P_pred += self.Q
+        sigma = self._f_batch(self.generate_sigma_points(state))
+        x_pred = self.Wm @ sigma
+        diff = sigma - x_pred
+        P_pred = (self.Wc[:, None, None] * diff[:, :, None] * diff[:, None, :]).sum(axis=0)
+        P_pred = P_pred + self.Q
         P_pred = 0.5 * (P_pred + P_pred.T)  # enforce symmetry against float drift
         return TrackState(x=x_pred, P=P_pred)
 
@@ -99,6 +92,15 @@ class UKF:
         x_new[1] += x[4] * self.cfg.dt  # y position
         x_new[2] += x[5] * self.cfg.dt  # z position
         return x_new
+
+    def _f_batch(self, sigma: NDArray[np.float64]) -> NDArray[np.float64]:
+        """Vectorised constant-velocity motion; identical to applying ``f`` to each row."""
+        out = sigma.copy()
+        dt = self.cfg.dt
+        out[:, 0] += sigma[:, 3] * dt
+        out[:, 1] += sigma[:, 4] * dt
+        out[:, 2] += sigma[:, 5] * dt
+        return out
 
     def measurement_prediction(
         self,
@@ -113,15 +115,10 @@ class UKF:
         deciding which detection, if any, to fuse.
         """
         sigma = self.generate_sigma_points(state)
-        m = R.shape[0]
-        Z = np.zeros((2 * self.n + 1, m))
-        for i in range(2 * self.n + 1):
-            Z[i] = h(sigma[i])
-        z_pred = np.dot(self.Wm, Z)
-        S = R.copy()
-        for i in range(2 * self.n + 1):
-            diff = Z[i] - z_pred
-            S += self.Wc[i] * np.outer(diff, diff)
+        Z = np.vstack([h(s) for s in sigma])
+        z_pred = self.Wm @ Z
+        diff = Z - z_pred
+        S = R + (self.Wc[:, None, None] * diff[:, :, None] * diff[:, None, :]).sum(axis=0)
         return z_pred, S
 
     def update(
@@ -143,26 +140,13 @@ class UKF:
             (updated_state, innovation, innovation_covariance S)
         """
         sigma = self.generate_sigma_points(state)
-        # Transform sigma points through observation model
-        m = measurement.shape[0]
-        Z = np.zeros((2 * self.n + 1, m))
-        for i in range(2 * self.n + 1):
-            Z[i] = h(sigma[i])
-        # Compute predicted measurement and innovation covariance
-        z_pred = np.dot(self.Wm, Z)
-        S = np.zeros((m, m))
-        for i in range(2 * self.n + 1):
-            diff = Z[i] - z_pred
-            S += self.Wc[i] * np.outer(diff, diff)
-        S += R
-        # Compute cross covariance between state and measurement
-        Pxz = np.zeros((self.n, m))
-        for i in range(2 * self.n + 1):
-            diff_x = sigma[i] - state.x
-            diff_z = Z[i] - z_pred
-            Pxz += self.Wc[i] * np.outer(diff_x, diff_z)
-        # Compute Kalman gain
-        K = Pxz @ np.linalg.inv(S)
+        Z = np.vstack([h(s) for s in sigma])
+        z_pred = self.Wm @ Z
+        diff_z = Z - z_pred
+        S = (self.Wc[:, None, None] * diff_z[:, :, None] * diff_z[:, None, :]).sum(axis=0) + R
+        diff_x = sigma - state.x
+        Pxz = (self.Wc[:, None, None] * diff_x[:, :, None] * diff_z[:, None, :]).sum(axis=0)
+        K = np.linalg.solve(S, Pxz.T).T
         # Update state with measurement
         innovation = measurement - z_pred
         x_updated = state.x + K @ innovation

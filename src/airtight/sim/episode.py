@@ -143,7 +143,14 @@ def check_setup(
     users = [(f"agent {a!r}", adapt.agent_sensor_type(fleet, a)) for a in adapt.agent_ids(fleet)]
     users += [(f"fixed sensor {s.sensor_id!r}", s.sensor_type) for s in adapt.fixed_sensors(site)]
     ids = [*adapt.agent_ids(fleet), *(s.sensor_id for s in adapt.fixed_sensors(site))]
-    for dup in sorted({i for i in ids if ids.count(i) > 1}):
+    seen: set[str] = set()
+    dups: set[str] = set()
+    for i in ids:
+        if i in seen:
+            dups.add(i)
+        else:
+            seen.add(i)
+    for dup in sorted(dups):
         problems.append(f"id {dup!r} is used by more than one agent or fixed sensor")
     in_use: list[str] = []
     for who, sensor_type in users:

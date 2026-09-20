@@ -3,6 +3,8 @@ from __future__ import annotations
 import math
 from typing import TYPE_CHECKING
 
+import numpy as np
+
 from airtight.contracts import XY
 
 if TYPE_CHECKING:
@@ -11,18 +13,23 @@ if TYPE_CHECKING:
 Bounds = tuple[float, float, float, float]
 
 
-def point_in_polygon(p: XY, polygon: Sequence[XY]) -> bool:
-    """Ray casting: count edges crossed by a horizontal ray from p; odd means inside."""
-    inside = False
+def points_in_polygon(xs: np.ndarray, ys: np.ndarray, polygon: Sequence[XY]) -> np.ndarray:
+    """Ray casting, vectorised over points. Same rule as ``point_in_polygon``."""
+    inside = np.zeros(np.broadcast(xs, ys).shape, dtype=np.bool_)
     n = len(polygon)
     for i in range(n):
         a, b = polygon[i], polygon[(i + 1) % n]
-        crosses = (a.y > p.y) != (b.y > p.y)
-        if crosses:
-            x_at_y = a.x + (p.y - a.y) * (b.x - a.x) / (b.y - a.y)
-            if p.x < x_at_y:
-                inside = not inside
+        if a.y == b.y:
+            continue
+        crosses = (a.y > ys) != (b.y > ys)
+        x_at_y = a.x + (ys - a.y) * (b.x - a.x) / (b.y - a.y)
+        inside ^= crosses & (xs < x_at_y)
     return inside
+
+
+def point_in_polygon(p: XY, polygon: Sequence[XY]) -> bool:
+    """Ray casting: count edges crossed by a horizontal ray from p; odd means inside."""
+    return bool(points_in_polygon(np.array([p.x]), np.array([p.y]), polygon)[0])
 
 
 def distance_to_segment(p: XY, a: XY, b: XY) -> float:

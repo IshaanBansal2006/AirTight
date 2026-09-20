@@ -63,10 +63,14 @@ def gaussian_likelihood(
     innovation: NDArray[np.float64],
     S: NDArray[np.float64],
 ) -> float:
-    """N(innovation; 0, S) — the measurement likelihood under correct association."""
+    """N(innovation; 0, S) — the measurement likelihood under correct association.
+
+    Uses a linear solve instead of an explicit inverse; the quadratic form is identical.
+    """
     m = innovation.shape[0]
     norm = 1.0 / np.sqrt((2.0 * np.pi) ** m * np.linalg.det(S))
-    return norm * float(np.exp(-0.5 * innovation @ np.linalg.inv(S) @ innovation))
+    quad = float(innovation @ np.linalg.solve(S, innovation))
+    return norm * float(np.exp(-0.5 * quad))
 
 
 class JPDA:
@@ -87,13 +91,13 @@ class JPDA:
         from the sensor config), because the innovation is chi-squared with m
         DOF under the correct-association hypothesis.
         """
+        if not detections:
+            return []
         S_inv = np.linalg.inv(S)
-        gated: list[int] = []
-        for i, det in enumerate(detections):
-            d = det.measurement - z_pred
-            if float(d @ S_inv @ d) < gate_threshold:
-                gated.append(i)
-        return gated
+        Z = np.stack([det.measurement for det in detections])
+        d = Z - z_pred
+        mahal = np.einsum("ni,ij,nj->n", d, S_inv, d)
+        return [int(i) for i, ok in enumerate(mahal < gate_threshold) if ok]
 
     # ------------------------------------------------------------------ PDA
     def compute_association_probabilities(
@@ -232,6 +236,7 @@ class JPDA:
         differs, which is what keeps the joint upgrade a drop-in.
         """
         combined = np.zeros_like(z_pred)
-        for j, det in enumerate(gated_detections):
-            combined += betas[j + 1] * (det.measurement - z_pred)
+        if gated_detections:
+            Z = np.stack([det.measurement for det in gated_detections])
+            combined = (betas[1:, None] * (Z - z_pred)).sum(axis=0)
         return combined
