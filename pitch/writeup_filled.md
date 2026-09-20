@@ -27,7 +27,7 @@ Airtight is a security-posture engine. You give it a site twin: perimeter, entry
 
 ## Accomplishments
 
-- A quantified score with its conditions stated, not a demo: timely detection 0.17 to 0.58 and 0.07 to 0.45 against the worst tactic, from d2_go2_guard_sync at 55 dollars per hour to d3_go2_guard_stagger, on 200 shared seeds; human decisions per hour 12.0 to 41.0.
+- A quantified score with its conditions stated, not a demo: timely detection 0.14 to 0.63 and 0.04 to 0.49 against the worst tactic, from d2_go2_guard_sync at 55 dollars per hour to d3_go2_guard_stagger, on 200 shared seeds; human decisions per hour 0.1 to 0.2.
 - The fix loop closes: stagger, re-attack, re-score, on the same seeds.
 - Everything reproducible from one command per stage.
 

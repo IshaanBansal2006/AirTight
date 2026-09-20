@@ -68,7 +68,7 @@ def main(argv: list[str] | None = None) -> int:
     args.out.mkdir(parents=True, exist_ok=True)
     render(miss.log_path, site, args.out / "miss.mp4", fps=args.fps, speed=args.speed)
     render(catch.log_path, site, args.out / "catch.mp4", fps=args.fps, speed=args.speed)
-    (args.out / "clips.json").write_text(
+    (args.out / "clips_c.json").write_text(
         json.dumps(
             {
                 "tactic_id": tactic.id,
@@ -86,7 +86,7 @@ def main(argv: list[str] | None = None) -> int:
         )
     )
     print(
-        f"seed {seed}: {args.baseline} missed (alarm {miss.t_alarm}), {args.fixed} caught at {catch.t_alarm:.0f} s before the {catch.t_cdp:.0f} s deadline; clips in {args.out}"
+        f"seed {seed}: {args.baseline} missed (alarm {miss.t_alarm}), {args.fixed} caught at {catch.t_alarm:.0f} s before the {catch.t_cdp:.0f} s deadline; clips and clips_c.json in {args.out}"
     )
     return 0
 

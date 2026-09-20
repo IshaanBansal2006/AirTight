@@ -15,9 +15,12 @@ def _fmt(v: float, digits: int = 2) -> str:
 
 def load_clip_facts(clips_dir: Path) -> dict | None:
     """Lane C's clips.json, or lane A's miss.json and catch.json sidecars folded into the same shape."""
-    ours = clips_dir / "clips.json"
-    if ours.exists():
-        return json.loads(ours.read_text())
+    for name in ("clips_c.json", "clips.json"):
+        candidate = clips_dir / name
+        if candidate.exists():
+            data = json.loads(candidate.read_text())
+            if {"tactic_id", "seed", "baseline", "fixed", "t_cdp"} <= set(data):
+                return data
     miss, catch = clips_dir / "miss.json", clips_dir / "catch.json"
     if not (miss.exists() and catch.exists()):
         return None

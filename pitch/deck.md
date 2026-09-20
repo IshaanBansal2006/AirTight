@@ -62,7 +62,7 @@ Clip A, seed 63663: d2_go2_guard_sync never raised a timely alarm against `charg
 
 ![height:400px](charts/before_after.png)
 
-d2_go2_guard_sync to d3_go2_guard_stagger: detection 0.17 to 0.58; against the re-attacking worst tactic 0.07 to 0.45.
+d2_go2_guard_sync to d3_go2_guard_stagger: detection 0.14 to 0.63; against the re-attacking worst tactic 0.04 to 0.49.
 
 *Replay clip B: the catch.*
 
@@ -72,7 +72,7 @@ Clip B, same seed and tactic: d3_go2_guard_stagger alarmed at 24 s, before the 3
 
 # Human attention is a cost
 
-Human decisions per hour: 12.04 to 41.03. Coverage gap: 0 to 0 s/h.
+Human decisions per hour: 0.10 to 0.21. Coverage gap: 0 to 0 s/h.
 
 ![height:300px](charts/token_cost.png)
 
@@ -85,4 +85,4 @@ Adversary cost per scored configuration: 100x cheaper than an LLM planning every
 - The score, the vulnerability map, and a re-score after purchase
 - Next: learned adversary, calibrated sensors on more platforms, fleet memory under link loss
 
-<small>Operating point 1 false alarm/h · 200 seeds · adversary: open-loop adversary with full knowledge of the patrol policy and charge schedule; search plus LLM proposals · sensor: hand-written stub curve with a 360-degree drone disc · reduced-order per-look Bernoulli model, truth association, engine v0</small>
+<small>Operating point 1 false alarm/h · 200 seeds · adversary: open-loop adversary with full knowledge of the patrol policy and charge schedule; search plus LLM proposals · sensor: hand-written stub curve with a 360-degree drone disc · reduced-order per-look Bernoulli model, truth association, engine v0; false alarms from 20 quiet nights of one charge cycle each</small>
