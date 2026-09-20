@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -146,6 +147,21 @@ def threats(tactics_dir: Path) -> list[dict]:
     return out
 
 
+def perception_view(
+    log_path: Path, fleet_name: str, fleets_dir: Path, site: Site, curves: SensorCurves
+) -> dict | None:
+    """Controller trace and dimOS perceived maps for one recording, or None when they cannot be built."""
+    sys.path.insert(0, str(REPO / "pitch"))
+    from perception_map import build_view
+
+    fleet_path = fleets_dir / f"{fleet_name}.json"
+    if not fleet_path.exists() or not log_path.exists():
+        return None
+    return build_view(
+        log_path, FleetConfig.model_validate_json(fleet_path.read_text()), site, curves
+    )
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--report", type=Path, default=REPO / "pitch" / "report.json")
@@ -223,8 +239,21 @@ def main(argv: list[str] | None = None) -> int:
         "tokens": tokens,
         "runs": archived_runs(),
     }
+    for kind, name, log in (
+        ("miss", clips["baseline"], miss_log),
+        ("catch", clips["fixed"], catch_log),
+    ):
+        payload["episodes"][kind]["view"] = perception_view(
+            log, name, args.fleets_dir, site, curves
+        )
     blob = json.dumps(payload, separators=(",", ":")).replace("</", "<\\/")
-    html = args.template.read_text().replace("__DATA__", blob)
+    html = args.template.read_text()
+    # The template is split into parts under pitch/ui so each can be worked on alone.
+    for part in sorted((args.template.parent / "ui").glob("*.*")):
+        html = html.replace(f"/*__INCLUDE:{part.name}__*/\n", part.read_text())
+    if "__INCLUDE:" in html:
+        raise SystemExit("app_template.html names a part that pitch/ui does not hold")
+    html = html.replace("__DATA__", blob)
     args.out.write_text(html)
     print(
         f"app written to {args.out} ({len(html) / 1e6:.2f} MB), rounds: {len(payload['rounds'])}, runs: {len(payload['runs'])}"
