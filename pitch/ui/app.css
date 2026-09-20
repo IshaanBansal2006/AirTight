@@ -63,7 +63,9 @@ nav.tabbar{order:3}
 .envbtn:hover{background:var(--surface-2)}
 .envbtn i{width:6px;height:6px;background:var(--fleet-drone);display:inline-block}
 .envbtn svg{width:14px;height:14px;fill:none;stroke:var(--ink-2);stroke-width:2;stroke-linecap:square}
-.topbar .title{flex:1;text-align:left;font-family:var(--display);font-weight:var(--w-strong);font-size:var(--text-lg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar .title{flex:1;min-width:0;text-align:left;font-family:var(--display);font-weight:var(--w-strong);font-size:var(--text-lg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;flex-direction:column;line-height:1.1}
+.topbar .brand{font-size:var(--text-lg);letter-spacing:.01em;color:var(--ink)}
+.topbar .pagename{font-family:var(--font);font-size:var(--text-xs);font-weight:var(--w-label);color:var(--ink-3)}
 .avatar{width:28px;height:28px;border-radius:var(--radius-1);border:var(--border);background:var(--surface);color:var(--ink-2);display:grid;place-items:center;font-weight:var(--w-strong);font-size:var(--text-xs)}
 .page{display:none;flex-direction:column;gap:var(--space-5)}
 .page.active{display:flex}
