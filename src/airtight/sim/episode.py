@@ -268,7 +268,11 @@ def _run_loop(
         controller.mark_seen(observers, t)
         controller.retarget(agents, t)
         if k >= n_warm:
-            looks = do_looks(observers, objects, t, sensor_curves, rngs, schedule, book) if objects else ()
+            looks = (
+                do_looks(observers, objects, t, sensor_curves, rngs, schedule, book)
+                if objects
+                else ()
+            )
             n_looks += len(looks)
             if recorder is not None:
                 poses = {a.agent_id: a.pos.copy() for a in agents}

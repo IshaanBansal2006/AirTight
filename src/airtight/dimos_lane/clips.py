@@ -301,7 +301,9 @@ def find_miss_catch_pair(
         miss = run_episode(site, baseline, tactic, curves, seed, log_dir / "miss", full_log=False)
         catch = run_episode(site, fixed, tactic, curves, seed, log_dir / "catch", full_log=False)
         if not miss.timely_detected and catch.timely_detected:
-            miss = run_episode(site, baseline, tactic, curves, seed, log_dir / "miss", full_log=True)
+            miss = run_episode(
+                site, baseline, tactic, curves, seed, log_dir / "miss", full_log=True
+            )
             catch = run_episode(site, fixed, tactic, curves, seed, log_dir / "catch", full_log=True)
             return seed, miss, catch
     raise RuntimeError(
