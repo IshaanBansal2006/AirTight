@@ -80,6 +80,21 @@ Adversary cost per scored configuration: 100x cheaper than an LLM planning every
 
 ---
 
+# Attack, fix, re-attack
+
+Each round the red team searches the current fleet, every affordable fix is scored against what it found, the best worst case wins, and the red team attacks again.
+
+| Round | Fleet | $/h | Worst case after re-attack | Fix chosen |
+|---|---|---|---|---|
+| 0 | 2 drones, Go2, guard, synchronized | 55 | 0.05 | stagger |
+| 1 | 2 drones, Go2, guard, staggered | 55 | 0.00 | add drone |
+| 2 | 3 drones, Go2, guard, staggered | 62 | 0.05 | add drone |
+| 3 | 4 drones, Go2, guard, staggered | 69 | 0.00 | stop |
+
+The re-attack number stays near zero: with full knowledge of the patrol and no reaction from the fleet, the adversary finds a new hole after every fix. The score reports the typical intruder and the worst case side by side, and the loop is how a site finds the next hole before an intruder does.
+
+---
+
 # What we sell, and what is next
 
 - The score, the vulnerability map, and a re-score after purchase
