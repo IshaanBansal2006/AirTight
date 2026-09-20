@@ -6,5 +6,29 @@
   "site_sha256": "4f3680a6e64d",
   "curve_sha256": "7f280ea28356",
   "redteam_config_sha256": "685b9daf42e6",
-  "files": ["llm_calls.jsonl", "report.json", "report_detail/d0_go2_guard_sync.json", "report_detail/d1_go2_guard_stagger.json", "report_detail/d1_go2_guard_sync.json", "report_detail/d2_go2_guard_stagger.json", "report_detail/d2_go2_guard_sync.json", "report_detail/d2_go2_noguard_stagger.json", "report_detail/d2_nogo2_guard_stagger.json", "report_detail/d2_nogo2_noguard_stagger.json", "report_detail/d3_go2_guard_stagger.json", "report_detail/d3_go2_guard_sync.json", "report_detail/d4_go2_guard_stagger.json", "report_detail/d4_go2_guard_sync.json", "report_detail/run.json", "sweep.log"]
+  "files": [
+    "llm_calls.jsonl",
+    "report.json",
+    "report_detail/d0_go2_guard_sync.json",
+    "report_detail/d1_go2_guard_stagger.json",
+    "report_detail/d1_go2_guard_sync.json",
+    "report_detail/d2_go2_guard_stagger.json",
+    "report_detail/d2_go2_guard_sync.json",
+    "report_detail/d2_go2_noguard_stagger.json",
+    "report_detail/d2_nogo2_guard_stagger.json",
+    "report_detail/d2_nogo2_noguard_stagger.json",
+    "report_detail/d3_go2_guard_stagger.json",
+    "report_detail/d3_go2_guard_sync.json",
+    "report_detail/d4_go2_guard_stagger.json",
+    "report_detail/d4_go2_guard_sync.json",
+    "report_detail/run.json",
+    "sweep.log"
+  ],
+  "reproductions": [
+    {
+      "git_commit": "53690ae",
+      "date": "2026-09-20",
+      "note": "full sweep rerun after the hot-path merge (#25, #27): report, every episode summary and quiet nights identical"
+    }
+  ]
 }
