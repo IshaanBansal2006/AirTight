@@ -224,7 +224,13 @@ def main(argv: list[str] | None = None) -> int:
         "runs": archived_runs(),
     }
     blob = json.dumps(payload, separators=(",", ":")).replace("</", "<\\/")
-    html = args.template.read_text().replace("__DATA__", blob)
+    html = args.template.read_text()
+    # The template is split into parts under pitch/ui so each can be worked on alone.
+    for part in sorted((args.template.parent / "ui").glob("*.*")):
+        html = html.replace(f"/*__INCLUDE:{part.name}__*/\n", part.read_text())
+    if "__INCLUDE:" in html:
+        raise SystemExit("app_template.html names a part that pitch/ui does not hold")
+    html = html.replace("__DATA__", blob)
     args.out.write_text(html)
     print(
         f"app written to {args.out} ({len(html) / 1e6:.2f} MB), rounds: {len(payload['rounds'])}, runs: {len(payload['runs'])}"
