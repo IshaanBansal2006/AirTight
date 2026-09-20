@@ -8,6 +8,8 @@ change without notice:
 - airtight.sim.episode: simulate, simulate_quiet, EpisodeScores, QuietScores, EpisodeParams,
   official_params
 - airtight.sim.coverage: coverage_profile, uncovered_intervals, uncovered_s_per_hour
+- airtight.sim.runner: run_episode, ENGINE_ENV (only to export replay logs, the way other lanes
+  would produce them; every score comes from simulate with official_params())
 - airtight.sim.constants: every constant
 - airtight.sim.scenarios: the scenario loader
 

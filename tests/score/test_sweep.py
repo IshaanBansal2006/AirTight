@@ -149,32 +149,87 @@ def test_engine_tag_changes_with_params_and_curve() -> None:
     assert engine_tag(official_params(), other) != tag
 
 
-def test_stand_in_grid_and_the_check_on_its_claim(scenario_dir: Path) -> None:
+def test_stand_in_adversary_is_the_grid_plus_every_gap_midpoint(scenario_dir: Path) -> None:
     inputs = load_inputs(scenario_dir)  # no tactic directories: the stand-in adversary
     site = inputs.site
     assert inputs.tactic_source.startswith(sweep.GRID_SOURCE)
-    assert len(inputs.tactics) == len(site.entry_points) * sweep.GRID_PHASES
-    first = inputs.tactics[0]
-    assert first.id == f"grid-{site.entry_points[0].id}-0.0000" and first.speed_mps == 2.5
-    assert first.waypoints == [site.asset] and len({t.id for t in inputs.tactics}) == len(
-        inputs.tactics
-    )
-    assert grid_tactics(site, 2.5) == inputs.tactics
+    grid = grid_tactics(site, 2.5)
+    assert len(grid) == len(site.entry_points) * sweep.GRID_PHASES
+    assert inputs.tactics[: len(grid)] == grid
+    assert grid[0].id == f"grid-{site.entry_points[0].id}-0.0000" and grid[0].waypoints == [
+        site.asset
+    ]
+
+    # yard_night gaps: synchronized 0.417-1.0 (midpoint 0.708); staggered 0.417-0.5 and 0.917-1.0
+    # (midpoints 0.458 and 0.958). None is within 0.01 of a grid phase, so all three are added,
+    # once each, for every entry, and every configuration faces the same full set.
+    extra = inputs.tactics[len(grid) :]
+    assert sorted({round(t.phase, 4) for t in extra}) == [0.4583, 0.7083, 0.9583]
+    assert len(extra) == 3 * len(site.entry_points)
+    assert {t.id for t in extra} == {
+        f"gap-{e.id}-{ph:.4f}" for e in site.entry_points for ph in {t.phase for t in extra}
+    }
+    assert all(t.speed_mps == 2.5 and t.waypoints == [site.asset] for t in extra)
+    assert len({t.id for t in inputs.tactics}) == len(inputs.tactics)
 
     hits = grid_hits(inputs)
-    # synchronized: nobody up for phases 0.417 to 1.0, which holds grid phases 7/16 .. 15/16
-    assert (
-        hits["2drones"]["uncovered_phases_hit"] == 9
-        and hits["2drones"]["uncovered_gaps_missed"] == 0
-    )
-    # staggered: two 300 s gaps, 0.417-0.5 and 0.917-1.0; the grid lands in each (7/16 and 15/16)
-    assert hits["2drones_staggered"]["uncovered_phases_hit"] == 2
+    assert hits["2drones"]["uncovered_gaps_missed"] == 0
     assert hits["2drones_staggered"]["uncovered_gaps_missed"] == 0
+    assert (
+        hits["2drones_staggered"]["uncovered_phases_hit"] == 2 + 2
+    )  # 7/16, 15/16 and two midpoints
+    assert sweep.unattacked_gaps(inputs.fleets, inputs.tactics) == []
     assert "WARNING" not in sweep.format_grid_hits(inputs)
 
-    coarse = dataclasses.replace(inputs, tactics=grid_tactics(site, 2.5, n_phases=4))
-    assert grid_hits(coarse)["2drones_staggered"]["uncovered_gaps_missed"] == 2
-    assert "WARNING" in sweep.format_grid_hits(coarse)
+
+def _fleet(endurance: float, charge: float, offsets: dict[str, float], n: int = 2):  # type: ignore[no-untyped-def]
+    base = scenarios.load_fleet("2drones")
+    drone = base.agents[0].model_copy(update={"endurance_s": endurance, "charge_time_s": charge})
+    agents = [drone.model_copy(update={"id": f"d{i}"}) for i in range(n)]
+    policy = base.charge_policy.model_copy(update={"stagger_offsets_s": offsets})
+    return base.model_copy(update={"agents": agents, "charge_policy": policy})
+
+
+def test_a_grid_alone_steps_over_a_narrow_gap_and_the_check_says_so() -> None:
+    # On duty 3500 s of a 3600 s cycle: one gap, phases 0.972 to 1.0, narrower than 1/16.
+    narrow = _fleet(3500.0, 100.0, {})
+    site = scenarios.load_site()
+    grid = grid_tactics(site, 2.5)
+    missed = sweep.unattacked_gaps({"narrow": narrow}, grid)
+    assert len(missed) == 2 and all("narrow" in m and "0.972-1.000" in m for m in missed)
+    assert {m.split(": ")[1].split(" gap")[0] for m in missed} == {"uncovered", "drones_down"}
+
+    full = sweep.stand_in_tactics(site, [narrow], 2.5)
+    assert sweep.unattacked_gaps({"narrow": narrow}, full) == []
+    (mid,) = sweep.gap_phases([narrow], sorted({t.phase for t in grid}))
+    assert mid == pytest.approx((3500.0 / 3600.0 + 1.0) / 2.0)
+
+
+def test_midpoints_are_shared_across_configurations_and_deduplicated() -> None:
+    grid_phases = [k / 16 for k in range(16)]
+    sync, staggered = _fleet(1500.0, 2100.0, {}), _fleet(1500.0, 2100.0, {"d1": 1800.0})
+    both = sweep.gap_phases([sync, staggered], grid_phases)
+    assert both == pytest.approx([0.4583, 0.7083, 0.9583], abs=1e-4)
+    assert sweep.gap_phases([sync, staggered, sync, staggered], grid_phases) == both  # no repeats
+    # a midpoint that lands within 0.01 of a phase already in the set adds nothing
+    assert sweep.gap_phases([sync], [*grid_phases, 0.7083 + 0.005]) == []
+
+
+def test_a_sliver_gap_next_to_a_grid_phase_is_still_attacked() -> None:
+    # The gap is phases 0.9385 to 0.9500. Its midpoint, 0.9443, is within 0.01 of the grid phase
+    # 0.9375, which lies just OUTSIDE the gap. Deduplication alone would leave the gap empty.
+    endurance = 0.9385 * 3600.0
+    sliver = _fleet(endurance, 3600.0 - endurance, {"d1": 180.0})
+    gaps = sweep.fleet_gaps(sliver)["uncovered"]
+    assert gaps == [pytest.approx((0.9385, 0.95))]
+    grid_phases = [k / 16 for k in range(16)]
+    assert not any(gaps[0][0] <= p < gaps[0][1] for p in grid_phases)
+    (added,) = sweep.gap_phases([sliver], grid_phases)
+    assert gaps[0][0] <= added < gaps[0][1] and abs(added - 0.9375) < sweep.PHASE_DEDUP
+    site = scenarios.load_site()
+    assert (
+        sweep.unattacked_gaps({"sliver": sliver}, sweep.stand_in_tactics(site, [sliver], 2.5)) == []
+    )
 
 
 def test_no_tactics_and_no_speed_cap_is_an_error(scenario_dir: Path) -> None:

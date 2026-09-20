@@ -8,9 +8,12 @@ baseline and lists the configurations in order: {"baseline": "<name>", "configs"
 
 Tactics come from the directories given with --tactics-dir. A tactic file holds one Tactic or a
 list of them. With no tactic files there is a stand-in adversary: for every entry on the site a
-straight line to the asset at the scenario's speed cap, at GRID_PHASES evenly spaced phases. The
-same tactic set is used for every configuration. A uniform grid is deliberate: it lands inside
-any configuration's own uncovered intervals, so a staggered fleet's gaps get attacked too.
+straight line to the asset at the scenario's speed cap, at GRID_PHASES evenly spaced phases,
+plus the midpoint of every gap of every configuration in the sweep (the stretches with nobody on
+duty, and the stretches with no drone on duty). A grid alone steps over gaps narrower than its
+spacing. The union is taken over all configurations, so every configuration faces the same full
+set, comparisons stay paired, and no configuration's own gap goes unattacked. load_inputs fails
+loudly if any gap of any configuration still holds no tactic phase.
 
 A cell is one configuration and one tactic. Its results live in
 <out>/<engine_tag>/<site_hash>/<fleet_hash>/<tactic_id>.jsonl, one EpisodeScores per line, and a
@@ -56,6 +59,7 @@ if TYPE_CHECKING:
 
 GRID_PHASES = 16
 GRID_SOURCE = "stand-in grid"
+PHASE_DEDUP = 0.01  # a gap midpoint this close to a phase already in the set adds nothing
 SWEEP_SPEC = "sweep.json"
 REDTEAM_CONFIG = "redteam_config.json"
 PROBE_EPISODES = 20
@@ -134,6 +138,67 @@ def grid_tactics(site: Site, speed_mps: float, n_phases: int = GRID_PHASES) -> l
     ]
 
 
+def fleet_gaps(fleet: FleetConfig) -> dict[str, list[tuple[float, float]]]:
+    """A configuration's gaps as phase ranges: nobody on duty, and no drone on duty."""
+    drones = [a.id for a in fleet.agents if a.type == "drone"]
+    return {
+        "uncovered": [(g.start_phase, g.end_phase) for g in uncovered_intervals(fleet)],
+        "drones_down": [
+            (g.start_phase, g.end_phase) for g in uncovered_intervals(fleet, only=drones)
+        ],
+    }
+
+
+def _in_gap(phase: float, gap: tuple[float, float]) -> bool:
+    return gap[0] <= phase < gap[1]
+
+
+def gap_phases(fleets: Sequence[FleetConfig], base_phases: Sequence[float]) -> list[float]:
+    """Midpoints of every gap of every configuration, not within PHASE_DEDUP of a phase already
+    in the set. A gap still empty after that (it can only be one narrower than 2 * PHASE_DEDUP
+    whose midpoint sat next to a phase just outside it) gets its midpoint regardless."""
+    gaps = sorted({gap for fleet in fleets for kind in fleet_gaps(fleet).values() for gap in kind})
+    have = list(base_phases)
+    added: list[float] = []
+    for forced in (False, True):
+        for gap in gaps:
+            mid = (gap[0] + gap[1]) / 2.0
+            if forced and any(_in_gap(p, gap) for p in have):
+                continue
+            if not forced and any(abs(mid - p) < PHASE_DEDUP for p in have):
+                continue
+            have.append(mid)
+            added.append(mid)
+    return sorted(added)
+
+
+def stand_in_tactics(site: Site, fleets: Sequence[FleetConfig], speed_mps: float) -> list[Tactic]:
+    """The grid, then the gap midpoints, for every entry. Ids grid-<entry>-<phase> and
+    gap-<entry>-<phase>."""
+    grid = grid_tactics(site, speed_mps)
+    extra = gap_phases(fleets, sorted({t.phase for t in grid}))
+    gaps = [
+        grid[0].model_copy(
+            update={"id": f"gap-{entry.id}-{phase:.4f}", "entry_id": entry.id, "phase": phase}
+        )
+        for entry in site.entry_points
+        for phase in extra
+    ]
+    return [*grid, *gaps]
+
+
+def unattacked_gaps(fleets: dict[str, FleetConfig], tactics: Sequence[Tactic]) -> list[str]:
+    """One line per gap, of any configuration, that holds no tactic phase."""
+    phases = sorted({t.phase for t in tactics})
+    return [
+        f"{name}: {kind} gap {gap[0]:.3f}-{gap[1]:.3f} holds no tactic phase"
+        for name, fleet in fleets.items()
+        for kind, gaps in fleet_gaps(fleet).items()
+        for gap in gaps
+        if not any(_in_gap(p, gap) for p in phases)
+    ]
+
+
 def load_inputs(
     scenario_dir: Path, tactic_dirs: Sequence[Path] = (), speed_cap_mps: float | None = None
 ) -> SweepInputs:
@@ -197,8 +262,17 @@ def load_inputs(
                 f"{scenario_dir / REDTEAM_CONFIG}"
             )
         else:
-            tactics = grid_tactics(site, cap)
-            source = f"{GRID_SOURCE}: {len(site.entry_points)} entries x {GRID_PHASES} phases at {cap:g} m/s"
+            tactics = stand_in_tactics(site, list(fleets.values()), cap)
+            n_phases = len({t.phase for t in tactics})
+            source = (
+                f"{GRID_SOURCE}: {len(site.entry_points)} entries x {n_phases} phases "
+                f"({GRID_PHASES} evenly spaced + {n_phases - GRID_PHASES} gap midpoints) at {cap:g} m/s"
+            )
+            missed = unattacked_gaps(fleets, tactics)
+            if missed:  # cannot happen by construction; if it does, no number may be trusted
+                raise RuntimeError(
+                    "the stand-in adversary leaves gaps unattacked:\n  - " + "\n  - ".join(missed)
+                )
     if problems:
         raise ValueError("sweep inputs are invalid:\n  - " + "\n  - ".join(problems))
     return SweepInputs(site, curves, fleets, baseline, tactics, source, cap)
@@ -249,20 +323,18 @@ def _dump(rows: dict[int, dict[str, Any]], order: Sequence[int], guard: str) -> 
 
 # ---- jobs ------------------------------------------------------------------------------------
 
-CellJob = tuple[Site, FleetConfig, Tactic, SensorCurves, tuple[int, ...]]
-QuietJob = tuple[Site, FleetConfig, SensorCurves, tuple[int, ...]]
+CellJob = tuple[Site, FleetConfig, Tactic, SensorCurves, tuple[int, ...], EpisodeParams]
+QuietJob = tuple[Site, FleetConfig, SensorCurves, tuple[int, ...], EpisodeParams]
 
 
 def _cell_job(job: CellJob) -> list[dict[str, Any]]:
     """The missing seeds of one cell. Top level so a process pool can call it."""
-    site, fleet, tactic, curves, seeds = job
-    params = official_params()
+    site, fleet, tactic, curves, seeds, params = job
     return [dataclasses.asdict(simulate(site, fleet, tactic, curves, s, params)) for s in seeds]
 
 
 def _quiet_job(job: QuietJob) -> list[dict[str, Any]]:
-    site, fleet, curves, seeds = job
-    params = official_params()
+    site, fleet, curves, seeds, params = job
     return [
         dataclasses.asdict(simulate_quiet(site, fleet, curves, s, params=params)) for s in seeds
     ]
@@ -274,17 +346,11 @@ def grid_hits(inputs: SweepInputs) -> dict[str, dict[str, Any]]:
     phases = sorted({t.phase for t in inputs.tactics})
     out = {}
     for name, fleet in inputs.fleets.items():
-        drones = [a.id for a in fleet.agents if a.type == "drone"]
         row: dict[str, Any] = {}
-        for key, gaps in (
-            ("uncovered", uncovered_intervals(fleet)),
-            ("drones_down", uncovered_intervals(fleet, only=drones)),
-        ):
-            row[key] = [(g.start_phase, g.end_phase) for g in gaps]
-            row[f"{key}_phases_hit"] = sum(any(a <= p < b for a, b in row[key]) for p in phases)
-            row[f"{key}_gaps_missed"] = sum(
-                not any(a <= p < b for p in phases) for a, b in row[key]
-            )
+        for key, gaps in fleet_gaps(fleet).items():
+            row[key] = gaps
+            row[f"{key}_phases_hit"] = sum(any(_in_gap(p, g) for g in gaps) for p in phases)
+            row[f"{key}_gaps_missed"] = sum(not any(_in_gap(p, g) for p in phases) for g in gaps)
         out[name] = row
     return out
 
@@ -296,9 +362,12 @@ def run_sweep(
     out: Path,
     workers: int | None = None,
     verbose: bool = False,
+    params: EpisodeParams | None = None,
 ) -> SweepResult:
+    """params defaults to official_params(). The fix loop passes a candidate's own parameters;
+    the engine tag keeps their caches apart."""
     seeds, quiet_seeds = [int(s) for s in seeds], [int(s) for s in quiet_seeds]
-    params = official_params()
+    params = official_params() if params is None else params
     tag = engine_tag(params, inputs.curves)
 
     def say(text: str) -> None:
@@ -318,9 +387,12 @@ def run_sweep(
         guard = f"{fleet.content_hash()}:quiet"
         path = base / "quiet" / "quiet.jsonl"
         rows = _load_lines(path, guard)
-        plan.append(
-            (config, path, guard, None, rows, tuple(s for s in quiet_seeds if s not in rows))
-        )
+        missing_quiet = [s for s in quiet_seeds if s not in rows]
+        # A quiet night runs a whole reference cycle, far longer than an episode, so each one is
+        # its own task and the pool stays balanced. They share one rows dict and one file.
+        quiet_tasks: list[tuple[int, ...]] = [(q,) for q in missing_quiet] or [()]
+        for task_seeds in quiet_tasks:
+            plan.append((config, path, guard, None, rows, task_seeds))
 
     n_episodes = sum(len(m) for _, _, _, t, _, m in plan if t is not None)
     n_quiet = sum(len(m) for _, _, _, t, _, m in plan if t is None)
@@ -339,20 +411,29 @@ def run_sweep(
                 tactic,
                 inputs.curves,
                 tuple(seeds[:1] * PROBE_EPISODES),
+                params,
             )
         )
         per = (time.perf_counter() - start) / PROBE_EPISODES
+        per_quiet = 0.0
+        if n_quiet:
+            start = time.perf_counter()
+            _quiet_job(
+                (inputs.site, inputs.fleets[config], inputs.curves, (quiet_seeds[0],), params)
+            )
+            per_quiet = time.perf_counter() - start
+        total_s = (per * n_episodes + per_quiet * n_quiet) / n_workers
         say(
-            f"probe: {per:.3f} s per episode on {config}; about "
-            f"{per * n_episodes / n_workers / 60:.1f} min on {n_workers} workers, plus quiet nights"
+            f"probe on {config}: {per:.3f} s per episode, {per_quiet:.1f} s per quiet night; "
+            f"about {total_s / 60:.1f} min on {n_workers} workers"
         )
 
     def job_for(item: Any) -> tuple[Any, Any]:
         config, _, _, tactic, _, missing = item
         fleet = inputs.fleets[config]
         if tactic is None:
-            return _quiet_job, (inputs.site, fleet, inputs.curves, missing)
-        return _cell_job, (inputs.site, fleet, tactic, inputs.curves, missing)
+            return _quiet_job, (inputs.site, fleet, inputs.curves, missing, params)
+        return _cell_job, (inputs.site, fleet, tactic, inputs.curves, missing, params)
 
     todo = [item for item in plan if item[5]]
     done_per_config: dict[str, int] = dict.fromkeys(inputs.fleets, 0)
@@ -385,7 +466,8 @@ def run_sweep(
     quiet: dict[str, list[QuietScores]] = {}
     for config, _, _, tactic, rows, _ in plan:
         if tactic is None:
-            quiet[config] = [QuietScores(**rows[s]) for s in quiet_seeds]
+            if config not in quiet:
+                quiet[config] = [QuietScores(**rows[s]) for s in quiet_seeds]
         else:
             episodes[config][tactic.id] = [EpisodeScores(**rows[s]) for s in seeds]
     return SweepResult(inputs, tag, seeds, quiet_seeds, episodes, quiet, n_episodes + n_quiet)

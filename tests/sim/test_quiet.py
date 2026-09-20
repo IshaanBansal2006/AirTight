@@ -65,3 +65,31 @@ def test_non_positive_duration_is_rejected(bad: float) -> None:
     site, fleet, curves = _world()
     with pytest.raises(ValueError, match="duration_s must be positive"):
         simulate_quiet(site, fleet, curves, 1, duration_s=bad)
+
+
+def test_weight_mode_override_changes_official_params_and_nothing_else(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import dataclasses
+
+    from airtight.sim.episode import WEIGHT_MODE_ENV
+
+    monkeypatch.delenv(WEIGHT_MODE_ENV, raising=False)
+    default = official_params()
+    assert default == EpisodeParams(battery=True) and default.weight_mode == "asset"
+    monkeypatch.setenv(WEIGHT_MODE_ENV, "")
+    assert official_params() == default  # empty counts as unset
+    for mode in ("asset", "uniform", "band"):
+        monkeypatch.setenv(WEIGHT_MODE_ENV, mode)
+        overridden = official_params()
+        assert overridden == dataclasses.replace(default, weight_mode=mode)
+        changed = {
+            k
+            for k, v in dataclasses.asdict(overridden).items()
+            if v != dataclasses.asdict(default)[k]
+        }
+        assert changed == (set() if mode == "asset" else {"weight_mode"})
+    assert EpisodeParams() == EpisodeParams(battery=False)  # simulate's own default never reads it
+    monkeypatch.setenv(WEIGHT_MODE_ENV, "spiral")
+    with pytest.raises(ValueError, match="spiral"):
+        official_params()

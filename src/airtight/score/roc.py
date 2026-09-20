@@ -164,12 +164,47 @@ def _percentiles(values: Array) -> tuple[float, float]:
     return (float(lo), float(hi))
 
 
+@dataclass(frozen=True)
+class Replicates:
+    """Per-replicate values, for paired comparisons between configurations.
+
+    Two configurations scored on the same seeds and the same number of quiet runs, with the same
+    bootstrap seed, get IDENTICAL row_w and quiet_w: the draws depend only on the seed and the
+    shapes. Subtracting their per-replicate values is therefore a paired bootstrap.
+    """
+
+    row_w: npt.NDArray[np.int64]  # (B, n_seeds) how many times each seed row was drawn
+    quiet_w: npt.NDArray[np.int64]  # (B, n_quiet)
+    pd_by_tactic: Array  # (B, n_tactics) at each replicate's own operating point
+    far: Array  # (B,) false alarms per hour at each replicate's own operating point
+
+
+def replicates(
+    peaks: Array,
+    quiet: Quiet,
+    n_boot: int = 500,
+    seed: int = 0,
+    far_target: float = 1.0,
+    tau_min: float = TAU_INVESTIGATE,
+) -> Replicates:
+    arr = _as_peaks(peaks)
+    _benign_and_hours(quiet)
+    return Replicates(*_replicate_core(arr, quiet, n_boot, seed, far_target, tau_min))
+
+
 def _replicates(
     arr: Array, quiet: Quiet, n_boot: int, seed: int, far_target: float, tau_min: float
 ) -> tuple[npt.NDArray[np.int64], npt.NDArray[np.int64], Array]:
+    row_w, quiet_w, per_tactic, _ = _replicate_core(arr, quiet, n_boot, seed, far_target, tau_min)
+    return row_w, quiet_w, per_tactic
+
+
+def _replicate_core(
+    arr: Array, quiet: Quiet, n_boot: int, seed: int, far_target: float, tau_min: float
+) -> tuple[npt.NDArray[np.int64], npt.NDArray[np.int64], Array, Array]:
     """Draw the replicates. Returns the seed-row multiplicities (B, n_seeds), the quiet-run
     multiplicities (B, n_quiet), and each replicate's pd per tactic at its own operating point
-    (B, n_tactics).
+    (B, n_tactics), and its false alarm rate there (B,).
 
     Thresholds are searched on the ORIGINAL candidate set. A replicate's own candidates are a
     subset of it, and no replicate peak lies between the two answers, so its pd is exactly what
@@ -197,7 +232,8 @@ def _replicates(
     detected = (arr[:, :, None] >= cands[op_index][None, None, :]) & alive[:, :, None]
     per_tactic: Array = np.einsum("bs,stb->bt", row_w, detected.astype(np.float64)) / n_seeds
     per_tactic[~found] = 0.0  # far_floor_above_target: nothing is detected
-    return row_w, quiet_w, per_tactic
+    far: Array = np.where(found, rep_far[np.arange(n_boot), op_index], 0.0)
+    return row_w, quiet_w, per_tactic, far
 
 
 def bootstrap(

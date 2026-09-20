@@ -97,8 +97,7 @@ def _default_marker_tracks() -> dict[str, list[tuple[float, XY]]]:
 
     fleet = SimFleet()
     return {
-        did: [(0.0, XY(x=float(pos[0]), y=float(pos[1])))]
-        for did, pos in fleet.snapshot().items()
+        did: [(0.0, XY(x=float(pos[0]), y=float(pos[1])))] for did, pos in fleet.snapshot().items()
     }
 
 
@@ -147,9 +146,7 @@ def dispatch_via_mcp(x: float, y: float) -> str:
     """Ask the running WalkModule to auction and walk the Go2."""
     from dimos.agents.mcp.mcp_adapter import McpAdapter
 
-    return McpAdapter.from_run_entry(timeout=60).call_tool_text(
-        "dispatch_verify", {"x": x, "y": y}
-    )
+    return McpAdapter.from_run_entry(timeout=60).call_tool_text("dispatch_verify", {"x": x, "y": y})
 
 
 def run_replay(
