@@ -28,7 +28,7 @@ from airtight.sim.constants import NEVER_SEEN
 from airtight.sim.episode import EpisodeScores
 
 if TYPE_CHECKING:
-    from airtight.score.sweep import SweepInputs, SweepResult
+    from airtight.score.sweep import SweepInputs
 
 SEEDS = list(range(1000, 1010))
 QUIET_SEEDS = [2000, 2001]
@@ -152,11 +152,14 @@ def test_each_candidate_is_attacked_inside_its_own_gaps(toy: dict[str, Any]) -> 
     by_fraction = {r.candidate.stagger_fraction: r for r in toy["rows"]}
     assert [round(r.drones_down_s_per_hour) for r in toy["rows"]] == [1600, 700, 0]
     for fraction, row in by_fraction.items():
-        own = own_gap_tactics(inputs, row.candidate.fleet, set())
+        own = own_gap_tactics(inputs, row.candidate.fleet, [])
         gaps = fleet_gaps(row.candidate.fleet)["drones_down"]
         assert len(own) == len(gaps) * len(inputs.site.entry_points)
         assert all(any(a <= t.phase < b for a, b in gaps) for t in own)
         assert all(t.speed_mps == 1.4 and t.id.startswith("own-") for t in own)
+        # against a set that already attacks those gaps, nothing is added twice
+        attacked = [*inputs.tactics, *own]
+        assert own_gap_tactics(inputs, row.candidate.fleet, attacked) == []
         if gaps:  # nobody is up inside its own gap, so that is where it is worst
             assert row.worst_tactic_pd == 0.0, fraction
 
@@ -209,39 +212,74 @@ def test_a_winner_that_does_not_beat_the_baseline_is_not_called_a_fix(toy: dict[
     assert all(d.delta == 0.0 and d.ci == (0.0, 0.0) for d in conf.deltas)  # itself: exactly zero
     detail = fix.fix_detail(inputs, same, "toy_sync_same", conf, toy["rows"], 10, 2)
     assert detail.is_fix is False and detail.verdict.startswith("NOT a fix")
-    result: SweepResult = toy["result"]
-    report, base_detail = build_report(result, n_boot=50)
+    report, base_detail = build_report(toy["result"], n_boot=50)
     new_report, new_detail = fix.add_fix_to_report(
-        report, base_detail, inputs, same, "toy_sync_same", conf, detail
+        report, base_detail, inputs, same, "toy_sync_same", detail
     )
     assert [c.config_name for c in new_report.configs] == [
         "toy_sync"
     ]  # nothing added to the contract
-    assert (
-        new_detail.fix is not None
-        and new_detail.fix.is_fix is False
-        and len(new_detail.fix.search) == 3
+    assert new_detail.fix is not None and new_detail.fix.is_fix is False
+    assert new_detail.fix.status == "in-sample only" and len(new_detail.fix.search) == 3
+
+
+HELD_OUT_SEEDS = list(range(3000, 3012))
+HELD_OUT_QUIET = [4000, 4001]
+
+
+@pytest.fixture(scope="module")
+def held(toy: dict[str, Any]) -> fix.HeldOut:
+    return fix.held_out_confirmation(
+        toy["inputs"],
+        toy["winner"].candidate,
+        toy["conf"],
+        HELD_OUT_SEEDS,
+        HELD_OUT_QUIET,
+        [*SEEDS, *QUIET_SEEDS],
+        toy["tmp"] / "sweep",
+        workers=1,
+        n_boot=200,
     )
 
 
-def test_a_real_fix_enters_the_report_with_paired_deltas(toy: dict[str, Any]) -> None:
+def test_only_a_confirmed_fix_enters_the_contract_report(
+    toy: dict[str, Any], held: fix.HeldOut
+) -> None:
     inputs, conf, winner = toy["inputs"], toy["conf"], toy["winner"].candidate
     report, base_detail = build_report(toy["result"], n_boot=50)
     detail = fix.fix_detail(inputs, winner, "toy_sync_fixed", conf, toy["rows"], 10, 2)
-    new_report, new_detail = fix.add_fix_to_report(
-        report, base_detail, inputs, winner, "toy_sync_fixed", conf, detail
-    )
-    fixed = new_report.config("toy_sync_fixed")
-    assert fixed.cost_per_hour == new_report.config("toy_sync").cost_per_hour
-    assert [p.metric for p in fixed.paired_vs_baseline] == [
-        METRIC_PD,
-        METRIC_WORST,
-        METRIC_DECISIONS,
-    ]
-    assert fixed.coverage_gap_s_per_hour < new_report.config("toy_sync").coverage_gap_s_per_hour
-    assert new_detail.configs["toy_sync_fixed"].drones_down_s_per_hour == 0.0
-    assert new_detail.fix is not None and new_detail.fix.verdict.startswith("fix:")
-    assert new_detail.fix.what_changed["stagger_offsets_s"] == {"d1": 1800.0}
+    assert detail.verdict.startswith("fix:")  # the in-sample wording, kept and labelled in-sample
+
+    # in-sample only: stays in the sidecar
+    r0, d0 = fix.add_fix_to_report(report, base_detail, inputs, winner, "toy_sync_fixed", detail)
+    assert [c.config_name for c in r0.configs] == ["toy_sync"] and d0.fix is not None
+    assert d0.fix.status == "in-sample only" and d0.fix.held_out is None
+
+    for verdict in (fix.CANDIDATE, fix.CONFIRMED):
+        forced = dataclasses.replace(held, verdict=verdict)
+        r, d = fix.add_fix_to_report(
+            report, base_detail, inputs, winner, "toy_sync_fixed", detail, forced
+        )
+        names = [c.config_name for c in r.configs]
+        assert d.fix is not None and d.fix.status == verdict and d.fix.held_out is not None
+        assert d.fix.held_out["n_seeds"] == len(HELD_OUT_SEEDS)
+        if verdict == fix.CANDIDATE:
+            assert (
+                names == ["toy_sync"] and "toy_sync_fixed" not in d.configs
+            )  # a candidate stays out
+            continue
+        assert names == ["toy_sync", "toy_sync_fixed"]
+        fixed = r.config("toy_sync_fixed")
+        assert fixed.cost_per_hour == r.config("toy_sync").cost_per_hour
+        assert fixed.n_episodes == len(HELD_OUT_SEEDS) * len(held.tactics)  # the held-out run
+        assert fixed.pd_at_operating_point == held.fixed.score.pd
+        assert fixed.paired_vs_baseline == held.deltas
+        assert [p.metric for p in fixed.paired_vs_baseline] == [
+            METRIC_PD,
+            METRIC_WORST,
+            METRIC_DECISIONS,
+        ]
+        assert d.configs["toy_sync_fixed"].drones_down_s_per_hour == 0.0
     fleet_path, params_path = fix.write_fixed_fleet(winner, "toy_sync_fixed", toy["tmp"] / "fixed")
     written = FleetConfig.model_validate_json(fleet_path.read_text())
     assert written.name == "toy_sync_fixed" and written.agents == inputs.fleets["toy_sync"].agents
@@ -249,6 +287,153 @@ def test_a_real_fix_enters_the_report_with_paired_deltas(toy: dict[str, Any]) ->
         "AIRTIGHT_WEIGHT_MODE": "asset",
         "AIRTIGHT_ENGINE": "v0",
     }
+
+
+def test_held_out_split_never_overlaps_the_search() -> None:
+    seeds_file = Path(__file__).parents[2] / "data" / "seeds.json"
+    everything = json.loads(seeds_file.read_text())["seeds"]
+    in_sample, in_sample_quiet = everything[:50], everything[-20:]
+    search, search_quiet = everything[:30], everything[-10:]
+    intrusion, quiet = fix.held_out_split(seeds_file, 50, 20, 10)
+    assert (len(intrusion), len(quiet)) == (130, 10)
+    assert not set(intrusion) & (
+        set(search) | set(search_quiet) | set(in_sample) | set(in_sample_quiet)
+    )
+    assert not set(quiet) & (set(search) | set(search_quiet)) and not set(quiet) & set(intrusion)
+    assert set(quiet) <= set(in_sample_quiet)  # quiet nights the sweep ran and the search did not
+    assert fix.held_out_split(seeds_file, 50, 20, 10, 40)[0] == intrusion[:40]
+    with pytest.raises(ValueError, match="only 130 exist"):
+        fix.held_out_split(seeds_file, 50, 20, 10, 150)
+    with pytest.raises(ValueError, match="every quiet seed"):
+        fix.held_out_split(seeds_file, 50, 20, 20)
+
+
+def test_overlap_with_the_search_raises(toy: dict[str, Any]) -> None:
+    fix.assert_disjoint([1, 2], [3], [4, 5])
+    with pytest.raises(ValueError, match="overlap seeds the search saw"):
+        fix.assert_disjoint([1, 2], [3], [2, 9])
+    with pytest.raises(ValueError, match="overlap seeds the search saw"):
+        fix.assert_disjoint([1, 2], [3], [3])  # a quiet seed the search used
+    with pytest.raises(ValueError, match="both intrusion and quiet"):
+        fix.assert_disjoint([1, 2], [2], [])
+    with pytest.raises(ValueError, match="overlap seeds the search saw"):
+        fix.held_out_confirmation(
+            toy["inputs"],
+            toy["winner"].candidate,
+            toy["conf"],
+            [SEEDS[0], 3000],
+            HELD_OUT_QUIET,
+            [*SEEDS, *QUIET_SEEDS],
+            toy["tmp"] / "sweep",
+            workers=1,
+        )
+
+
+def test_verdict_needs_the_interval_to_clear_zero() -> None:
+    from airtight.contracts import PairedDelta
+
+    def worst(lo: float, hi: float) -> PairedDelta:
+        return PairedDelta(metric=METRIC_WORST, delta=(lo + hi) / 2, ci=(lo, hi))
+
+    assert fix.verdict_for(worst(0.0, 0.29)) == fix.CANDIDATE  # touches 0, as F1's did in-sample
+    assert fix.verdict_for(worst(-0.05, 0.30)) == fix.CANDIDATE
+    assert fix.verdict_for(worst(0.01, 0.29)) == fix.CONFIRMED
+    assert fix.verdict_for(worst(-0.30, -0.01)) == fix.CANDIDATE  # significantly WORSE is not a fix
+
+
+def test_held_out_scores_the_tactics_chosen_in_sample(
+    toy: dict[str, Any], held: fix.HeldOut
+) -> None:
+    conf = toy["conf"]
+    assert held.in_sample_worst == (
+        conf.fixed_score.worst_tactic_id,
+        conf.baseline_score.worst_tactic_id,
+    )
+    assert held.seeds == HELD_OUT_SEEDS and held.quiet_seeds == HELD_OUT_QUIET
+    assert [t.id for t in held.tactics] == [t.id for t in conf.tactics]  # the same tactic set
+    fixed_id, base_id = held.in_sample_worst
+    by = {d.metric: d for d in held.deltas}
+    assert by[METRIC_WORST].delta == pytest.approx(
+        held.fixed.score.pd_by_tactic[fixed_id] - held.baseline.score.pd_by_tactic[base_id]
+    )
+    own = {d.metric: d for d in held.deltas_held_out_worst}
+    assert own[METRIC_WORST].delta == pytest.approx(
+        held.fixed.score.worst_tactic_pd - held.baseline.score.worst_tactic_pd
+    )
+    assert by[METRIC_PD] == own[METRIC_PD]  # only the worst-tactic row depends on the choice
+    assert held.verdict == fix.verdict_for(by[METRIC_WORST])
+    detail = fix.held_out_detail(held)
+    assert detail["worst_tactic_chosen_in_sample"]["baseline"]["tactic"] == base_id
+    assert detail["seeds_never_seen_by_the_search"] is True
+
+
+def test_ingredients_both_row_is_the_fix_exactly(toy: dict[str, Any], held: fix.HeldOut) -> None:
+    rows = fix.ingredients(
+        toy["inputs"], toy["winner"].candidate, held, toy["tmp"] / "sweep", workers=1, n_boot=200
+    )
+    assert [r[0].label for r in rows] == [
+        "baseline",
+        "asset weight only",
+        "charge offsets only",
+        "both (the fix)",
+    ]
+    baseline, _, _, both = rows
+    assert baseline[0] is held.baseline and both[0] is held.fixed  # the same scored objects
+    assert both[0].score == held.fixed.score
+    assert both[1] == held.deltas_held_out_worst  # and the same paired deltas, exactly
+    assert all(
+        d.delta == 0.0 and d.ci == (0.0, 0.0) for d in baseline[1]
+    )  # baseline against itself
+    # the toy's winner keeps asset weight, so "weight only" IS the baseline and "offsets only" IS the fix
+    assert rows[1][0].score.pd == held.baseline.score.pd
+    assert rows[2][0].score.pd == held.fixed.score.pd
+    table = fix.format_ingredients(rows)
+    assert len(table.splitlines()) == 5 and "both (the fix)" in table
+    assert [r["label"] for r in fix.ingredient_rows(rows)] == [r[0].label for r in rows]
+
+
+def test_apply_policy_moves_only_the_go2_offset() -> None:
+    fleet = _example_fleet()
+    staggered = fleet.model_copy(
+        update={
+            "charge_policy": fleet.charge_policy.model_copy(
+                update={"stagger_offsets_s": {"drone_2": 1950.0}}
+            )
+        }
+    )
+    winner = next(
+        c for c in make_candidates(fleet) if c.go2_half_cycle and c.weight_mode == "uniform"
+    )
+    shifted = fix.apply_policy(staggered, winner)
+    assert shifted.charge_policy.stagger_offsets_s == {"drone_2": 1950.0, "go2_1": 4500.0}
+    assert shifted.agents == fleet.agents and shifted.cost_per_hour() == fleet.cost_per_hour()
+    assert shifted.name == f"{fleet.name}_policy"
+    no_shift = next(c for c in make_candidates(fleet) if not c.go2_half_cycle)
+    assert fix.apply_policy(shifted, no_shift).charge_policy.stagger_offsets_s == {
+        "drone_2": 1950.0
+    }
+
+
+def test_policy_by_fleet_is_paired_and_reuses_the_fix(toy: dict[str, Any]) -> None:
+    inputs, winner = toy["inputs"], toy["winner"].candidate
+    rows = fix.policy_by_fleet(
+        inputs,
+        winner,
+        ["toy_sync"],
+        SEEDS,
+        QUIET_SEEDS,
+        toy["tmp"] / "sweep",
+        workers=1,
+        n_boot=200,
+        fixed_name="toy_sync_fixed",
+    )
+    ((name, naive, policy, deltas),) = rows
+    assert name == "toy_sync" and policy.fleet.name == "toy_sync_fixed"
+    assert naive.fleet.cost_per_hour() == policy.fleet.cost_per_hour()
+    assert list(naive.score.pd_by_tactic) == list(policy.score.pd_by_tactic)  # the same tactics
+    assert policy.score == toy["conf"].fixed_score and naive.score == toy["conf"].baseline_score
+    assert [d.metric for d in deltas] == [METRIC_PD, METRIC_WORST, METRIC_DECISIONS]
+    assert fix.policy_rows(rows)[0]["n_drones"] == 2 and "toy_sync" in fix.format_policy(rows)
 
 
 def _ep(seed: int, peak: float) -> EpisodeScores:
