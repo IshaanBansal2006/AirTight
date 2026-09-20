@@ -115,16 +115,14 @@ def stagger(fleet: FleetConfig) -> FleetConfig:
         return fleet
     cycle = drones[0].endurance_s + drones[0].charge_time_s
     offsets = {d.id: round(i * cycle / len(drones), 1) for i, d in enumerate(drones)}
-    return fleet.model_copy(
+    out = fleet.model_copy(
         update={
-            "name": fleet.name.replace("_sync", "_stagger")
-            if "_sync" in fleet.name
-            else fleet.name + "_stagger",
             "charge_policy": ChargePolicy(
                 threshold_frac=fleet.charge_policy.threshold_frac, stagger_offsets_s=offsets
             ),
         }
     )
+    return out.model_copy(update={"name": canonical_name(out)})
 
 
 def add_agent(fleet: FleetConfig, kind: str) -> FleetConfig:
@@ -133,9 +131,8 @@ def add_agent(fleet: FleetConfig, kind: str) -> FleetConfig:
     agents = [*fleet.agents, new]
     costs = dict(fleet.cost_per_hour_by_type)
     costs.setdefault(kind, COSTS[kind])  # type: ignore[arg-type]
-    out = fleet.model_copy(
-        update={"name": f"{fleet.name}+{kind}", "agents": agents, "cost_per_hour_by_type": costs}
-    )
+    out = fleet.model_copy(update={"agents": agents, "cost_per_hour_by_type": costs})
+    out = out.model_copy(update={"name": canonical_name(out)})
     return stagger(out) if kind == "drone" and fleet.charge_policy.stagger_offsets_s else out
 
 
