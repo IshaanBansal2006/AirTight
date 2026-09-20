@@ -26,6 +26,24 @@ def pretty_fleet(name: str) -> str:
     return ", ".join(bits) + (", staggered" if m.group(4) == "stagger" else ", synchronized")
 
 
+def minmax_table(mm: list[dict]) -> str:
+    """Rounds of the loop; a schedule-hidden column appears when the run recorded it."""
+    blind = all(i.get("worst_pd_schedule_blind") is not None for i in mm)
+    head = (
+        "| Round | Fleet | $/h | Worst case after re-attack |"
+        + (" Schedule hidden |" if blind else "")
+        + " Fix chosen |\n"
+    )
+    head += "|---|---|---|---|" + ("---|" if blind else "") + "---|\n"
+    rows = [
+        f"| {i['k']} | {pretty_fleet(i['fleet'])} | {i['cost']:.0f} | {i['worst_pd']:.2f} |"
+        + (f" {i['worst_pd_schedule_blind']:.2f} |" if blind else "")
+        + f" {(i.get('move') or 'stop').replace('_', ' ')} |"
+        for i in mm
+    ]
+    return head + "\n".join(rows)
+
+
 def blind_line(ba: dict) -> str:
     """The same worst tactics against an adversary that does not know the charge schedule, when the report has it."""
     pair = ba.get("worst_tactic_pd_schedule_blind") or [None, None]
@@ -86,11 +104,7 @@ def build(
     minmax_slide = (
         (
             "# Attack, fix, re-attack\n\nEach round the red team searches the current fleet, every affordable fix is scored against what it found, the best worst case wins, and the red team attacks again.\n\n"
-            "| Round | Fleet | $/h | Worst case after re-attack | Fix chosen |\n|---|---|---|---|---|\n"
-            + "\n".join(
-                f"| {i['k']} | {pretty_fleet(i['fleet'])} | {i['cost']:.0f} | {i['worst_pd']:.2f} | {(i.get('move') or 'stop').replace('_', ' ')} |"
-                for i in mm
-            )
+            + minmax_table(mm)
             + "\n\nThe re-attack number stays near zero: with the charge schedule in hand and no reaction from the fleet, the adversary finds a new hole after every fix. Hide the schedule and the same tactics land far less often, which is the number a buyer can act on. The score reports the typical intruder and the worst case side by side, and the loop is how a site finds the next hole before an intruder does."
             + watermark
         )

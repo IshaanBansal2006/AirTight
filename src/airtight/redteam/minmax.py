@@ -43,6 +43,10 @@ class Iteration(BaseModel):
     fleet_name: str
     cost_per_hour: float
     worst_pd_before_fix: float = Field(description="against the adversary that attacked this fleet")
+    worst_pd_schedule_blind: float | None = Field(
+        default=None,
+        description="the same tactics with random entry phases: the adversary knows the site, not the schedule",
+    )
     worst_tactic_id: str
     worst_family: TacticFamily
     move: Move | None = Field(
@@ -167,9 +171,19 @@ def worst_case(
     log_dir: Path,
     workers: int,
     margin_weight: float,
+    randomize_phase: bool = False,
 ) -> tuple[float, float, str]:
     scores = evaluate(
-        tactics, site, fleet, curves, seeds, episode_fn, log_dir, margin_weight, workers
+        tactics,
+        site,
+        fleet,
+        curves,
+        seeds,
+        episode_fn,
+        log_dir,
+        margin_weight,
+        workers,
+        randomize_phase=randomize_phase,
     )
     pds = [(1.0 - s.miss_rate, s.tactic_id) for s in scores]
     worst_pd, worst_id = min(pds)
@@ -232,11 +246,24 @@ def run_minmax(
         worst_family = next(
             fam for fam in FAMILIES if any(t.id == worst_id for t in found[fam].tactics)
         )
+        blind_pd, _, _ = worst_case(
+            current,
+            tactics,
+            site,
+            curves,
+            seeds,
+            episode_fn,
+            log_dir,
+            workers,
+            cfg.search.margin_weight,
+            randomize_phase=True,
+        )
         it = Iteration(
             k=k,
             fleet_name=current.name,
             cost_per_hour=current.cost_per_hour(),
             worst_pd_before_fix=worst_pd,
+            worst_pd_schedule_blind=blind_pd,
             worst_tactic_id=worst_id,
             worst_family=worst_family,
         )
@@ -292,6 +319,7 @@ def run_minmax(
                     "fleet": i.fleet_name,
                     "cost": i.cost_per_hour,
                     "worst_pd": i.worst_pd_before_fix,
+                    "worst_pd_schedule_blind": i.worst_pd_schedule_blind,
                     "worst_family": i.worst_family,
                     "move": i.move,
                 }

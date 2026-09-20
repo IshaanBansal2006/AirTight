@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from typing import TYPE_CHECKING
 
 from airtight.redteam import RedTeamConfig
@@ -54,6 +55,9 @@ def test_minmax_runs_two_iterations_on_the_stub(
         tmp_path / "out" / "iter1_fleet.json"
     ).exists()
     assert all(c.cost_per_hour <= 80.0 for c in res.iterations[0].candidates)
+    assert all(0.0 <= (i.worst_pd_schedule_blind or 0.0) <= 1.0 for i in res.iterations)
+    rows = json.loads((tmp_path / "out" / "summary.json").read_text())
+    assert all(r["worst_pd_schedule_blind"] is not None for r in rows)
 
 
 def test_choose_breaks_one_seed_ties_on_the_mean(fleet: FleetConfig) -> None:

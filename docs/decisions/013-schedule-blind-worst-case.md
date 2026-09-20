@@ -15,5 +15,5 @@ The report carries one more number per configuration, `worst_tactic_pd_schedule_
 
 ## Consequences
 - `airtight-sweep` takes about twice as long on the intrusion episodes; quiet nights are unchanged.
-- The minmax loop still optimises the full-knowledge worst case; the blind number is reported, not optimised.
+- The minmax loop still optimises the full-knowledge worst case; each round records the blind number beside it, reported, not optimised.
 - `results/v4/` is the first archive that carries the field.
