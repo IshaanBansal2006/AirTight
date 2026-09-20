@@ -97,6 +97,12 @@ def build(
         if mm
         else None
     )
+    sb = numbers.get("schedule_blind") or {}
+    schedule_slide = (
+        f"# What hiding the schedule is worth\n\n![height:440px]({charts_rel}/schedule_blind.png)\n\nSame fleets, same worst tactics. The orange point assumes the adversary has the charge schedule to the second; the blue point gives it the site and nothing else. The gap is what a site buys by keeping its schedule private, and the score reports both.{watermark}"
+        if sb and ba
+        else None
+    )
     slides = [
         f"# Airtight\n\n## How secure is this site, and what should you buy?\n\nA security score and a vulnerability map for building owners, insurers and security firms, before any robot is purchased, and a re-score after.{watermark}",
         f"# Site twin and mixed fleet\n\n![height:480px]({charts_rel}/vulnerability_map.png)\n\nDrones, a ground robot and guards bid in one auction. Batteries and docks make coverage continuity real.{watermark}",
@@ -122,6 +128,7 @@ def build(
             if ba
             else f"# Human attention is a cost\n\n![height:300px]({charts_rel}/token_cost.png)\n\n{cmp['ratio']:,.0f}x cheaper than an LLM planning every episode ({cmp['basis']}).{watermark}"
         ),
+        *([schedule_slide] if schedule_slide else []),
         *([minmax_slide] if minmax_slide else []),
         f"# What we sell, and what is next\n\n- The score, the vulnerability map, and a re-score after purchase\n- Next: learned adversary, calibrated sensors on more platforms, fleet memory under link loss\n\n<small>{conditions}</small>{watermark}",
     ]

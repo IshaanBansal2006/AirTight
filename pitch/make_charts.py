@@ -331,6 +331,55 @@ def chart_vulnerability_map(
     }
 
 
+def chart_schedule_blind(r: Report, p: Palette, out: Path, numbers: dict) -> None:
+    """Worst-case detection per configuration with and without the charge schedule; skipped when the report lacks the field."""
+    rows = [c for c in r.configs if c.worst_tactic_pd_schedule_blind is not None]
+    if len(rows) < len(r.configs) or not rows:
+        return
+    rows.sort(key=lambda c: (c.cost_per_hour, c.config_name))
+    fig, ax = plt.subplots(figsize=(8, 0.42 * len(rows) + 1.6))
+    ys = list(range(len(rows)))[::-1]
+    for y, c in zip(ys, rows, strict=True):
+        known, hidden = c.worst_tactic_pd, float(c.worst_tactic_pd_schedule_blind or 0.0)
+        ax.plot([known, hidden], [y, y], color=p.axis, linewidth=1.2, zorder=1)
+        ax.scatter(
+            [known], [y], s=56, color=p.series[1], edgecolor=p.surface, linewidth=1.5, zorder=3
+        )
+        ax.scatter(
+            [hidden], [y], s=56, color=p.series[0], edgecolor=p.surface, linewidth=1.5, zorder=3
+        )
+        ax.annotate(
+            f"{hidden:.2f}",
+            (hidden, y),
+            xytext=(8, 0),
+            textcoords="offset points",
+            va="center",
+            fontsize=7,
+            color=p.ink,
+        )
+    ax.scatter([], [], s=56, color=p.series[1], label="adversary has the charge schedule")
+    ax.scatter([], [], s=56, color=p.series[0], label="adversary knows the site, not the schedule")
+    ax.set_yticks(
+        ys,
+        [
+            c.config_name + (" (baseline)" if c.config_name == r.baseline_config else "")
+            for c in rows
+        ],
+        fontsize=7,
+    )
+    ax.set_xlim(-0.02, 1.08)
+    ax.set_xlabel("Timely detection against the worst tactic at the operating point")
+    ax.set_title("What hiding the charge schedule is worth, same fleets and same tactics")
+    ax.legend(loc="lower right", fontsize=7, frameon=False)
+    fig.text(0.01, 0.01, conditions_line(r), fontsize=7, color=p.muted)
+    fig.tight_layout(rect=(0, 0.06, 1, 1))
+    fig.savefig(out / "schedule_blind.png")
+    plt.close(fig)
+    numbers["schedule_blind"] = {
+        c.config_name: [c.worst_tactic_pd, c.worst_tactic_pd_schedule_blind] for c in rows
+    }
+
+
 def two_lines(name: str) -> str:
     """A fleet name split after its second part so two of them fit side by side in a narrow panel."""
     parts = name.split("_")
@@ -469,6 +518,7 @@ def main(argv: list[str] | None = None) -> int:
     chart_roc(r, p, args.out, numbers)
     chart_vulnerability_map(r, site, curves, args.tactics_dir, p, args.out, numbers)
     chart_before_after(r, args.fixed, p, args.out, numbers)
+    chart_schedule_blind(r, p, args.out, numbers)
     (args.out / "numbers.json").write_text(json.dumps(numbers, indent=2))
     print(
         f"charts and numbers.json written to {args.out} from {report_path.name}"
