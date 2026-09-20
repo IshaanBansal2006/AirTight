@@ -40,3 +40,8 @@ pitch/**/*.mkv
 # generated deck renders
 pitch/deck.html
 pitch/deck.pdf
+
+# agent skills installed locally
+.agents/
+.claude/
+skills-lock.json
