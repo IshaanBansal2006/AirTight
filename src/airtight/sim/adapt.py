@@ -19,6 +19,8 @@ from airtight.sim.constants import DECOY_DURATION_S
 from airtight.sim.geometry import polyline_length
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     import numpy.typing as npt
 
     from airtight.contracts import (
@@ -85,6 +87,27 @@ def docks(site: Site) -> Array:
 def assets(site: Site) -> Array:
     """Asset positions, shape (n, 2). The contract has one asset today."""
     return np.array([[site.asset.x, site.asset.y]], dtype=np.float64)
+
+
+def entries(site: Site) -> Array:
+    """Entry point positions in site order, shape (n, 2); (0, 2) when the site has none."""
+    return np.array(
+        [[e.position.x, e.position.y] for e in site.entry_points], dtype=np.float64
+    ).reshape(-1, 2)
+
+
+def dock_ids(site: Site) -> list[str]:
+    """Dock ids in site order."""
+    return [d.id for d in site.docks]
+
+
+def default_dock_assignment(site: Site, fleet: FleetConfig) -> dict[str, str]:
+    """agent id -> dock id when nothing is assigned: round-robin by fleet index. Empty when
+    the site has no docks."""
+    ids = dock_ids(site)
+    if not ids:
+        return {}
+    return {agent_id: ids[i % len(ids)] for i, agent_id in enumerate(agent_ids(fleet))}
 
 
 def intruder_path(site: Site, tactic: Tactic) -> Array:
@@ -187,8 +210,17 @@ def tactic_phase(tactic: Tactic) -> float:
     return float(tactic.phase)
 
 
-def start_position(site: Site, fleet: FleetConfig, agent_id: str) -> Array:
-    """Docks round-robin by fleet index, else the perimeter centroid, plus a small offset.
+def start_position(
+    site: Site,
+    fleet: FleetConfig,
+    agent_id: str,
+    dock_assignment: Mapping[str, str] | None = None,
+) -> Array:
+    """The agent's dock, else the perimeter centroid, plus a small offset.
+
+    The dock is dock_assignment[agent_id] (a dock id) when the agent is listed there, else
+    round-robin by fleet index, which is default_dock_assignment. The contract has no field for
+    this, so it arrives as an engine parameter (EpisodeParams.dock_assignment).
 
     The offset is START_OFFSET_M at angle 2*pi*index/n. Two agents on the exact same point tie
     everywhere in a Voronoi test and the higher index never gets a region. Dock capacity is
@@ -197,8 +229,23 @@ def start_position(site: Site, fleet: FleetConfig, agent_id: str) -> Array:
     ids = agent_ids(fleet)
     _agent(fleet, agent_id)
     index, n = ids.index(agent_id), len(ids)
+    if dock_assignment:
+        unknown_agents = sorted(set(dock_assignment) - set(ids))
+        if unknown_agents:
+            raise ValueError(
+                f"dock assignment names agents {unknown_agents} that are not in fleet "
+                f"{fleet.name!r}; known: {ids}"
+            )
+        unknown_docks = sorted(set(dock_assignment.values()) - set(dock_ids(site)))
+        if unknown_docks:
+            raise ValueError(
+                f"dock assignment names docks {unknown_docks} that are not on the site; "
+                f"known: {dock_ids(site)}"
+            )
     if site.docks:
         dock = site.docks[index % len(site.docks)].position
+        if dock_assignment and agent_id in dock_assignment:
+            dock = next(d.position for d in site.docks if d.id == dock_assignment[agent_id])
         base = np.array([dock.x, dock.y], dtype=np.float64)
     else:
         base = perimeter(site).mean(axis=0)

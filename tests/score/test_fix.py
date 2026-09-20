@@ -494,6 +494,6 @@ def test_exported_pairs_really_are_miss_then_timely(
 
 def test_weight_mode_env_name_matches_the_engine() -> None:
     assert fix.WEIGHT_MODE_ENV == episode.WEIGHT_MODE_ENV == "AIRTIGHT_WEIGHT_MODE"
-    assert set(fix.WEIGHT_MODES) == set(
-        __import__("airtight.sim.geometry", fromlist=["x"]).WEIGHT_MODES
-    )
+    engine_modes = set(__import__("airtight.sim.geometry", fromlist=["x"]).WEIGHT_MODES)
+    # "mix" is the campaign's continuous mixture; the fix loop searches the named modes only.
+    assert set(fix.WEIGHT_MODES) == engine_modes - {"mix"}

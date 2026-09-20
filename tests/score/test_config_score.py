@@ -115,6 +115,10 @@ def test_score_imports_only_what_sim_allows() -> None:
             "QuietScores",
             "EpisodeParams",
             "official_params",
+            "params_to_mapping",
+            "params_from_mapping",
+            "PARAMS_JSON_ENV",
+            "TASK_TIME_ENV",
         },
         "airtight.sim.coverage": {
             "coverage_profile",

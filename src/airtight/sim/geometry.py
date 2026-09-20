@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     BoolArray = npt.NDArray[np.bool_]
 
 _EPS = 1e-9
-WEIGHT_MODES = ("asset", "uniform", "band")
+WEIGHT_MODES = ("asset", "uniform", "band", "mix")
 
 
 @dataclass(frozen=True)
@@ -113,6 +113,9 @@ def patrol_weight(
     asset_gain: float = 1.0,
     mode: str = "asset",
     r_c: float = 0.0,
+    entry_positions: Array | None = None,
+    entry_gain: float = 0.0,
+    band_gain: float = 0.0,
 ) -> Array:
     """Where the patrol should spend its time. Zero outside the fence in every mode.
 
@@ -122,6 +125,13 @@ def patrol_weight(
     "band":    inside * (base + asset_gain where the distance to the nearest asset is >= r_c).
                r_c is the critical ring: a detection inside it is already too late, so the
                band mode spends the extra weight outside it. Inside the ring only base.
+    "mix":     inside * (base + asset_gain * asset_term + entry_gain * entries_term
+               + band_gain * band_term). asset_term is the sum of "asset" mode, entries_term
+               is sum over entry_positions of exp(-distance / scale_m), so it peaks at each
+               entry, and band_term is the indicator of "band" mode. Gains are non-negative.
+               The named modes are special cases: (a, 0, 0) is "asset" with asset_gain a,
+               (0, 0, 0) is "uniform", and (0, 0, b) is "band" with asset_gain b. entry_gain
+               and band_gain are read in this mode only.
     """
     if mode not in WEIGHT_MODES:
         raise ValueError(f"unknown weight mode {mode!r}; choose one of {WEIGHT_MODES}")
@@ -137,6 +147,26 @@ def patrol_weight(
         for ax, ay in assets:
             nearest = np.minimum(nearest, np.hypot(centers[..., 0] - ax, centers[..., 1] - ay))
         extra = asset_gain * (nearest >= r_c).astype(np.float64)
+    elif mode == "mix":
+        if min(asset_gain, entry_gain, band_gain) < 0:
+            raise ValueError(
+                f"mix gains must be non-negative, got asset {asset_gain}, entry {entry_gain}, "
+                f"band {band_gain}"
+            )
+        nearest = np.full(grid.shape, np.inf, dtype=np.float64)
+        for ax, ay in assets:
+            distance = np.hypot(centers[..., 0] - ax, centers[..., 1] - ay)
+            nearest = np.minimum(nearest, distance)
+            if asset_gain > 0:
+                extra += asset_gain * np.exp(-distance / scale_m)
+        if entry_gain > 0:
+            if entry_positions is None:
+                raise ValueError("mix mode with entry_gain > 0 needs entry_positions")
+            for ex, ey in np.asarray(entry_positions, dtype=np.float64).reshape(-1, 2):
+                distance = np.hypot(centers[..., 0] - ex, centers[..., 1] - ey)
+                extra += entry_gain * np.exp(-distance / scale_m)
+        if band_gain > 0:
+            extra += band_gain * (nearest >= r_c).astype(np.float64)
     weight: Array = inside * (base + extra)
     return weight
 

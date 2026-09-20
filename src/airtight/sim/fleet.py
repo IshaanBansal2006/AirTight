@@ -14,7 +14,7 @@ from __future__ import annotations
 import math
 import zlib
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
@@ -22,7 +22,7 @@ from airtight.sim import adapt
 from airtight.sim.geometry import in_wedge, voronoi_mask
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Mapping, Sequence
 
     import numpy.typing as npt
 
@@ -60,11 +60,17 @@ class AgentState:
         return self.active and self.mode == "patrol"
 
 
-def make_agents(site: Site, fleet: FleetConfig, sensor_curves: SensorCurves) -> list[AgentState]:
+def make_agents(
+    site: Site,
+    fleet: FleetConfig,
+    sensor_curves: SensorCurves,
+    dock_assignment: Mapping[str, str] | None = None,
+) -> list[AgentState]:
+    """dock_assignment maps agent id to dock id; agents not listed dock round-robin."""
     agents = []
     for index, agent_id in enumerate(adapt.agent_ids(fleet)):
         sensor_type = adapt.agent_sensor_type(fleet, agent_id)
-        pos = adapt.start_position(site, fleet, agent_id)
+        pos = adapt.start_position(site, fleet, agent_id, dock_assignment)
         agents.append(
             AgentState(
                 agent_id=agent_id,
@@ -110,6 +116,7 @@ class PatrolController:
         self.last_seen: Array = np.full(grid.shape, t_start - stale_init_s, dtype=np.float64)
         self._centres = grid.cell_centers()
         self._rngs: dict[str, np.random.Generator] = {}
+        self._seen_cache: dict[str, tuple[tuple[float, float, float], Any, Any]] = {}
 
     def rng_for(self, agent_id: str) -> np.random.Generator:
         if agent_id not in self._rngs:
@@ -126,12 +133,22 @@ class PatrolController:
         for agent in observers:
             if not agent.active:
                 continue
-            distance = np.hypot(
-                self._centres[..., 0] - agent.pos[0], self._centres[..., 1] - agent.pos[1]
-            )
-            seen = distance <= agent.footprint_radius_m
-            seen &= in_wedge(agent.pos, agent.heading, agent.fov_deg, self._centres)
-            self.last_seen[seen] = t
+            pose = (float(agent.pos[0]), float(agent.pos[1]), float(agent.heading))
+            cached = self._seen_cache.get(agent.agent_id)
+            if cached is not None and cached[0] == pose:
+                rows, cols = cached[1], cached[2]
+            else:
+                distance = np.hypot(
+                    self._centres[..., 0] - agent.pos[0], self._centres[..., 1] - agent.pos[1]
+                )
+                # The wedge test is elementwise, so testing only the cells in range gives the
+                # same cells as testing the whole grid. An observer that has not moved (every
+                # fixed sensor, always) sees the same cells as last step.
+                rows, cols = np.nonzero(distance <= agent.footprint_radius_m)
+                wedge = in_wedge(agent.pos, agent.heading, agent.fov_deg, self._centres[rows, cols])
+                rows, cols = rows[wedge], cols[wedge]
+                self._seen_cache[agent.agent_id] = (pose, rows, cols)
+            self.last_seen[rows, cols] = t
 
     def retarget(self, agents: list[AgentState], t: float) -> None:
         active = sorted((a for a in agents if a.patrolling), key=lambda a: a.index)
