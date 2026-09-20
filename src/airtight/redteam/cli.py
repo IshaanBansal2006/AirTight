@@ -266,6 +266,40 @@ def cmd_campaign(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_minmax(args: argparse.Namespace) -> int:
+    engine = _select_engine(args)
+    from airtight.redteam.minmax import run_minmax
+    from airtight.sim.runner import run_episode
+
+    site, fleet, curves, cfg = _load_scene(args)
+    if args.n_random:
+        cfg.search.n_random = args.n_random
+    if args.n_rounds is not None:
+        cfg.search.n_rounds = args.n_rounds
+    seeds = load_seeds(args.seeds, args.n_seeds or cfg.search.n_seeds)
+    result = run_minmax(
+        site,
+        fleet,
+        curves,
+        seeds,
+        run_episode,
+        args.log_dir,
+        args.out,
+        args.iterations,
+        args.budget,
+        args.per_family,
+        cfg,
+        args.workers,
+        args.seed,
+    )
+    for it in result.iterations:
+        print(
+            f"iter {it.k}: {it.fleet_name:28s} ${it.cost_per_hour:.0f}/h  worst Pd={it.worst_pd_before_fix:.2f} ({it.worst_family})  fix={it.move}"
+        )
+    print(f"engine={engine}; written to {args.out}")
+    return 0
+
+
 def cmd_ledger(args: argparse.Namespace) -> int:
     from airtight.redteam.accounting import compare_planners, ledger_from, summarize_ledger
 
@@ -379,6 +413,27 @@ def build_parser() -> argparse.ArgumentParser:
     cp.add_argument("--cache-dir", type=Path, default=REPO_ROOT / "data" / "llm_cache")
     cp.add_argument("--ledger", type=Path, default=REPO_ROOT / "data" / "llm_calls.jsonl")
     cp.set_defaults(fn=cmd_campaign)
+
+    mm = sub.add_parser(
+        "minmax",
+        help="attack, fix, re-attack: the defender's best move each round against the adversary that just beat it",
+    )
+    _add_scene_args(mm)
+    _add_engine_arg(mm)
+    mm.add_argument("--iterations", type=int, default=3)
+    mm.add_argument(
+        "--budget", type=float, default=80.0, help="max fleet cost per hour a fix may reach"
+    )
+    mm.add_argument("--per-family", type=int, default=2)
+    mm.add_argument("--seeds", type=Path, default=REPO_ROOT / "data" / "seeds.json")
+    mm.add_argument("--n-seeds", type=int, default=None)
+    mm.add_argument("--n-random", type=int, default=None)
+    mm.add_argument("--n-rounds", type=int, default=None)
+    mm.add_argument("--out", type=Path, default=REPO_ROOT / "data" / "minmax")
+    mm.add_argument("--log-dir", type=Path, default=REPO_ROOT / "data" / "search_logs")
+    mm.add_argument("--workers", type=int, default=1)
+    mm.add_argument("--seed", type=int, default=0)
+    mm.set_defaults(fn=cmd_minmax)
 
     ld = sub.add_parser("ledger", help="spend so far and the naive-versus-propose cost comparison")
     ld.add_argument("--ledger", type=Path, default=REPO_ROOT / "data" / "llm_calls.jsonl")
