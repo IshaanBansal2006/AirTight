@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import os
 import sys
@@ -9,9 +10,13 @@ from pathlib import Path
 from airtight.contracts import FleetConfig, SensorCurves, Site
 from airtight.redteam.search import load_seeds
 from airtight.score.logreport.sweep import (
+    ConfigInputs,
     build_report,
+    coverage_gap,
+    inputs_without_quiet,
     load_top_tactics,
     run_config,
+    run_quiet_nights,
     seed_list_hash,
 )
 
@@ -32,6 +37,12 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--per-family", type=int, default=2, help="top tactics per family to sweep")
     ap.add_argument("--seeds", type=Path, default=REPO_ROOT / "data" / "seeds.json")
     ap.add_argument("--n-seeds", type=int, default=200)
+    ap.add_argument(
+        "--quiet-seeds",
+        type=int,
+        default=20,
+        help="quiet nights per configuration, taken from the end of the seed list; 0 falls back to benign peaks inside intrusion episodes",
+    )
     ap.add_argument(
         "--far", type=float, default=1.0, help="operating point, false alarms per benign hour"
     )
@@ -61,15 +72,15 @@ def main(argv: list[str] | None = None) -> int:
 
     site = Site.model_validate_json(args.site.read_text())
     curves = SensorCurves.model_validate_json(args.curves.read_text())
-    import json
-
     sweep = json.loads(args.sweep.read_text())
     names = [n for n in sweep["configs"] if not args.only or n in args.only]
     if sweep["baseline"] not in names:
         names.insert(0, sweep["baseline"])
     tactics = load_top_tactics(args.tactics_dir, args.per_family)
     seeds = load_seeds(args.seeds, args.n_seeds)
-    per_config = {}
+    all_seeds = json.loads(args.seeds.read_text())["seeds"]
+    quiet_seeds = [int(s) for s in all_seeds[-args.quiet_seeds :]] if args.quiet_seeds > 0 else []
+    per_config: dict[str, ConfigInputs] = {}
     for name in names:
         fleet = FleetConfig.model_validate_json((args.fleets_dir / f"{name}.json").read_text())
         summaries = run_config(
@@ -83,9 +94,18 @@ def main(argv: list[str] | None = None) -> int:
             args.workers,
             prune_logs=not args.keep_logs,
         )
-        per_config[name] = (fleet, summaries)
+        if quiet_seeds and engine != "stub":
+            quiet = run_quiet_nights(site, fleet, curves, quiet_seeds, args.workers)
+            gap = coverage_gap(site, fleet, curves)
+            per_config[name] = ConfigInputs(
+                fleet=fleet, summaries=summaries, quiet=quiet, coverage_gap_s_per_hour=gap
+            )
+        else:
+            per_config[name] = inputs_without_quiet(fleet, summaries)
+        inp = per_config[name]
         print(
-            f"{name:28s} {len(summaries):5d} episodes  timely@ref={sum(s.timely_at_ref for s in summaries) / len(summaries):.2f}",
+            f"{name:28s} {len(summaries):5d} episodes  timely@ref={sum(s.timely_at_ref for s in summaries) / len(summaries):.2f}"
+            f"  quiet={inp.quiet.hours:.1f} h  gap={inp.coverage_gap_s_per_hour:.0f} s/h",
             file=sys.stderr,
         )
     report = build_report(
@@ -98,7 +118,7 @@ def main(argv: list[str] | None = None) -> int:
         {
             "adversary_knowledge": "open-loop adversary with full knowledge of the patrol policy and charge schedule; search plus LLM proposals",
             "sensor_calibration": args.sensor_calibration,
-            "detection_model_note": f"reduced-order per-look Bernoulli model, truth association, engine {engine}",
+            "detection_model_note": f"reduced-order per-look Bernoulli model, truth association, engine {engine}; false alarms from {next(iter(per_config.values())).quiet.source}",
         },
     )
     args.out.parent.mkdir(parents=True, exist_ok=True)
