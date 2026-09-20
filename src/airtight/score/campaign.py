@@ -1334,6 +1334,8 @@ def stage_audit(ctx: Ctx, results: dict[str, Any]) -> dict[str, Any]:
         val = chosen.get(row["hardware"])
         if val is None or row["label"] in (BASELINE_LABEL, FIX_LABEL):
             continue
+        if str(row["label"]).startswith(INGREDIENT_PREFIX):
+            continue  # an ingredient was never on validation seeds; its hardware's row is not its own
         for metric, a, b in (
             ("pd", (val["pd"], val["pd_ci"]), (row["pd"], row["pd_ci"])),
             (
