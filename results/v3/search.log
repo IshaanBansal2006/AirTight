@@ -1,0 +1,22 @@
+INFO airtight.redteam.search: charging_window: round 0 best=1.000 (miss 1.00)
+INFO airtight.redteam.search: charging_window: round 1 best=1.000 (miss 1.00)
+INFO airtight.redteam.search: charging_window: round 2 best=1.000 (miss 1.00)
+INFO airtight.redteam.search: charging_window: round 3 best=1.000 (miss 1.00)
+INFO airtight.redteam.search: decoy: round 0 best=0.955 (miss 0.95)
+INFO airtight.redteam.search: decoy: round 1 best=0.955 (miss 0.95)
+INFO airtight.redteam.search: decoy: round 2 best=0.955 (miss 0.95)
+INFO airtight.redteam.search: decoy: round 3 best=0.955 (miss 0.95)
+INFO airtight.redteam.search: blind_spot: round 0 best=0.953 (miss 0.95)
+INFO airtight.redteam.search: blind_spot: round 1 best=0.953 (miss 0.95)
+INFO airtight.redteam.search: blind_spot: round 2 best=0.953 (miss 0.95)
+INFO airtight.redteam.search: blind_spot: round 3 best=0.953 (miss 0.95)
+INFO airtight.redteam.search: comms_cut: round 0 best=0.954 (miss 0.95)
+INFO airtight.redteam.search: comms_cut: round 1 best=0.954 (miss 0.95)
+INFO airtight.redteam.search: comms_cut: round 2 best=0.954 (miss 0.95)
+INFO airtight.redteam.search: comms_cut: round 3 best=0.954 (miss 0.95)
+charging_window  best=1.000 miss=1.00 margin=-20s origin=random entry=rear_fence_gap phase=1.00 episodes=6400
+decoy            best=0.955 miss=0.95 margin=-16s origin=random entry=main_gate phase=0.98 episodes=6400
+blind_spot       best=0.953 miss=0.95 margin=-15s origin=search entry=rear_fence_gap phase=0.33 episodes=6400
+comms_cut        best=0.954 miss=0.95 margin=-11s origin=random entry=service_gate phase=0.97 episodes=6400
+engine=v0; written to data/v3/tactics; replay logs in data/v3/tactics/replays
+exit=0

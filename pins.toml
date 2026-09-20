@@ -1,5 +1,9 @@
 # Sibling checkout consumed as an editable path dependency. dimOS has no release
 # tags, so the team pins by commit here and scripts/check_pins.sh enforces it.
+# The checkout is our private working copy (repo below), branch drone-autonomy;
+# upstream dimensionalOS/dimos stays a remote for merges and for LFS assets.
 [dimos]
 path = "../dimos"
-commit = "2282a4a52"
+repo = "https://github.com/IshaanBansal2006/dimos-airtight.git"
+branch = "drone-autonomy"
+commit = "211baa60a"

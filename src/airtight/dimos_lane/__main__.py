@@ -110,7 +110,7 @@ def _cmd_replay(args: argparse.Namespace) -> int:
     if args.handoff:
         from airtight.dimos_lane.clips import write_handoff_clips
 
-        manifest = write_handoff_clips(Path(args.pitch))
+        manifest = write_handoff_clips(Path(args.pitch), render_mp4=args.mp4)
         print(f"clips={manifest}")
         return 0
     if args.example:
@@ -216,6 +216,11 @@ def main(argv: list[str] | None = None) -> int:
         "--handoff",
         action="store_true",
         help="A9: same-seed miss/catch clips in pitch/clips for lane C",
+    )
+    rep.add_argument(
+        "--mp4",
+        action="store_true",
+        help="with --handoff, also render miss/catch MP4s (slow; needs ffmpeg)",
     )
     rep.set_defaults(func=_cmd_replay)
 

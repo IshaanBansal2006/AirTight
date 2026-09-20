@@ -42,6 +42,10 @@ class ConfigResult(BaseModel):
     pd_at_operating_point_ci: Interval
     worst_tactic_id: str
     worst_tactic_pd: Prob
+    worst_tactic_pd_schedule_blind: Prob | None = Field(
+        default=None,
+        description="the same worst tactics with their entry phase drawn at random per seed: an adversary that knows the site but not the charge schedule",
+    )
     cost_per_hour: Annotated[float, Field(ge=0)]
     coverage_gap_s_per_hour: Annotated[float, Field(ge=0)]
     human_decisions_per_hour: Annotated[float, Field(ge=0)]

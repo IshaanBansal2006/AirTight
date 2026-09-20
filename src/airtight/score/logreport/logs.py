@@ -6,9 +6,14 @@ from typing import TYPE_CHECKING
 from pydantic import BaseModel, Field
 
 from airtight.contracts import OutcomeEvent, ScoreEvent, read_episode_log
+from airtight.sim.constants import NEVER_SEEN
+from airtight.sim.recorder import timely_at_ref
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+    from airtight.contracts import FleetConfig, Tactic
+    from airtight.sim.episode import EpisodeScores
 
 INTRUDER_ID = "intruder"
 DECOY_PREFIX = "decoy"
@@ -30,26 +35,56 @@ class EpisodeSummary(BaseModel):
     has_score_series: bool
 
 
+def summarize_from_scores(
+    fleet: FleetConfig, tactic: Tactic, scores: EpisodeScores
+) -> EpisodeSummary:
+    """Build a summary from the live EpisodeScores so a sweep need not write or parse JSONL."""
+    return EpisodeSummary(
+        fleet_hash=fleet.content_hash(),
+        tactic_id=tactic.id,
+        family=tactic.family,
+        seed=scores.seed,
+        t_end_s=scores.t_end,
+        t_cdp=scores.t_cdp,
+        timely_at_ref=timely_at_ref(scores),
+        intruder_peak_before_cdp=_peak_or_neg_inf(scores.intruder_peak),
+        benign_peaks=dict(scores.benign_peaks),
+        decoy_peak=None if scores.decoy_peak is None else _peak_or_none(scores.decoy_peak),
+        has_score_series=scores.n_looks > 0,
+    )
+
+
+def _peak_or_neg_inf(peak: float) -> float:
+    """The engine's never-seen sentinel becomes -inf, as a log with no score events reads."""
+    return -math.inf if peak <= NEVER_SEEN else peak
+
+
+def _peak_or_none(peak: float) -> float | None:
+    return None if peak <= NEVER_SEEN else peak
+
+
 def summarize_log(path: Path) -> EpisodeSummary:
-    """Peaks from the score series; a header-plus-outcome log falls back to the outcome's verdict."""
+    """Peaks from the score series; a header-plus-outcome log falls back to the outcome's verdict.
+
+    One pass over the JSONL. The previous implementation re-opened the file after finding the
+    outcome just to walk the score events again.
+    """
     header, events = read_episode_log(path)
-    intruder_peak = -math.inf
-    benign: dict[str, float] = {}
-    decoy: float | None = None
+    scores: list[ScoreEvent] = []
     outcome: OutcomeEvent | None = None
-    has_scores = False
-    t_cdp = 0.0
     for ev in events:
         if isinstance(ev, OutcomeEvent):
             outcome = ev
-            t_cdp = ev.t_cdp
+        elif isinstance(ev, ScoreEvent):
+            scores.append(ev)
     if outcome is None:
         raise ValueError(f"{path} has no outcome event; the episode did not finish")
-    _, events = read_episode_log(path)
-    for ev in events:
-        if not isinstance(ev, ScoreEvent):
-            continue
-        has_scores = True
+    t_cdp = outcome.t_cdp
+    intruder_peak = -math.inf
+    benign: dict[str, float] = {}
+    decoy: float | None = None
+    has_scores = bool(scores)
+    for ev in scores:
         if ev.object_id == INTRUDER_ID:
             if ev.t <= t_cdp + 1e-9:
                 intruder_peak = max(intruder_peak, ev.value)

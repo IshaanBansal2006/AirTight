@@ -40,12 +40,32 @@ def _select_engine(args: argparse.Namespace) -> str:
     return os.environ.get("AIRTIGHT_ENGINE", "stub")
 
 
+SCEN = REPO_ROOT / "scenarios" / "logistics_yard"
+
+
+def _scene_default(scenario: str, example: str | None) -> Path | None:
+    """The scenario file in a repo checkout; the packaged example when installed elsewhere."""
+    path = SCEN / scenario
+    if path.exists():
+        return path
+    return _example(example) if example else None
+
+
 def _add_scene_args(p: argparse.ArgumentParser) -> None:
-    p.add_argument("--site", type=Path, default=_example("site.json"))
-    p.add_argument("--fleet", type=Path, default=_example("fleet_config.json"))
-    p.add_argument("--curves", type=Path, default=_example("sensor_curve.json"))
+    p.add_argument("--site", type=Path, default=_scene_default("site.json", "site.json"))
     p.add_argument(
-        "--config", type=Path, default=None, help="RedTeamConfig JSON; defaults apply when omitted"
+        "--fleet",
+        type=Path,
+        default=_scene_default("fleets/d2_go2_guard_sync.json", "fleet_config.json"),
+    )
+    p.add_argument(
+        "--curves", type=Path, default=_scene_default("sensor_curve.json", "sensor_curve.json")
+    )
+    p.add_argument(
+        "--config",
+        type=Path,
+        default=_scene_default("redteam_config.json", None),
+        help="RedTeamConfig JSON; the scenario's file in a checkout, library defaults otherwise",
     )
 
 
@@ -219,9 +239,9 @@ def cmd_difficulty(args: argparse.Namespace) -> int:
             f"{r.family:16s} mean Pd={r.mean_pd:.2f} worst Pd={r.worst_pd:.2f} over {r.n_tactics} random tactics"
         )
     print(f"{rep.verdict} (engine={engine})")
-    if args.out:
-        args.out.parent.mkdir(parents=True, exist_ok=True)
-        args.out.write_text(rep.model_dump_json(indent=2))
+    out = args.out or (args.log_dir / "difficulty.json")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(rep.model_dump_json(indent=2))
     return 0 if rep.in_band() else 3
 
 
@@ -263,6 +283,40 @@ def cmd_campaign(args: argparse.Namespace) -> int:
     print(
         f"engine={engine}; {result.proposals_accepted} accepted, {result.proposals_rejected} rejected, ${result.llm_spent_usd:.4f} spent, {result.n_episodes} episodes; written to {args.out}"
     )
+    return 0
+
+
+def cmd_minmax(args: argparse.Namespace) -> int:
+    engine = _select_engine(args)
+    from airtight.redteam.minmax import run_minmax
+    from airtight.sim.runner import run_episode
+
+    site, fleet, curves, cfg = _load_scene(args)
+    if args.n_random:
+        cfg.search.n_random = args.n_random
+    if args.n_rounds is not None:
+        cfg.search.n_rounds = args.n_rounds
+    seeds = load_seeds(args.seeds, args.n_seeds or cfg.search.n_seeds)
+    result = run_minmax(
+        site,
+        fleet,
+        curves,
+        seeds,
+        run_episode,
+        args.log_dir,
+        args.out,
+        args.iterations,
+        args.budget,
+        args.per_family,
+        cfg,
+        args.workers,
+        args.seed,
+    )
+    for it in result.iterations:
+        print(
+            f"iter {it.k}: {it.fleet_name:28s} ${it.cost_per_hour:.0f}/h  worst Pd={it.worst_pd_before_fix:.2f} ({it.worst_family})  fix={it.move}"
+        )
+    print(f"engine={engine}; written to {args.out}")
     return 0
 
 
@@ -379,6 +433,27 @@ def build_parser() -> argparse.ArgumentParser:
     cp.add_argument("--cache-dir", type=Path, default=REPO_ROOT / "data" / "llm_cache")
     cp.add_argument("--ledger", type=Path, default=REPO_ROOT / "data" / "llm_calls.jsonl")
     cp.set_defaults(fn=cmd_campaign)
+
+    mm = sub.add_parser(
+        "minmax",
+        help="attack, fix, re-attack: the defender's best move each round against the adversary that just beat it",
+    )
+    _add_scene_args(mm)
+    _add_engine_arg(mm)
+    mm.add_argument("--iterations", type=int, default=3)
+    mm.add_argument(
+        "--budget", type=float, default=80.0, help="max fleet cost per hour a fix may reach"
+    )
+    mm.add_argument("--per-family", type=int, default=2)
+    mm.add_argument("--seeds", type=Path, default=REPO_ROOT / "data" / "seeds.json")
+    mm.add_argument("--n-seeds", type=int, default=None)
+    mm.add_argument("--n-random", type=int, default=None)
+    mm.add_argument("--n-rounds", type=int, default=None)
+    mm.add_argument("--out", type=Path, default=REPO_ROOT / "data" / "minmax")
+    mm.add_argument("--log-dir", type=Path, default=REPO_ROOT / "data" / "search_logs")
+    mm.add_argument("--workers", type=int, default=1)
+    mm.add_argument("--seed", type=int, default=0)
+    mm.set_defaults(fn=cmd_minmax)
 
     ld = sub.add_parser("ledger", help="spend so far and the naive-versus-propose cost comparison")
     ld.add_argument("--ledger", type=Path, default=REPO_ROOT / "data" / "llm_calls.jsonl")

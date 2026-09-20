@@ -69,6 +69,12 @@ def _run_job(
     return tactic.id, seed, fn(site, fleet, tactic, curves, seed, log_dir)
 
 
+def schedule_blind(tactic: Tactic, seed: int) -> Tactic:
+    """The same tactic with its entry phase drawn from the seed: the adversary knows the site, not the schedule."""
+    phase = float(np.random.default_rng([seed, 7919]).uniform(0.0, 1.0))
+    return tactic.model_copy(update={"phase": phase})
+
+
 def evaluate(
     tactics: Sequence[Tactic],
     site: Site,
@@ -79,10 +85,15 @@ def evaluate(
     log_dir: Path,
     margin_weight: float,
     workers: int = 1,
+    randomize_phase: bool = False,
 ) -> list[TacticScore]:
     """Run every tactic on every seed, in a process pool when workers > 1, and score each tactic."""
     fn = light(episode_fn)
-    jobs = [(fn, site, fleet, t, curves, s, log_dir) for t in tactics for s in seeds]
+    jobs = [
+        (fn, site, fleet, schedule_blind(t, s) if randomize_phase else t, curves, s, log_dir)
+        for t in tactics
+        for s in seeds
+    ]
     if workers <= 1:
         outcomes = [_run_job(j) for j in jobs]
     else:

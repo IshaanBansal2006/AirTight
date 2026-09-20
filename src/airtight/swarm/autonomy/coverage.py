@@ -31,17 +31,18 @@ class CoveragePlanner(Protocol):
     def plan(self, intent: StructuredIntent, world: WorldState) -> list[Task]: ...
 
 
-def _point_in_polygon(px: float, py: float, poly: np.ndarray) -> bool:
-    """Ray casting: odd number of edge crossings to the right = inside."""
-    inside = False
+def _points_in_polygon(px: np.ndarray, py: np.ndarray, poly: np.ndarray) -> np.ndarray:
+    """Ray casting, vectorised over points. Same rule as the previous scalar helper."""
+    inside = np.zeros(px.shape, dtype=np.bool_)
     n = len(poly)
     for i in range(n):
         x1, y1 = poly[i]
         x2, y2 = poly[(i + 1) % n]
-        if (y1 > py) != (y2 > py):
-            x_cross = x1 + (py - y1) * (x2 - x1) / (y2 - y1)
-            if px < x_cross:
-                inside = not inside
+        if y1 == y2:
+            continue
+        crosses = (y1 > py) != (y2 > py)
+        x_cross = x1 + (py - y1) * (x2 - x1) / (y2 - y1)
+        inside ^= crosses & (px < x_cross)
     return inside
 
 
@@ -62,7 +63,11 @@ class VoronoiCoverage:
         poly = np.asarray([[float(x), float(y)] for x, y in intent.area])
         xs = np.arange(poly[:, 0].min(), poly[:, 0].max() + 1e-9, self.grid_step)
         ys = np.arange(poly[:, 1].min(), poly[:, 1].max() + 1e-9, self.grid_step)
-        points = np.array([[x, y] for x in xs for y in ys if _point_in_polygon(x, y, poly)])
+        # Original nested loop was x-major then y (`for x in xs for y in ys`).
+        gx = np.repeat(xs, len(ys))
+        gy = np.tile(ys, len(xs))
+        inside = _points_in_polygon(gx, gy, poly)
+        points = np.column_stack([gx[inside], gy[inside]])
         if len(points) == 0:
             raise ValueError(
                 f"grid_step={self.grid_step} produced no sample points inside the "

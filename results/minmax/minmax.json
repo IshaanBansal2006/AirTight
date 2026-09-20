@@ -1,0 +1,327 @@
+{
+  "site_hash": "62f4451db92b",
+  "seeds": [
+    63663,
+    70017,
+    81040,
+    147908,
+    195632,
+    226512,
+    240213,
+    269396,
+    291656,
+    377049,
+    388056,
+    393957,
+    395215,
+    419021,
+    533251,
+    557281,
+    609063,
+    611521,
+    697677,
+    753955
+  ],
+  "budget_per_hour": 80.0,
+  "iterations": [
+    {
+      "k": 0,
+      "fleet_name": "d2_go2_guard_sync",
+      "cost_per_hour": 55.0,
+      "worst_pd_before_fix": 0.050000000000000044,
+      "worst_tactic_id": "blind_spot-371959345",
+      "worst_family": "blind_spot",
+      "move": "stagger",
+      "candidates": [
+        {
+          "move": "stagger",
+          "fleet": {
+            "name": "d2_go2_guard_stagger",
+            "agents": [
+              {
+                "id": "drone_1",
+                "type": "drone",
+                "speed_mps": 8.0,
+                "endurance_s": 1500.0,
+                "charge_time_s": 2400.0,
+                "sensor_type": "drone_camera"
+              },
+              {
+                "id": "drone_2",
+                "type": "drone",
+                "speed_mps": 8.0,
+                "endurance_s": 1500.0,
+                "charge_time_s": 2400.0,
+                "sensor_type": "drone_camera"
+              },
+              {
+                "id": "go2_1",
+                "type": "go2",
+                "speed_mps": 1.2,
+                "endurance_s": 5400.0,
+                "charge_time_s": 3600.0,
+                "sensor_type": "go2_camera"
+              },
+              {
+                "id": "guard_1",
+                "type": "guard",
+                "speed_mps": 1.4,
+                "endurance_s": 28800.0,
+                "charge_time_s": 0.0,
+                "sensor_type": "human_eye"
+              }
+            ],
+            "charge_policy": {
+              "threshold_frac": 0.2,
+              "stagger_offsets_s": {
+                "drone_1": 0.0,
+                "drone_2": 1950.0
+              }
+            },
+            "comms_mode": "central_perfect",
+            "cost_per_hour_by_type": {
+              "drone": 7.0,
+              "go2": 9.0,
+              "guard": 32.0
+            }
+          },
+          "worst_pd": 0.0,
+          "mean_pd": 0.6625,
+          "cost_per_hour": 55.0
+        },
+        {
+          "move": "add_drone",
+          "fleet": {
+            "name": "d2_go2_guard_sync+drone",
+            "agents": [
+              {
+                "id": "drone_1",
+                "type": "drone",
+                "speed_mps": 8.0,
+                "endurance_s": 1500.0,
+                "charge_time_s": 2400.0,
+                "sensor_type": "drone_camera"
+              },
+              {
+                "id": "drone_2",
+                "type": "drone",
+                "speed_mps": 8.0,
+                "endurance_s": 1500.0,
+                "charge_time_s": 2400.0,
+                "sensor_type": "drone_camera"
+              },
+              {
+                "id": "go2_1",
+                "type": "go2",
+                "speed_mps": 1.2,
+                "endurance_s": 5400.0,
+                "charge_time_s": 3600.0,
+                "sensor_type": "go2_camera"
+              },
+              {
+                "id": "guard_1",
+                "type": "guard",
+                "speed_mps": 1.4,
+                "endurance_s": 28800.0,
+                "charge_time_s": 0.0,
+                "sensor_type": "human_eye"
+              },
+              {
+                "id": "drone_3",
+                "type": "drone",
+                "speed_mps": 8.0,
+                "endurance_s": 1500.0,
+                "charge_time_s": 2400.0,
+                "sensor_type": "drone_camera"
+              }
+            ],
+            "charge_policy": {
+              "threshold_frac": 0.2,
+              "stagger_offsets_s": {}
+            },
+            "comms_mode": "central_perfect",
+            "cost_per_hour_by_type": {
+              "drone": 7.0,
+              "go2": 9.0,
+              "guard": 32.0
+            }
+          },
+          "worst_pd": 0.050000000000000044,
+          "mean_pd": 0.11250000000000002,
+          "cost_per_hour": 62.0
+        }
+      ]
+    },
+    {
+      "k": 1,
+      "fleet_name": "d2_go2_guard_stagger",
+      "cost_per_hour": 55.0,
+      "worst_pd_before_fix": 0.0,
+      "worst_tactic_id": "blind_spot-051208427",
+      "worst_family": "blind_spot",
+      "move": "add_drone",
+      "candidates": [
+        {
+          "move": "add_drone",
+          "fleet": {
+            "name": "d2_go2_guard_stagger+drone_stagger",
+            "agents": [
+              {
+                "id": "drone_1",
+                "type": "drone",
+                "speed_mps": 8.0,
+                "endurance_s": 1500.0,
+                "charge_time_s": 2400.0,
+                "sensor_type": "drone_camera"
+              },
+              {
+                "id": "drone_2",
+                "type": "drone",
+                "speed_mps": 8.0,
+                "endurance_s": 1500.0,
+                "charge_time_s": 2400.0,
+                "sensor_type": "drone_camera"
+              },
+              {
+                "id": "go2_1",
+                "type": "go2",
+                "speed_mps": 1.2,
+                "endurance_s": 5400.0,
+                "charge_time_s": 3600.0,
+                "sensor_type": "go2_camera"
+              },
+              {
+                "id": "guard_1",
+                "type": "guard",
+                "speed_mps": 1.4,
+                "endurance_s": 28800.0,
+                "charge_time_s": 0.0,
+                "sensor_type": "human_eye"
+              },
+              {
+                "id": "drone_3",
+                "type": "drone",
+                "speed_mps": 8.0,
+                "endurance_s": 1500.0,
+                "charge_time_s": 2400.0,
+                "sensor_type": "drone_camera"
+              }
+            ],
+            "charge_policy": {
+              "threshold_frac": 0.2,
+              "stagger_offsets_s": {
+                "drone_1": 0.0,
+                "drone_2": 1300.0,
+                "drone_3": 2600.0
+              }
+            },
+            "comms_mode": "central_perfect",
+            "cost_per_hour_by_type": {
+              "drone": 7.0,
+              "go2": 9.0,
+              "guard": 32.0
+            }
+          },
+          "worst_pd": 0.050000000000000044,
+          "mean_pd": 0.6187499999999999,
+          "cost_per_hour": 62.0
+        }
+      ]
+    },
+    {
+      "k": 2,
+      "fleet_name": "d2_go2_guard_stagger+drone_stagger",
+      "cost_per_hour": 62.0,
+      "worst_pd_before_fix": 0.050000000000000044,
+      "worst_tactic_id": "blind_spot-421805910",
+      "worst_family": "blind_spot",
+      "move": "add_drone",
+      "candidates": [
+        {
+          "move": "add_drone",
+          "fleet": {
+            "name": "d2_go2_guard_stagger+drone_stagger+drone_stagger",
+            "agents": [
+              {
+                "id": "drone_1",
+                "type": "drone",
+                "speed_mps": 8.0,
+                "endurance_s": 1500.0,
+                "charge_time_s": 2400.0,
+                "sensor_type": "drone_camera"
+              },
+              {
+                "id": "drone_2",
+                "type": "drone",
+                "speed_mps": 8.0,
+                "endurance_s": 1500.0,
+                "charge_time_s": 2400.0,
+                "sensor_type": "drone_camera"
+              },
+              {
+                "id": "go2_1",
+                "type": "go2",
+                "speed_mps": 1.2,
+                "endurance_s": 5400.0,
+                "charge_time_s": 3600.0,
+                "sensor_type": "go2_camera"
+              },
+              {
+                "id": "guard_1",
+                "type": "guard",
+                "speed_mps": 1.4,
+                "endurance_s": 28800.0,
+                "charge_time_s": 0.0,
+                "sensor_type": "human_eye"
+              },
+              {
+                "id": "drone_3",
+                "type": "drone",
+                "speed_mps": 8.0,
+                "endurance_s": 1500.0,
+                "charge_time_s": 2400.0,
+                "sensor_type": "drone_camera"
+              },
+              {
+                "id": "drone_4",
+                "type": "drone",
+                "speed_mps": 8.0,
+                "endurance_s": 1500.0,
+                "charge_time_s": 2400.0,
+                "sensor_type": "drone_camera"
+              }
+            ],
+            "charge_policy": {
+              "threshold_frac": 0.2,
+              "stagger_offsets_s": {
+                "drone_1": 0.0,
+                "drone_2": 975.0,
+                "drone_3": 1950.0,
+                "drone_4": 2925.0
+              }
+            },
+            "comms_mode": "central_perfect",
+            "cost_per_hour_by_type": {
+              "drone": 7.0,
+              "go2": 9.0,
+              "guard": 32.0
+            }
+          },
+          "worst_pd": 0.09999999999999998,
+          "mean_pd": 0.19374999999999998,
+          "cost_per_hour": 69.0
+        }
+      ]
+    },
+    {
+      "k": 3,
+      "fleet_name": "d2_go2_guard_stagger+drone_stagger+drone_stagger",
+      "cost_per_hour": 69.0,
+      "worst_pd_before_fix": 0.0,
+      "worst_tactic_id": "charging_window-972764563",
+      "worst_family": "charging_window",
+      "move": null,
+      "candidates": []
+    }
+  ]
+}

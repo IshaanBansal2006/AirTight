@@ -22,12 +22,12 @@ Airtight is a security-posture engine. You give it a site twin: perimeter, entry
 ## Challenges
 
 - Timing is the whole game. With a 25 s response time and a jogging intruder, the deadline for a run from the nearest gate is zero, and no fleet can ever be timely. We found that in the first real search and fixed the scenario, not the adversary.
-- Synchronized charging is a real vulnerability. The moment battery clocks existed, the charging-window family dropped from [pd_before] to [pd_sync] on the synchronized fleet while other families stayed high.
+- Synchronized charging is a real vulnerability. The moment battery clocks existed, the charging-window family became the weak one on the synchronized fleet while other families stayed high; the worst tactic enters at `[worst_entry]` at phase [worst_phase] of the charge cycle.
 - Keeping four people from stepping on each other in 24 hours: one schema, one seed list, lanes that only touch their own directories, and a merge gate.
 
 ## Accomplishments
 
-- A quantified score with its conditions stated, not a demo: [pd_baseline] to [pd_fixed] against the worst tactic, at [cost] dollars per hour, on [n_seeds] shared seeds.
+- A quantified score with its conditions stated, not a demo: timely detection [pd_baseline] to [pd_fixed] and [worst_baseline] to [worst_fixed] against the worst tactic, from [baseline_config] at [cost] dollars per hour to [fixed_config], on [n_seeds] shared seeds; human decisions per hour [decisions_baseline] to [decisions_fixed]. The worst tactic assumes the adversary knows the charge schedule; against one that knows the site but not the schedule, the same tactics land [blind_baseline] to [blind_fixed].
 - The fix loop closes: stagger, re-attack, re-score, on the same seeds.
 - Everything reproducible from one command per stage.
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import threading
 from collections import defaultdict
 from typing import Any
 
@@ -28,8 +29,15 @@ class FleetMemoryStore:
     def __init__(self, cell_m: float = 5.0) -> None:
         self.cell_m = cell_m
         self._items: dict[Key, CoverageCell | Claim | Evidence] = {}
+        self._by_kind: dict[str, dict[Key, CoverageCell | Claim | Evidence]] = {
+            "coverage": {},
+            "claim": {},
+            "evidence": {},
+        }
         self._stamps: dict[Key, int] = {}
+        self._wire: dict[Key, bytes] = {}
         self._version = 0
+        self._lock = threading.RLock()
 
     @property
     def version(self) -> int:
@@ -39,8 +47,9 @@ class FleetMemoryStore:
         return len(self._items)
 
     def observe(self, item: CoverageCell | Claim | Evidence | dict[str, Any]) -> None:
-        """Accepts the typed items or the dict shapes lane A's module emits."""
-        self._apply(self.coerce(item) if isinstance(item, dict) else item)
+        """Accepts the typed items or the dict shapes lane A's module emits. Safe to call from any thread."""
+        with self._lock:
+            self._apply(self.coerce(item) if isinstance(item, dict) else item)
 
     def coerce(self, raw: dict[str, Any]) -> CoverageCell | Claim | Evidence:
         """Dict to item. Coverage dicts carry x/y in metres and are binned to this store's cell size."""
@@ -88,12 +97,17 @@ class FleetMemoryStore:
         return out
 
     def merge(self, delta: bytes) -> None:
-        for line in delta.decode().splitlines():
-            if line.strip():
-                self._apply(item_adapter.validate_json(line))
+        with self._lock:
+            for line in delta.decode().splitlines():
+                if line.strip():
+                    self._apply(item_adapter.validate_json(line))
 
     def delta(self, since_version: int, byte_budget: int) -> bytes:
         """Entries changed after since_version, newest first, as JSONL cut to fit the budget."""
+        with self._lock:
+            return self._delta_locked(since_version, byte_budget)
+
+    def _delta_locked(self, since_version: int, byte_budget: int) -> bytes:
         changed = sorted(
             ((stamp, key) for key, stamp in self._stamps.items() if stamp > since_version),
             key=lambda p: (-p[0], p[1]),
@@ -101,7 +115,10 @@ class FleetMemoryStore:
         lines: list[bytes] = []
         used = 0
         for _, key in changed:
-            line = self._items[key].model_dump_json().encode() + b"\n"
+            line = self._wire.get(key)
+            if line is None:
+                line = self._items[key].model_dump_json().encode() + b"\n"
+                self._wire[key] = line
             if used + len(line) > byte_budget:
                 break
             lines.append(line)
@@ -109,7 +126,8 @@ class FleetMemoryStore:
         return b"".join(lines)
 
     def query(self, kind: str, region: Region | None = None) -> list[Any]:
-        out = [it for (k, _), it in self._items.items() if k == kind]
+        with self._lock:
+            out = list(self._by_kind.get(kind, {}).values())
         if region is None:
             return out
         xmin, ymin, xmax, ymax = region
@@ -147,7 +165,9 @@ class FleetMemoryStore:
             return False
         self._version += 1
         self._items[key] = merged
+        self._by_kind[key[0]][key] = merged
         self._stamps[key] = self._version
+        self._wire.pop(key, None)
         return True
 
 
@@ -161,5 +181,19 @@ def _merge_pair(a: MemoryItem, b: MemoryItem) -> MemoryItem:
             return b
         return a
     if isinstance(a, Evidence) and isinstance(b, Evidence):
-        return b if b.model_dump_json() > a.model_dump_json() else a
+        return b if _evidence_rank(b) > _evidence_rank(a) else a
     raise TypeError(f"cannot merge {type(a).__name__} with {type(b).__name__} under the same key")
+
+
+def _evidence_rank(item: Evidence) -> tuple[str, str, str, str, float, float, float, float]:
+    """Total order on evidence content. Same field order as the model; no JSON round-trip."""
+    return (
+        item.kind,
+        item.evidence_id,
+        item.object_id,
+        item.agent_id,
+        item.t,
+        item.score,
+        item.x,
+        item.y,
+    )

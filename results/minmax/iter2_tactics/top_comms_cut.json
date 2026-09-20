@@ -1,0 +1,340 @@
+{
+  "family": "comms_cut",
+  "seeds": [
+    63663,
+    70017,
+    81040,
+    147908,
+    195632,
+    226512,
+    240213,
+    269396,
+    291656,
+    377049,
+    388056,
+    393957,
+    395215,
+    419021,
+    533251,
+    557281,
+    609063,
+    611521,
+    697677,
+    753955
+  ],
+  "n_episodes": 3600,
+  "scores": [
+    {
+      "tactic_id": "comms_cut-105980352",
+      "family": "comms_cut",
+      "n_episodes": 20,
+      "miss_rate": 0.9,
+      "mean_margin_s": -12.727049662545335,
+      "adversary_score": 0.9084352892960765
+    },
+    {
+      "tactic_id": "comms_cut-492659912",
+      "family": "comms_cut",
+      "n_episodes": 20,
+      "miss_rate": 0.9,
+      "mean_margin_s": -10.212924206568047,
+      "adversary_score": 0.9079939621032841
+    },
+    {
+      "tactic_id": "comms_cut-903995882",
+      "family": "comms_cut",
+      "n_episodes": 20,
+      "miss_rate": 0.9,
+      "mean_margin_s": -9.52797494485693,
+      "adversary_score": 0.9069014874724285
+    },
+    {
+      "tactic_id": "comms_cut-207849791",
+      "family": "comms_cut",
+      "n_episodes": 20,
+      "miss_rate": 0.9,
+      "mean_margin_s": -8.090187958453978,
+      "adversary_score": 0.906582593979227
+    },
+    {
+      "tactic_id": "comms_cut-316913186",
+      "family": "comms_cut",
+      "n_episodes": 20,
+      "miss_rate": 0.85,
+      "mean_margin_s": -10.081621195124944,
+      "adversary_score": 0.8631362158963437
+    },
+    {
+      "tactic_id": "comms_cut-023828758",
+      "family": "comms_cut",
+      "n_episodes": 20,
+      "miss_rate": 0.8,
+      "mean_margin_s": -7.58140876628795,
+      "adversary_score": 0.816356408766288
+    },
+    {
+      "tactic_id": "comms_cut-260116013",
+      "family": "comms_cut",
+      "n_episodes": 20,
+      "miss_rate": 0.8,
+      "mean_margin_s": -6.745136152765471,
+      "adversary_score": 0.8151951361527656
+    },
+    {
+      "tactic_id": "comms_cut-446306409",
+      "family": "comms_cut",
+      "n_episodes": 20,
+      "miss_rate": 0.8,
+      "mean_margin_s": -7.661041844194477,
+      "adversary_score": 0.8150610418441946
+    },
+    {
+      "tactic_id": "comms_cut-516329356",
+      "family": "comms_cut",
+      "n_episodes": 20,
+      "miss_rate": 0.8,
+      "mean_margin_s": -5.833370837544623,
+      "adversary_score": 0.8133833708375448
+    },
+    {
+      "tactic_id": "comms_cut-019240422",
+      "family": "comms_cut",
+      "n_episodes": 20,
+      "miss_rate": 0.8,
+      "mean_margin_s": -5.828537348161146,
+      "adversary_score": 0.8132535373481613
+    }
+  ],
+  "tactics": [
+    {
+      "id": "comms_cut-105980352",
+      "family": "comms_cut",
+      "entry_id": "main_gate",
+      "phase": 0.6940601531417153,
+      "speed_mps": 2.0,
+      "waypoints": [
+        {
+          "x": 118.75285950212013,
+          "y": 95.75515141611494
+        },
+        {
+          "x": 140.0,
+          "y": 70.0
+        }
+      ],
+      "decoy": null,
+      "comms_event": {
+        "t_s": 12.703115031013418,
+        "kind": "cut_base_link"
+      },
+      "origin": "search"
+    },
+    {
+      "id": "comms_cut-492659912",
+      "family": "comms_cut",
+      "entry_id": "main_gate",
+      "phase": 0.2412873343393994,
+      "speed_mps": 2.0,
+      "waypoints": [
+        {
+          "x": 123.95116392680498,
+          "y": 92.68913394462098
+        },
+        {
+          "x": 140.0,
+          "y": 70.0
+        }
+      ],
+      "decoy": null,
+      "comms_event": {
+        "t_s": 7.9055087279262235,
+        "kind": "cut_base_link"
+      },
+      "origin": "search"
+    },
+    {
+      "id": "comms_cut-903995882",
+      "family": "comms_cut",
+      "entry_id": "main_gate",
+      "phase": 0.9033348158696306,
+      "speed_mps": 2.0,
+      "waypoints": [
+        {
+          "x": 115.84396687411588,
+          "y": 93.63587386940691
+        },
+        {
+          "x": 140.0,
+          "y": 70.0
+        }
+      ],
+      "decoy": null,
+      "comms_event": {
+        "t_s": 0.0,
+        "kind": "cut_base_link"
+      },
+      "origin": "search"
+    },
+    {
+      "id": "comms_cut-207849791",
+      "family": "comms_cut",
+      "entry_id": "main_gate",
+      "phase": 0.947900638792053,
+      "speed_mps": 2.0,
+      "waypoints": [
+        {
+          "x": 113.31972734004805,
+          "y": 90.00540585527986
+        },
+        {
+          "x": 140.0,
+          "y": 70.0
+        }
+      ],
+      "decoy": null,
+      "comms_event": {
+        "t_s": 3.4633503781152406,
+        "kind": "cut_base_link"
+      },
+      "origin": "search"
+    },
+    {
+      "id": "comms_cut-316913186",
+      "family": "comms_cut",
+      "entry_id": "main_gate",
+      "phase": 0.2349538643243184,
+      "speed_mps": 1.9151517165497947,
+      "waypoints": [
+        {
+          "x": 119.08278743466542,
+          "y": 103.85508944463041
+        },
+        {
+          "x": 140.0,
+          "y": 70.0
+        }
+      ],
+      "decoy": null,
+      "comms_event": {
+        "t_s": 0.0,
+        "kind": "cut_base_link"
+      },
+      "origin": "search"
+    },
+    {
+      "id": "comms_cut-023828758",
+      "family": "comms_cut",
+      "entry_id": "main_gate",
+      "phase": 0.21288566355189148,
+      "speed_mps": 1.8240544048432958,
+      "waypoints": [
+        {
+          "x": 115.47182710932206,
+          "y": 98.71632732075209
+        },
+        {
+          "x": 140.0,
+          "y": 70.0
+        }
+      ],
+      "decoy": null,
+      "comms_event": {
+        "t_s": 0.0,
+        "kind": "cut_base_link"
+      },
+      "origin": "search"
+    },
+    {
+      "id": "comms_cut-260116013",
+      "family": "comms_cut",
+      "entry_id": "main_gate",
+      "phase": 0.6648898781397307,
+      "speed_mps": 1.7114953441172467,
+      "waypoints": [
+        {
+          "x": 116.6236557943032,
+          "y": 95.91594401051209
+        },
+        {
+          "x": 140.0,
+          "y": 70.0
+        }
+      ],
+      "decoy": null,
+      "comms_event": {
+        "t_s": 16.990230364413595,
+        "kind": "cut_base_link"
+      },
+      "origin": "search"
+    },
+    {
+      "id": "comms_cut-446306409",
+      "family": "comms_cut",
+      "entry_id": "main_gate",
+      "phase": 0.0930373836501791,
+      "speed_mps": 1.8163192107544732,
+      "waypoints": [
+        {
+          "x": 116.56529988277936,
+          "y": 94.13549020812967
+        },
+        {
+          "x": 140.0,
+          "y": 70.0
+        }
+      ],
+      "decoy": null,
+      "comms_event": {
+        "t_s": 17.878610312122195,
+        "kind": "cut_base_link"
+      },
+      "origin": "search"
+    },
+    {
+      "id": "comms_cut-516329356",
+      "family": "comms_cut",
+      "entry_id": "main_gate",
+      "phase": 0.6910056711612693,
+      "speed_mps": 1.623915871002841,
+      "waypoints": [
+        {
+          "x": 118.50012143431942,
+          "y": 96.29731105463381
+        },
+        {
+          "x": 140.0,
+          "y": 70.0
+        }
+      ],
+      "decoy": null,
+      "comms_event": {
+        "t_s": 5.5024945386143855,
+        "kind": "cut_base_link"
+      },
+      "origin": "search"
+    },
+    {
+      "id": "comms_cut-019240422",
+      "family": "comms_cut",
+      "entry_id": "main_gate",
+      "phase": 0.6462118226247757,
+      "speed_mps": 1.6219626664205897,
+      "waypoints": [
+        {
+          "x": 117.53893984691206,
+          "y": 95.60162330000153
+        },
+        {
+          "x": 140.0,
+          "y": 70.0
+        }
+      ],
+      "decoy": null,
+      "comms_event": {
+        "t_s": 31.186103569941405,
+        "kind": "cut_base_link"
+      },
+      "origin": "search"
+    }
+  ]
+}

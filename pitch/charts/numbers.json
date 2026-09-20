@@ -4,98 +4,132 @@
     "far_per_hour_operating_point": 1.0,
     "adversary_knowledge": "open-loop adversary with full knowledge of the patrol policy and charge schedule; search plus LLM proposals",
     "sensor_calibration": "hand-written stub curve with a 360-degree drone disc",
-    "detection_model_note": "reduced-order per-look Bernoulli model, truth association, engine v0",
+    "detection_model_note": "reduced-order per-look Bernoulli model, truth association, engine v0; false alarms from 20 quiet nights of one charge cycle each",
     "seed_list_hash": "74cf1e274166",
     "n_seeds": 200
   },
   "n_configs": 12,
+  "minmax": [
+    {
+      "k": 0,
+      "fleet": "d2_go2_guard_sync",
+      "cost": 55.0,
+      "worst_pd": 0.050000000000000044,
+      "worst_family": "blind_spot",
+      "move": "stagger"
+    },
+    {
+      "k": 1,
+      "fleet": "d2_go2_guard_stagger",
+      "cost": 55.0,
+      "worst_pd": 0.0,
+      "worst_family": "blind_spot",
+      "move": "add_drone"
+    },
+    {
+      "k": 2,
+      "fleet": "d2_go2_guard_stagger+drone_stagger",
+      "cost": 62.0,
+      "worst_pd": 0.050000000000000044,
+      "worst_family": "blind_spot",
+      "move": "add_drone"
+    },
+    {
+      "k": 3,
+      "fleet": "d2_go2_guard_stagger+drone_stagger+drone_stagger",
+      "cost": 69.0,
+      "worst_pd": 0.0,
+      "worst_family": "charging_window",
+      "move": null
+    }
+  ],
   "cost_vs_detection": {
     "d1_go2_guard_sync": {
       "cost_per_hour": 48.0,
-      "pd": 0.26875,
+      "pd": 0.23875,
       "ci": [
-        0.244375,
-        0.29064062500000004
+        0.21375,
+        0.260046875
       ]
     },
     "d1_go2_guard_stagger": {
       "cost_per_hour": 48.0,
-      "pd": 0.26875,
+      "pd": 0.23875,
       "ci": [
-        0.25179687500000003,
-        0.288125
+        0.220609375,
+        0.257515625
       ]
     },
     "d2_go2_guard_sync": {
       "cost_per_hour": 55.0,
-      "pd": 0.16875,
+      "pd": 0.136875,
       "ci": [
-        0.15185937500000002,
-        0.185015625
+        0.12,
+        0.152515625
       ]
     },
     "d2_go2_guard_stagger": {
       "cost_per_hour": 55.0,
-      "pd": 0.355625,
+      "pd": 0.30625,
       "ci": [
-        0.33246875000000004,
-        0.37634375
+        0.283734375,
+        0.330640625
       ]
     },
     "d3_go2_guard_sync": {
       "cost_per_hour": 62.0,
-      "pd": 0.64125,
+      "pd": 0.65,
       "ci": [
-        0.6155468749999999,
-        0.66125
+        0.6287343750000001,
+        0.673125
       ]
     },
     "d3_go2_guard_stagger": {
       "cost_per_hour": 62.0,
-      "pd": 0.581875,
+      "pd": 0.626875,
       "ci": [
-        0.5380937499999999,
-        0.603125
+        0.605609375,
+        0.6525156249999999
       ]
     },
     "d4_go2_guard_sync": {
       "cost_per_hour": 69.0,
       "pd": 0.67375,
       "ci": [
-        0.6442656250000001,
-        0.696890625
+        0.6486875000000001,
+        0.696265625
       ]
     },
     "d4_go2_guard_stagger": {
       "cost_per_hour": 69.0,
       "pd": 0.6175,
       "ci": [
-        0.58875,
-        0.659375
+        0.591875,
+        0.640640625
       ]
     },
     "d2_nogo2_guard_stagger": {
       "cost_per_hour": 46.0,
-      "pd": 0.33625,
+      "pd": 0.33125,
       "ci": [
-        0.315578125,
-        0.38501562500000003
+        0.308734375,
+        0.35315625
       ]
     },
     "d2_go2_noguard_stagger": {
       "cost_per_hour": 23.0,
-      "pd": 0.08875,
+      "pd": 0.07375,
       "ci": [
-        0.07684375,
-        0.105640625
+        0.05996875,
+        0.086875
       ]
     },
     "d2_nogo2_noguard_stagger": {
       "cost_per_hour": 14.0,
-      "pd": 0.13375,
+      "pd": 0.124375,
       "ci": [
-        0.116859375,
-        0.157515625
+        0.109984375,
+        0.14251562499999998
       ]
     },
     "d0_go2_guard_sync": {
@@ -110,7 +144,6 @@
   "frontier": [
     "d2_nogo2_noguard_stagger",
     "d2_nogo2_guard_stagger",
-    "d2_go2_guard_stagger",
     "d3_go2_guard_sync",
     "d4_go2_guard_sync"
   ],
@@ -118,7 +151,7 @@
     "d2_go2_guard_sync",
     "d4_go2_guard_sync",
     "d3_go2_guard_sync",
-    "d4_go2_guard_stagger"
+    "d3_go2_guard_stagger"
   ],
   "worst_tactics": {
     "charging_window": {
@@ -154,16 +187,20 @@
     "baseline": "d2_go2_guard_sync",
     "fixed": "d3_go2_guard_stagger",
     "pd": [
-      0.16875,
-      0.581875
+      0.136875,
+      0.626875
     ],
     "worst_tactic_pd": [
-      0.065,
-      0.445
+      0.045,
+      0.495
+    ],
+    "worst_tactic_pd_schedule_blind": [
+      0.53,
+      0.505
     ],
     "human_decisions_per_hour": [
-      12.036584276773839,
-      41.027927050938786
+      0.09642857142857143,
+      0.20869565217391303
     ],
     "coverage_gap_s_per_hour": [
       0.0,
@@ -172,20 +209,78 @@
     "paired_deltas": [
       {
         "metric": "pd_at_operating_point",
-        "delta": 0.413125,
+        "delta": 0.49,
         "ci": [
-          0.388125,
-          0.44259375
+          0.46685937499999997,
+          0.5175
         ]
       },
       {
         "metric": "human_decisions_per_hour",
-        "delta": 28.99134277416495,
+        "delta": 0.1122670807453416,
         "ci": [
-          28.99134277416495,
-          28.99134277416495
+          0.1122670807453416,
+          0.1122670807453416
+        ]
+      },
+      {
+        "metric": "coverage_gap_s_per_hour",
+        "delta": 0.0,
+        "ci": [
+          0.0,
+          0.0
         ]
       }
+    ]
+  },
+  "schedule_blind": {
+    "d2_nogo2_noguard_stagger": [
+      0.0,
+      0.2
+    ],
+    "d2_go2_noguard_stagger": [
+      0.0,
+      0.305
+    ],
+    "d0_go2_guard_sync": [
+      0.0,
+      0.085
+    ],
+    "d2_nogo2_guard_stagger": [
+      0.06,
+      0.385
+    ],
+    "d1_go2_guard_stagger": [
+      0.04,
+      0.28
+    ],
+    "d1_go2_guard_sync": [
+      0.04,
+      0.28
+    ],
+    "d2_go2_guard_stagger": [
+      0.045,
+      0.525
+    ],
+    "d2_go2_guard_sync": [
+      0.045,
+      0.53
+    ],
+    "d3_go2_guard_stagger": [
+      0.495,
+      0.505
+    ],
+    "d3_go2_guard_sync": [
+      0.145,
+      0.49
+    ],
+    "d4_go2_guard_stagger": [
+      0.34,
+      0.39
+    ],
+    "d4_go2_guard_sync": [
+      0.14,
+      0.505
     ]
   }
 }

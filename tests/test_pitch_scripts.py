@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import runpy
 import sys
 from pathlib import Path
@@ -123,3 +124,151 @@ def test_render_replay_from_a_v0_log(tmp_path: Path, monkeypatch: pytest.MonkeyP
     with pytest.raises(SystemExit) as exc:
         runpy.run_path(str(PITCH / "render_replay.py"), run_name="__main__")
     assert exc.value.code == 0 and (tmp_path / "clip.mp4").stat().st_size > 1000
+
+
+def test_fill_writeup_from_rendered_numbers(tmp_path: Path) -> None:
+    charts = tmp_path / "charts"
+    sys.argv = [
+        "make_charts.py",
+        "--report",
+        str(tmp_path / "missing.json"),
+        "--tactics-dir",
+        str(tmp_path),
+        "--out",
+        str(charts),
+    ]
+    with pytest.raises(SystemExit):
+        runpy.run_path(str(PITCH / "make_charts.py"), run_name="__main__")
+    sys.argv = [
+        "make_token_chart.py",
+        "--ledger",
+        str(tmp_path / "none.jsonl"),
+        "--out",
+        str(charts),
+    ]
+    with pytest.raises(SystemExit):
+        runpy.run_path(str(PITCH / "make_token_chart.py"), run_name="__main__")
+    sys.argv = ["fill_writeup.py", "--charts", str(charts), "--out", str(tmp_path / "w.md")]
+    with pytest.raises(SystemExit) as exc:
+        runpy.run_path(str(PITCH / "fill_writeup.py"), run_name="__main__")
+    assert exc.value.code == 0
+    text = (tmp_path / "w.md").read_text()
+    assert "EXAMPLE DATA" in text and "[pd_baseline]" not in text and "[ratio]" not in text
+
+
+def test_deck_accepts_lane_a_clip_sidecars(tmp_path: Path) -> None:
+    sys.path.insert(0, str(PITCH))
+    from build_deck import load_clip_facts
+
+    (tmp_path / "miss.json").write_text(
+        json.dumps(
+            {
+                "title": "miss",
+                "seed": 7,
+                "tactic_id": "t1",
+                "timely_detected": False,
+                "t_alarm": None,
+                "fleet": "base",
+            }
+        )
+    )
+    (tmp_path / "catch.json").write_text(
+        json.dumps(
+            {
+                "title": "catch",
+                "seed": 7,
+                "tactic_id": "t1",
+                "timely_detected": True,
+                "t_alarm": 14.0,
+                "t_cdp": 30.0,
+                "fleet": "fixed",
+            }
+        )
+    )
+    facts = load_clip_facts(tmp_path)
+    assert (
+        facts
+        and facts["seed"] == 7
+        and facts["catch_t_alarm"] == 14.0
+        and facts["fixed"] == "fixed"
+    )
+    assert load_clip_facts(tmp_path / "nowhere") is None
+
+
+def test_build_app_from_example_report_and_v0_logs(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from airtight.contracts import FleetConfig, SensorCurves, Site, Tactic
+    from airtight.sim.runner import run_episode
+
+    monkeypatch.setenv("AIRTIGHT_ENGINE", "v0")
+    scen = Path(__file__).parents[1] / "scenarios" / "logistics_yard"
+    site = Site.model_validate_json((scen / "site.json").read_text())
+    curves = SensorCurves.model_validate_json((scen / "sensor_curve.json").read_text())
+    tactic = Tactic(
+        id="walk",
+        family="charging_window",
+        entry_id="main_gate",
+        phase=0.1,
+        speed_mps=1.5,
+        waypoints=[site.asset],
+    )
+    names = ("d2_go2_guard_sync", "d3_go2_guard_stagger")
+    for kind, name in zip(("miss", "catch"), names, strict=True):
+        fleet = FleetConfig.model_validate_json((scen / "fleets" / f"{name}.json").read_text())
+        run_episode(site, fleet, tactic, curves, 5, tmp_path / "clip_logs" / kind)
+    clips = tmp_path / "clips_c.json"
+    clips.write_text(
+        json.dumps(
+            {
+                "tactic_id": "walk",
+                "family": "charging_window",
+                "entry": "main_gate",
+                "phase": 0.1,
+                "seed": 5,
+                "baseline": names[0],
+                "fixed": names[1],
+                "miss_t_alarm": None,
+                "catch_t_alarm": 20.0,
+                "t_cdp": 30.0,
+            }
+        )
+    )
+    charts = tmp_path / "charts"
+    sys.argv = [
+        "make_charts.py",
+        "--report",
+        str(tmp_path / "missing.json"),
+        "--tactics-dir",
+        str(tmp_path),
+        "--out",
+        str(charts),
+    ]
+    with pytest.raises(SystemExit):
+        runpy.run_path(str(PITCH / "make_charts.py"), run_name="__main__")
+    from importlib import resources
+
+    example = resources.files("airtight.contracts.examples") / "report.json"
+    sys.argv = [
+        "build_app.py",
+        "--report",
+        str(example),
+        "--charts",
+        str(charts),
+        "--tactics-dir",
+        str(tmp_path),
+        "--clips",
+        str(clips),
+        "--clip-logs",
+        str(tmp_path / "clip_logs"),
+        "--minmax-dir",
+        str(tmp_path / "no_minmax"),
+        "--out",
+        str(tmp_path / "app.html"),
+    ]
+    with pytest.raises(SystemExit) as exc:
+        runpy.run_path(str(PITCH / "build_app.py"), run_name="__main__")
+    assert exc.value.code == 0
+    html = (tmp_path / "app.html").read_text()
+    assert "__DATA__" not in html and '"episodes"' in html and "three.min.js" in html
+    assert re.search(r'"rounds":\s*\[\]', html) and '"responder"' in html

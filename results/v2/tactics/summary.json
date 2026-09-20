@@ -1,0 +1,39 @@
+{
+  "site": "logistics-yard",
+  "fleet": "d2_go2_guard_sync",
+  "n_seeds": 20,
+  "families": {
+    "charging_window": {
+      "best_tactic_id": "charging_window-439068210",
+      "best_origin": "random",
+      "adversary_score": 1.0,
+      "miss_rate": 1.0,
+      "mean_margin_s": -20.0,
+      "n_episodes": 6400
+    },
+    "decoy": {
+      "best_tactic_id": "decoy-556745041",
+      "best_origin": "random",
+      "adversary_score": 0.9548740954055595,
+      "miss_rate": 0.95,
+      "mean_margin_s": -16.423009892230876,
+      "n_episodes": 6400
+    },
+    "blind_spot": {
+      "best_tactic_id": "blind_spot-823883722",
+      "best_origin": "search",
+      "adversary_score": 0.9532087036449028,
+      "miss_rate": 0.95,
+      "mean_margin_s": -14.575666560825116,
+      "n_episodes": 6400
+    },
+    "comms_cut": {
+      "best_tactic_id": "comms_cut-685633756",
+      "best_origin": "random",
+      "adversary_score": 0.9539693748571505,
+      "miss_rate": 0.95,
+      "mean_margin_s": -11.289749485742004,
+      "n_episodes": 6400
+    }
+  }
+}

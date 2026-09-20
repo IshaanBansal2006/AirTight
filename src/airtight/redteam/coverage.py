@@ -7,7 +7,7 @@ import numpy as np
 from pydantic import BaseModel, Field
 
 from airtight.contracts import XY, SensorCurves, Site
-from airtight.redteam.geometry import angle_diff_deg, bearing_deg, point_in_polygon
+from airtight.redteam.geometry import angle_diff_deg, bearing_deg, points_in_polygon
 
 
 class CoverageMap(BaseModel):
@@ -33,9 +33,14 @@ class CoverageMap(BaseModel):
 
     def low_cells(self, site: Site, max_score: float = 0.0) -> list[XY]:
         """Cell centres inside the perimeter whose score is at or below max_score."""
-        return [
-            c for c, s in self.cells() if s <= max_score and point_in_polygon(c, site.perimeter)
-        ]
+        scores = np.asarray(self.scores, dtype=np.float64)
+        iy, ix = np.nonzero(scores <= max_score)
+        if iy.size == 0:
+            return []
+        xs = self.x0 + (ix + 0.5) * self.cell_m
+        ys = self.y0 + (iy + 0.5) * self.cell_m
+        inside = points_in_polygon(xs, ys, site.perimeter)
+        return [XY(x=float(x), y=float(y)) for x, y, ok in zip(xs, ys, inside, strict=True) if ok]
 
     def score_at(self, p: XY) -> float:
         ix = int((p.x - self.x0) // self.cell_m)
@@ -63,13 +68,28 @@ class GeometryCoverage:
         xmin, ymin, xmax, ymax = site.bounds
         nx = max(1, math.ceil((xmax - xmin) / self.cell_m))
         ny = max(1, math.ceil((ymax - ymin) / self.cell_m))
-        scores = np.zeros((ny, nx))
-        for iy in range(ny):
-            for ix in range(nx):
-                c = XY(x=xmin + (ix + 0.5) * self.cell_m, y=ymin + (iy + 0.5) * self.cell_m)
-                scores[iy, ix] = self._fixed_sensor_score(c, site, curves) + self._dock_score(
-                    c, site
+        xs = xmin + (np.arange(nx, dtype=np.float64) + 0.5) * self.cell_m
+        ys = ymin + (np.arange(ny, dtype=np.float64) + 0.5) * self.cell_m
+        grid_x, grid_y = np.meshgrid(xs, ys)
+        scores = np.zeros((ny, nx), dtype=np.float64)
+        for s in site.fixed_sensors:
+            curve = curves.curves.get(s.sensor_type)
+            if curve is None:
+                raise KeyError(
+                    f"fixed sensor {s.id!r} uses sensor_type {s.sensor_type!r} with no curve; known: {sorted(curves.curves)}"
                 )
+            dx = grid_x - s.position.x
+            dy = grid_y - s.position.y
+            in_range = np.hypot(dx, dy) <= curve.max_range_m()
+            bearing = np.degrees(np.arctan2(dy, dx))
+            delta = (bearing - s.heading_deg + 180.0) % 360.0 - 180.0
+            in_fov = np.abs(delta) <= curve.fov_deg / 2.0
+            scores += (in_range & in_fov).astype(np.float64)
+        halo = self.dock_halo_m
+        for d in site.docks:
+            scores += (np.hypot(grid_x - d.position.x, grid_y - d.position.y) <= halo).astype(
+                np.float64
+            )
         return CoverageMap(
             cell_m=self.cell_m,
             x0=xmin,

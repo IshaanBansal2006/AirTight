@@ -15,7 +15,7 @@ from airtight.contracts.episode import (
     read_episode_log,
     write_episode_log,
 )
-from airtight.dimos_lane.replay import ReplayPlan, densify_intruder, plan_replay
+from airtight.dimos_lane.replay import ReplayPlan, densify_intruder, plan_replay, pose_at_or_before
 from airtight.dimos_lane.site_io import (
     load_example_site,
     load_logistics_curves,
@@ -74,11 +74,13 @@ def render_html(plan: ReplayPlan, site: Site, *, clean: bool = False) -> str:
     )
     if not times:
         times = [0.0]
+    intruder_t = [ts for ts, _ in plan.intruder]
+    marker_t = {oid: [ts for ts, _ in pts] for oid, pts in plan.markers.items()}
     for t in times:
-        intruder = next((p for ts, p in reversed(plan.intruder) if ts <= t), None)
+        intruder = pose_at_or_before(plan.intruder, t, intruder_t)
         agents = {}
         for oid, pts in plan.markers.items():
-            pos = next((p for ts, p in reversed(pts) if ts <= t), None)
+            pos = pose_at_or_before(pts, t, marker_t[oid])
             if pos is not None:
                 agents[oid] = {"x": pos.x, "y": pos.y}
         if intruder is not None:
@@ -296,9 +298,13 @@ def find_miss_catch_pair(
     run_episode: Callable[..., EpisodeResult],
 ) -> tuple[int, EpisodeResult, EpisodeResult]:
     for seed in seeds:
-        miss = run_episode(site, baseline, tactic, curves, seed, log_dir / "miss")
-        catch = run_episode(site, fixed, tactic, curves, seed, log_dir / "catch")
+        miss = run_episode(site, baseline, tactic, curves, seed, log_dir / "miss", full_log=False)
+        catch = run_episode(site, fixed, tactic, curves, seed, log_dir / "catch", full_log=False)
         if not miss.timely_detected and catch.timely_detected:
+            miss = run_episode(
+                site, baseline, tactic, curves, seed, log_dir / "miss", full_log=True
+            )
+            catch = run_episode(site, fixed, tactic, curves, seed, log_dir / "catch", full_log=True)
             return seed, miss, catch
     raise RuntimeError(
         f"no seed in the first {len(seeds)} where {baseline.name} misses and "
@@ -314,10 +320,10 @@ def write_handoff_clips(
     max_seeds: int = HANDOFF_MAX_SEEDS,
     log_dir: Path | None = None,
     tactics_dir: Path | None = None,
-    render_mp4: bool = True,
+    render_mp4: bool = False,
     run_episode: Callable[..., EpisodeResult] | None = None,
 ) -> Path:
-    """Same-seed miss/catch on logistics_yard for C: HTML + clips.json (+ MP4 if ffmpeg)."""
+    """Same-seed miss/catch on logistics_yard for C: HTML + clips.json. Pass render_mp4 for ffmpeg."""
     if run_episode is None:
         from airtight.sim.runner import run_episode as _run_episode
 

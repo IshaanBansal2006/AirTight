@@ -1,0 +1,58 @@
+INFO airtight.redteam.search: charging_window: round 0 best=0.950 (miss 0.95)
+INFO airtight.redteam.search: charging_window: round 1 best=0.951 (miss 0.95)
+INFO airtight.redteam.search: charging_window: round 2 best=0.951 (miss 0.95)
+INFO airtight.redteam.search: decoy: round 0 best=0.955 (miss 0.95)
+INFO airtight.redteam.search: decoy: round 1 best=0.955 (miss 0.95)
+INFO airtight.redteam.search: decoy: round 2 best=0.955 (miss 0.95)
+INFO airtight.redteam.search: blind_spot: round 0 best=0.953 (miss 0.95)
+INFO airtight.redteam.search: blind_spot: round 1 best=0.953 (miss 0.95)
+INFO airtight.redteam.search: blind_spot: round 2 best=0.953 (miss 0.95)
+INFO airtight.redteam.search: comms_cut: round 0 best=0.952 (miss 0.95)
+INFO airtight.redteam.search: comms_cut: round 1 best=0.953 (miss 0.95)
+INFO airtight.redteam.search: comms_cut: round 2 best=0.953 (miss 0.95)
+INFO airtight.redteam.minmax: iteration 0: d2_go2_guard_sync worst Pd 0.05 (blind_spot-371959345) at $55/h
+INFO airtight.redteam.search: charging_window: round 0 best=0.952 (miss 0.95)
+INFO airtight.redteam.search: charging_window: round 1 best=1.000 (miss 1.00)
+INFO airtight.redteam.search: charging_window: round 2 best=1.000 (miss 1.00)
+INFO airtight.redteam.search: decoy: round 0 best=0.950 (miss 0.95)
+INFO airtight.redteam.search: decoy: round 1 best=0.951 (miss 0.95)
+INFO airtight.redteam.search: decoy: round 2 best=0.951 (miss 0.95)
+INFO airtight.redteam.search: blind_spot: round 0 best=0.955 (miss 0.95)
+INFO airtight.redteam.search: blind_spot: round 1 best=1.000 (miss 1.00)
+INFO airtight.redteam.search: blind_spot: round 2 best=1.000 (miss 1.00)
+INFO airtight.redteam.search: comms_cut: round 0 best=1.000 (miss 1.00)
+INFO airtight.redteam.search: comms_cut: round 1 best=1.000 (miss 1.00)
+INFO airtight.redteam.search: comms_cut: round 2 best=1.000 (miss 1.00)
+INFO airtight.redteam.minmax: iteration 1: d2_go2_guard_stagger worst Pd 0.00 (blind_spot-051208427) at $55/h
+INFO airtight.redteam.search: charging_window: round 0 best=0.908 (miss 0.90)
+INFO airtight.redteam.search: charging_window: round 1 best=0.908 (miss 0.90)
+INFO airtight.redteam.search: charging_window: round 2 best=0.953 (miss 0.95)
+INFO airtight.redteam.search: decoy: round 0 best=0.908 (miss 0.90)
+INFO airtight.redteam.search: decoy: round 1 best=0.908 (miss 0.90)
+INFO airtight.redteam.search: decoy: round 2 best=0.953 (miss 0.95)
+INFO airtight.redteam.search: blind_spot: round 0 best=0.908 (miss 0.90)
+INFO airtight.redteam.search: blind_spot: round 1 best=0.953 (miss 0.95)
+INFO airtight.redteam.search: blind_spot: round 2 best=0.953 (miss 0.95)
+INFO airtight.redteam.search: comms_cut: round 0 best=0.768 (miss 0.75)
+INFO airtight.redteam.search: comms_cut: round 1 best=0.908 (miss 0.90)
+INFO airtight.redteam.search: comms_cut: round 2 best=0.908 (miss 0.90)
+INFO airtight.redteam.minmax: iteration 2: d2_go2_guard_stagger+drone_stagger worst Pd 0.05 (blind_spot-421805910) at $62/h
+INFO airtight.redteam.search: charging_window: round 0 best=0.953 (miss 0.95)
+INFO airtight.redteam.search: charging_window: round 1 best=1.000 (miss 1.00)
+INFO airtight.redteam.search: charging_window: round 2 best=1.000 (miss 1.00)
+INFO airtight.redteam.search: decoy: round 0 best=0.860 (miss 0.85)
+INFO airtight.redteam.search: decoy: round 1 best=0.906 (miss 0.90)
+INFO airtight.redteam.search: decoy: round 2 best=0.908 (miss 0.90)
+INFO airtight.redteam.search: blind_spot: round 0 best=0.673 (miss 0.65)
+INFO airtight.redteam.search: blind_spot: round 1 best=0.861 (miss 0.85)
+INFO airtight.redteam.search: blind_spot: round 2 best=0.909 (miss 0.90)
+INFO airtight.redteam.search: comms_cut: round 0 best=0.860 (miss 0.85)
+INFO airtight.redteam.search: comms_cut: round 1 best=0.860 (miss 0.85)
+INFO airtight.redteam.search: comms_cut: round 2 best=0.906 (miss 0.90)
+INFO airtight.redteam.minmax: iteration 3: d2_go2_guard_stagger+drone_stagger+drone_stagger worst Pd 0.00 (charging_window-972764563) at $69/h
+iter 0: d2_go2_guard_sync            $55/h  worst Pd=0.05 (blind_spot)  fix=stagger
+iter 1: d2_go2_guard_stagger         $55/h  worst Pd=0.00 (blind_spot)  fix=add_drone
+iter 2: d2_go2_guard_stagger+drone_stagger $62/h  worst Pd=0.05 (blind_spot)  fix=add_drone
+iter 3: d2_go2_guard_stagger+drone_stagger+drone_stagger $69/h  worst Pd=0.00 (charging_window)  fix=None
+engine=v0; written to data/minmax
+exit=0

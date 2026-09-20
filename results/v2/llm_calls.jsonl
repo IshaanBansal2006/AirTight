@@ -1,0 +1,4 @@
+{"ts":"2026-09-19T19:16:57.903264Z","purpose":"propose","model":"gpt-4.1-nano","prompt_hash":"032610663775","source":"mock","input_tokens":0,"output_tokens":0,"usd":0.0}
+{"ts":"2026-09-19T19:17:31.423148Z","purpose":"propose","model":"gpt-4.1-nano","prompt_hash":"87d554fed391","source":"api","input_tokens":865,"output_tokens":154,"usd":0.0001481}
+{"ts":"2026-09-19T19:41:48.696342Z","purpose":"campaign","model":"gpt-4.1-nano","prompt_hash":"e6e34ec45cfe","source":"mock","input_tokens":0,"output_tokens":0,"usd":0.0}
+{"ts":"2026-09-19T22:25:15.251780Z","purpose":"propose","model":"gpt-4.1-nano","prompt_hash":"bbc55f026a52","source":"api","input_tokens":927,"output_tokens":156,"usd":0.00015510000000000003}

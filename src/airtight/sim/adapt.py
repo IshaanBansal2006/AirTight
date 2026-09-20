@@ -37,6 +37,7 @@ if TYPE_CHECKING:
 START_OFFSET_M = 2.0
 BENIGN_SPEED_MPS = {"person": 1.4, "vehicle": 5.0, "animal": 2.0, "debris": 0.5}
 DEFAULT_BENIGN_SPEED_MPS = 1.4
+_PD_CACHE: dict[int, tuple[object, np.ndarray, np.ndarray]] = {}
 
 
 class BenignRouteSpec(NamedTuple):
@@ -326,8 +327,17 @@ def pd_per_look(sensor_curves: SensorCurves, sensor_type: str, range_m: float) -
     Bins are upper edges, so a range exactly on an edge belongs to the bin that edge closes.
     """
     curve = _curve(sensor_curves, sensor_type)
-    i = int(np.searchsorted(curve.range_bins_m, range_m, side="left"))
-    return float(curve.pd_per_look[i]) if i < len(curve.range_bins_m) else 0.0
+    cached = _PD_CACHE.get(id(curve))
+    if cached is None or cached[0] is not curve:
+        cached = (
+            curve,
+            np.asarray(curve.range_bins_m, dtype=np.float64),
+            np.asarray(curve.pd_per_look, dtype=np.float64),
+        )
+        _PD_CACHE[id(curve)] = cached
+    _, bins, pd = cached
+    i = int(np.searchsorted(bins, range_m, side="left"))
+    return float(pd[i]) if i < bins.size else 0.0
 
 
 def true_fp_per_look(sensor_curves: SensorCurves, sensor_type: str, cls: str) -> float:

@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING, Protocol
 import numpy as np
 
 from airtight.sim import adapt
-from airtight.sim.geometry import polyline_length, polyline_position
+from airtight.sim.geometry import Polyline
 
 if TYPE_CHECKING:
     import numpy.typing as npt
@@ -48,6 +48,7 @@ class Intruder:
         self.object_id = "intruder"
         self.kind = "intruder"
         self.path = adapt.intruder_path(site, tactic)
+        self._polyline = Polyline(self.path)
         self.speed_mps = adapt.intruder_speed_mps(tactic)
         self.t_reach = adapt.t_reach(site, tactic)
         self.t_cdp = adapt.t_cdp(site, tactic)
@@ -60,26 +61,33 @@ class Intruder:
         if t >= self.t_reach:
             asset: Array = self.path[-1].copy()
             return asset
-        xy, _ = polyline_position(self.path, self.speed_mps, t)  # a fresh array
+        xy, _ = self._polyline.position(self.speed_mps, t)  # a fresh array
         return xy
 
 
 class BenignObject:
     def __init__(
-        self, object_id: str, cls: str, points: Array, speed_mps: float, t_start: float
+        self,
+        object_id: str,
+        cls: str,
+        points: Array,
+        speed_mps: float,
+        t_start: float,
+        polyline: Polyline | None = None,
     ) -> None:
         self.object_id = object_id
         self.kind = cls
         self.points = points
+        self._polyline = polyline if polyline is not None else Polyline(points)
         self.speed_mps = speed_mps
         self.t_start = t_start
-        self.t_end = t_start + polyline_length(points) / speed_mps
+        self.t_end = t_start + self._polyline.total / speed_mps
 
     def alive(self, t: float) -> bool:
         return self.t_start <= t <= self.t_end
 
     def position(self, t: float) -> Array:
-        xy, _ = polyline_position(self.points, self.speed_mps, t - self.t_start)  # a fresh array
+        xy, _ = self._polyline.position(self.speed_mps, t - self.t_start)  # a fresh array
         return xy
 
 
@@ -123,12 +131,18 @@ def spawn_benign(site: Site, t0: float, t1: float, seed: int) -> list[BenignObje
         if route.arrivals_per_hour <= 0:
             continue
         rng = benign_rng(seed, route.route_id)
-        window_start = t0 - polyline_length(route.points) / route.speed_mps
+        path = Polyline(route.points)
+        window_start = t0 - path.total / route.speed_mps
         n = int(rng.poisson(route.arrivals_per_hour / 3600.0 * (t1 - window_start)))
         starts = np.sort(rng.uniform(window_start, t1, size=n))
         objects.extend(
             BenignObject(
-                f"{route.route_id}-{i}", route.cls, route.points, route.speed_mps, float(t)
+                f"{route.route_id}-{i}",
+                route.cls,
+                route.points,
+                route.speed_mps,
+                float(t),
+                polyline=path,
             )
             for i, t in enumerate(starts)
         )

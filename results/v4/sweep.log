@@ -1,0 +1,25 @@
+d1_go2_guard_sync             1600 episodes  timely@ref=0.15  quiet=35.8 h  gap=0 s/h
+d1_go2_guard_stagger          1600 episodes  timely@ref=0.15  quiet=35.8 h  gap=0 s/h
+d2_go2_guard_sync             1600 episodes  timely@ref=0.07  quiet=31.1 h  gap=0 s/h
+d2_go2_guard_stagger          1600 episodes  timely@ref=0.22  quiet=31.1 h  gap=0 s/h
+d3_go2_guard_sync             1600 episodes  timely@ref=0.56  quiet=28.8 h  gap=0 s/h
+d3_go2_guard_stagger          1600 episodes  timely@ref=0.47  quiet=28.8 h  gap=0 s/h
+d4_go2_guard_sync             1600 episodes  timely@ref=0.62  quiet=27.3 h  gap=0 s/h
+d4_go2_guard_stagger          1600 episodes  timely@ref=0.53  quiet=27.3 h  gap=0 s/h
+d2_nogo2_guard_stagger        1600 episodes  timely@ref=0.24  quiet=21.7 h  gap=0 s/h
+d2_go2_noguard_stagger        1600 episodes  timely@ref=0.07  quiet=31.1 h  gap=139 s/h
+d2_nogo2_noguard_stagger      1600 episodes  timely@ref=0.11  quiet=21.7 h  gap=854 s/h
+d0_go2_guard_sync             1600 episodes  timely@ref=0.03  quiet=50.0 h  gap=0 s/h
+d1_go2_guard_sync            pd@op=0.24 [0.21,0.26]  worst=0.04 blind=0.28 (charging_window-439068210)  cost=$48/h  decisions/h=0.06
+d1_go2_guard_stagger         pd@op=0.24 [0.22,0.26]  worst=0.04 blind=0.28 (charging_window-439068210)  cost=$48/h  decisions/h=0.06
+d2_go2_guard_sync            pd@op=0.14 [0.12,0.15]  worst=0.04 blind=0.53 (charging_window-439068210)  cost=$55/h  decisions/h=0.10
+d2_go2_guard_stagger         pd@op=0.31 [0.28,0.33]  worst=0.04 blind=0.53 (charging_window-439068210)  cost=$55/h  decisions/h=0.19
+d3_go2_guard_sync            pd@op=0.65 [0.63,0.67]  worst=0.14 blind=0.49 (blind_spot-823883722)  cost=$62/h  decisions/h=0.07
+d3_go2_guard_stagger         pd@op=0.63 [0.61,0.65]  worst=0.49 blind=0.51 (blind_spot-823883722)  cost=$62/h  decisions/h=0.21
+d4_go2_guard_sync            pd@op=0.67 [0.65,0.70]  worst=0.14 blind=0.51 (blind_spot-823883722)  cost=$69/h  decisions/h=0.11
+d4_go2_guard_stagger         pd@op=0.62 [0.59,0.64]  worst=0.34 blind=0.39 (comms_cut-350976884)  cost=$69/h  decisions/h=0.15
+d2_nogo2_guard_stagger       pd@op=0.33 [0.31,0.35]  worst=0.06 blind=0.39 (blind_spot-848705593)  cost=$46/h  decisions/h=0.09
+d2_go2_noguard_stagger       pd@op=0.07 [0.06,0.09]  worst=0.00 blind=0.30 (charging_window-439068210)  cost=$23/h  decisions/h=0.19
+d2_nogo2_noguard_stagger     pd@op=0.12 [0.11,0.14]  worst=0.00 blind=0.20 (blind_spot-848705593)  cost=$14/h  decisions/h=0.18
+d0_go2_guard_sync            pd@op=0.08 [0.07,0.10]  worst=0.00 blind=0.09 (charging_window-439068210)  cost=$41/h  decisions/h=0.02
+engine=v0; 8 tactics x 200 seeds x 12 configs; report written to data/v4/report.json
