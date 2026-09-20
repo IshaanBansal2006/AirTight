@@ -6,10 +6,10 @@ import logging
 import os
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from airtight.contracts import FleetConfig, SensorCurves, Site
 from airtight.redteam.search import load_seeds
-from airtight.score.logreport.logs import EpisodeSummary
 from airtight.score.logreport.sweep import (
     ConfigInputs,
     build_report,
@@ -20,6 +20,9 @@ from airtight.score.logreport.sweep import (
     run_quiet_nights,
     seed_list_hash,
 )
+
+if TYPE_CHECKING:
+    from airtight.score.logreport.logs import EpisodeSummary
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
 SCEN = REPO_ROOT / "scenarios" / "logistics_yard"
